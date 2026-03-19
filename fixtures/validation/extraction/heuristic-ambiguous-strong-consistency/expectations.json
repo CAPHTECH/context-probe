@@ -1,0 +1,16 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "invariants": {
+    "mustInclude": [
+      "注文確定後は決済総額と明細合計が常に一致していなければならない"
+    ],
+    "mustExclude": []
+  },
+  "review": {
+    "sourceCommand": "doc.extract_invariants",
+    "mustIncludeReasons": ["low_confidence", "unknown"],
+    "maxItems": 2
+  }
+}
