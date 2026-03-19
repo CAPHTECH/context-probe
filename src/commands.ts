@@ -280,11 +280,27 @@ export const COMMANDS: Record<string, CommandHandler> = {
       });
     }
     const model = await requireDomainModel(args, context);
+    const docsRoot = typeof args["docs-root"] === "string" ? getDocsRoot(args, context) : undefined;
+    const extractionOptions = docsRoot ? await buildExtractionOptions(args, context) : undefined;
     return computeDomainDesignScores({
       repoPath: getRootPath(args, context),
       model,
       policyConfig,
-      profileName: getProfile(args)
+      profileName: getProfile(args),
+      ...(docsRoot ? { docsRoot } : {}),
+      ...(extractionOptions
+        ? {
+            extraction: {
+              extractor: extractionOptions.extractor,
+              ...(extractionOptions.provider ? { provider: extractionOptions.provider } : {}),
+              ...(extractionOptions.providerCommand ? { providerCommand: extractionOptions.providerCommand } : {}),
+              promptProfile: extractionOptions.promptProfile,
+              fallback: extractionOptions.fallback,
+              ...(extractionOptions.reviewLog ? { reviewLog: extractionOptions.reviewLog } : {}),
+              applyReviewLog: extractionOptions.applyReviewLog
+            }
+          }
+        : {})
     });
   },
 

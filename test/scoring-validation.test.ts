@@ -1,4 +1,5 @@
 import { execFile as execFileCallback } from "node:child_process";
+import { chmod } from "node:fs/promises";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -11,6 +12,7 @@ import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitR
 const execFile = promisify(execFileCallback);
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
+const CODEX_STUB = path.resolve("test/fixtures/stubs/codex-stub.mjs");
 const MCCS_MODEL_PATH = path.resolve("fixtures/validation/scoring/mccs/model.yaml");
 const MCCS_GOOD_ENTRY = "fixtures/validation/scoring/mccs/good-repo";
 const MCCS_BAD_ENTRY = "fixtures/validation/scoring/mccs/bad-repo";
@@ -19,6 +21,9 @@ const DDS_GOOD_REPO = path.resolve("fixtures/validation/scoring/dds/good-repo");
 const DDS_BAD_REPO = path.resolve("fixtures/validation/scoring/dds/bad-repo");
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
+const ULI_MODEL_PATH = path.resolve("fixtures/validation/scoring/uli/model.yaml");
+const ULI_GOOD_ENTRY = "fixtures/validation/scoring/uli/good";
+const ULI_BAD_TRACE_ENTRY = "fixtures/validation/scoring/uli/bad-trace";
 
 describe("score validation", () => {
   const tempRoots: string[] = [];
@@ -162,6 +167,66 @@ describe("score validation", () => {
     expect(localEls.value).toBeGreaterThan(scatteredEls.value);
     expect(localEls.value).toBeGreaterThanOrEqual(0.7);
     expect(scatteredEls.value).toBeLessThanOrEqual(0.1);
+  }, 15000);
+
+  test("ULI is higher for well-traced glossary terms than for untraced or colliding terms", async () => {
+    await chmod(CODEX_STUB, 0o755);
+
+    const goodRoot = await createTemporaryWorkspace([ULI_GOOD_ENTRY]);
+    const badTraceRoot = await createTemporaryWorkspace([ULI_BAD_TRACE_ENTRY]);
+    tempRoots.push(goodRoot, badTraceRoot);
+
+    const goodRepo = path.join(goodRoot, ULI_GOOD_ENTRY, "repo");
+    const goodDocs = path.join(goodRoot, ULI_GOOD_ENTRY, "docs");
+    const badTraceRepo = path.join(badTraceRoot, ULI_BAD_TRACE_ENTRY, "repo");
+    const badTraceDocs = path.join(badTraceRoot, ULI_BAD_TRACE_ENTRY, "docs");
+
+    await initializeTemporaryGitRepo(goodRepo, "feat: init uli good");
+    await initializeTemporaryGitRepo(badTraceRepo, "feat: init uli bad trace");
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        model: ULI_MODEL_PATH,
+        policy: POLICY_PATH,
+        domain: "domain_design",
+        "docs-root": goodDocs
+      },
+      { cwd: process.cwd() }
+    );
+    const badTraceResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: badTraceRepo,
+        model: ULI_MODEL_PATH,
+        policy: POLICY_PATH,
+        domain: "domain_design",
+        "docs-root": badTraceDocs
+      },
+      { cwd: process.cwd() }
+    );
+    const badCollisionResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        model: ULI_MODEL_PATH,
+        policy: POLICY_PATH,
+        domain: "domain_design",
+        "docs-root": goodDocs,
+        extractor: "cli",
+        provider: "codex",
+        "provider-cmd": CODEX_STUB,
+        fallback: "none"
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodUli = getMetric(goodResponse, "ULI");
+    const badTraceUli = getMetric(badTraceResponse, "ULI");
+    const badCollisionUli = getMetric(badCollisionResponse, "ULI");
+
+    expect(goodUli.value).toBeGreaterThan(badTraceUli.value);
+    expect(goodUli.value).toBeGreaterThan(badCollisionUli.value);
+    expect(goodUli.components.TL ?? 0).toBeGreaterThan(badTraceUli.components.TL ?? 0);
+    expect(badCollisionUli.components.TC ?? 0).toBeGreaterThan(goodUli.components.TC ?? 0);
   }, 15000);
 });
 

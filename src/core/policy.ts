@@ -7,6 +7,13 @@ export const DEFAULT_POLICY: PolicyConfig = {
       domains: {
         domain_design: {
           metrics: {
+            ULI: {
+              formula: "0.30*GC + 0.20*(1-AE) + 0.25*(1-TC) + 0.25*TL",
+              thresholds: {
+                warn: 0.7,
+                fail: 0.55
+              }
+            },
             MCCS: {
               formula: "0.50*MRP + 0.25*(1-BLR) + 0.25*CLA",
               thresholds: {
