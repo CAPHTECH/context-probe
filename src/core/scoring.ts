@@ -6,19 +6,50 @@ import type {
   DomainModel,
   ExtractionBackend,
   ExtractionProviderName,
+  Fragment,
+  InvariantCandidate,
   MetricScore,
   PolicyConfig,
   ReviewResolutionLog,
+  RuleCandidate,
   TermTraceLink
 } from "./contracts.js";
-import { extractGlossary } from "./document-extractors.js";
+import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
 import { evaluateFormula } from "./formula.js";
 import { normalizeHistory, scoreEvolutionLocality } from "./history.js";
 import { getDomainPolicy } from "./policy.js";
 import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
+import { listReviewItems } from "./review.js";
 import { buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
+
+const USE_CASE_SIGNALS = [
+  /ユースケース/u,
+  /シナリオ/u,
+  /期待(?:される)?結果/u,
+  /受け入れ基準/u,
+  /利用者/u,
+  /\buse case\b/i,
+  /\bscenario\b/i,
+  /\bacceptance\b/i
+];
+const CONSTRAINT_SIGNALS = [
+  /なければならない/u,
+  /べき/u,
+  /常に/u,
+  /一致/u,
+  /一意/u,
+  /整合/u,
+  /返(?:る|される)/u,
+  /欠落しない/u,
+  /再現可能/u,
+  /安定(?:する|している)/u,
+  /辿れる/u,
+  /反映(?:される|されている)/u,
+  /付与(?:される|されている)/u,
+  /表示(?:される|されている)/u
+];
 
 function computeLeakRatio(leaks: BoundaryLeakFinding[], applicableReferences: number): number {
   if (applicableReferences === 0) {
@@ -52,6 +83,28 @@ function computeAliasEntropy(aliasesPerTerm: number, termCount: number): number 
   return Math.min(1, aliasesPerTerm / termCount);
 }
 
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function average(values: number[], fallback: number): number {
+  if (values.length === 0) {
+    return fallback;
+  }
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function dedupeEvidence<T extends { evidenceId: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.evidenceId)) {
+      return false;
+    }
+    seen.add(item.evidenceId);
+    return true;
+  });
+}
+
 function computeUliComponents(terms: Awaited<ReturnType<typeof extractGlossary>>["terms"], links: TermTraceLink[]) {
   const totalTerms = terms.length;
   if (totalTerms === 0) {
@@ -77,6 +130,72 @@ function computeUliComponents(terms: Awaited<ReturnType<typeof extractGlossary>>
     AE: computeAliasEntropy(aliasCount, totalTerms),
     TC: collisionTerms / totalTerms,
     TL: tracedTerms / totalTerms
+  };
+}
+
+function buildReviewItemsForCandidates(
+  key: "rules" | "invariants",
+  candidates: RuleCandidate[] | InvariantCandidate[],
+  responseConfidence: number,
+  responseUnknowns: string[]
+) {
+  return listReviewItems({
+    status: "ok",
+    result: {
+      [key]: candidates
+    },
+    evidence: candidates.flatMap((candidate) => candidate.evidence),
+    confidence: responseConfidence,
+    unknowns: responseUnknowns,
+    diagnostics: [],
+    provenance: [],
+    version: "1.0"
+  });
+}
+
+function computeDrfComponents(
+  fragments: Fragment[],
+  rules: RuleCandidate[],
+  invariants: InvariantCandidate[],
+  reviewItemCount: number
+) {
+  const proseFragments = fragments.filter((fragment) => fragment.kind === "paragraph" && fragment.text.trim().length > 0);
+  const totalCandidates = rules.length + invariants.length;
+  const allCandidates = [...rules, ...invariants];
+  const coveredFragments = new Set(allCandidates.flatMap((candidate) => candidate.fragmentIds)).size;
+  const signalFragments = proseFragments.filter((fragment) =>
+    CONSTRAINT_SIGNALS.some((pattern) => pattern.test(fragment.text))
+  ).length;
+  const useCaseFragments = proseFragments.filter((fragment) =>
+    USE_CASE_SIGNALS.some((pattern) => pattern.test(fragment.text))
+  ).length;
+  const ambiguousCandidates = allCandidates.filter((candidate) => candidate.unknowns.length > 0).length;
+  const lowConfidenceCandidates = allCandidates.filter((candidate) => candidate.confidence < 0.75).length;
+  const ambiguityRate = totalCandidates === 0 ? 1 : ambiguousCandidates / totalCandidates;
+  const lowConfidenceRate = totalCandidates === 0 ? 1 : lowConfidenceCandidates / totalCandidates;
+  const reviewDensity = clamp01(reviewItemCount / Math.max(1, totalCandidates * 2));
+  const averageConfidence = average(allCandidates.map((candidate) => candidate.confidence), 0.45);
+
+  const SC =
+    proseFragments.length === 0
+      ? 0
+      : clamp01((0.7 * useCaseFragments) / proseFragments.length + (0.3 * coveredFragments) / proseFragments.length);
+  const RC =
+    signalFragments === 0
+      ? 0
+      : clamp01((coveredFragments / signalFragments) * (1 - 0.5 * ambiguityRate));
+  const IV = clamp01(0.6 * ambiguityRate + 0.4 * lowConfidenceRate);
+  const RA = clamp01((1 - reviewDensity) * 0.6 + averageConfidence * 0.4);
+
+  return {
+    SC,
+    RC,
+    IV,
+    RA,
+    proseFragments: proseFragments.length,
+    useCaseFragments,
+    signalFragments,
+    totalCandidates
   };
 }
 
@@ -176,6 +295,80 @@ export async function computeDomainDesignScores(options: {
   };
   const elsComponents = historySignals;
   const scores: MetricScore[] = [];
+  if (policy.metrics.DRF) {
+    if (!options.docsRoot) {
+      unknowns.push("`--docs-root` が指定されていないため DRF をスキップしました");
+    } else {
+      const extractionOptions = {
+        root: options.docsRoot,
+        cwd: repoPath,
+        extractor: options.extraction?.extractor ?? "heuristic",
+        ...(options.extraction?.provider ? { provider: options.extraction.provider } : {}),
+        ...(options.extraction?.providerCommand ? { providerCommand: options.extraction.providerCommand } : {}),
+        promptProfile: options.extraction?.promptProfile ?? "default",
+        fallback: options.extraction?.fallback ?? "heuristic",
+        ...(options.extraction?.reviewLog ? { reviewLog: options.extraction.reviewLog } : {}),
+        applyReviewLog: options.extraction?.applyReviewLog ?? false
+      } as const;
+      const rulesResult = await extractRules(extractionOptions);
+      const invariantsResult = await extractInvariants(extractionOptions);
+      const reviewItems = [
+        ...buildReviewItemsForCandidates("rules", rulesResult.rules, rulesResult.confidence, rulesResult.unknowns),
+        ...buildReviewItemsForCandidates(
+          "invariants",
+          invariantsResult.invariants,
+          invariantsResult.confidence,
+          invariantsResult.unknowns
+        )
+      ];
+      const drfComponents = computeDrfComponents(
+        rulesResult.fragments,
+        rulesResult.rules,
+        invariantsResult.invariants,
+        reviewItems.length
+      );
+      const drfUnknowns = [
+        ...rulesResult.unknowns,
+        ...invariantsResult.unknowns,
+        "SC は use case signal ベースの近似です",
+        "IV は review burden ベースの近似です"
+      ];
+
+      if (drfComponents.totalCandidates === 0) {
+        drfUnknowns.push("rule/invariant が抽出されず DRF の判定根拠が不足しています");
+      }
+      if (drfComponents.useCaseFragments === 0) {
+        drfUnknowns.push("ユースケース相当の記述が少なく SC の判定根拠が限定的です");
+      }
+
+      const drfEvidence = dedupeEvidence([
+        ...rulesResult.rules.flatMap((rule) => rule.evidence),
+        ...invariantsResult.invariants.flatMap((invariant) => invariant.evidence)
+      ]);
+      additionalEvidence.push(...drfEvidence);
+      diagnostics.push(...rulesResult.diagnostics, ...invariantsResult.diagnostics);
+
+      scores.push(
+        toMetricScore(
+          "DRF",
+          evaluateFormula(policy.metrics.DRF.formula, drfComponents),
+          {
+            SC: drfComponents.SC,
+            RC: drfComponents.RC,
+            IV: drfComponents.IV,
+            RA: drfComponents.RA
+          },
+          drfEvidence.map((entry) => entry.evidenceId),
+          confidenceFromSignals([
+            rulesResult.confidence,
+            invariantsResult.confidence,
+            drfComponents.useCaseFragments > 0 ? 0.8 : 0.55
+          ]),
+          drfUnknowns
+        )
+      );
+    }
+  }
   if (policy.metrics.ULI) {
     if (!options.docsRoot) {
       unknowns.push("`--docs-root` が指定されていないため ULI をスキップしました");
@@ -275,7 +468,7 @@ export async function computeDomainDesignScores(options: {
     },
     {
       status: diagnostics.length > 0 ? "warning" : "ok",
-      evidence: [...evidence, ...additionalEvidence],
+      evidence: dedupeEvidence([...evidence, ...additionalEvidence]),
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns,
       diagnostics,
