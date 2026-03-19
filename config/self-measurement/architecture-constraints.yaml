@@ -1,0 +1,31 @@
+version: "1.0"
+direction: inward
+layers:
+  - name: foundation
+    rank: 0
+    globs:
+      - "src/core/contracts.ts"
+      - "src/core/formula.ts"
+      - "src/core/io.ts"
+      - "src/core/model.ts"
+      - "src/core/policy.ts"
+      - "src/core/response.ts"
+  - name: domain_services
+    rank: 1
+    globs:
+      - "src/core/artifacts.ts"
+      - "src/core/document-extractors.ts"
+      - "src/core/history.ts"
+      - "src/core/providers.ts"
+      - "src/core/report.ts"
+      - "src/core/review.ts"
+      - "src/core/scoring.ts"
+      - "src/core/trace.ts"
+      - "src/analyzers/**"
+      - "src/packs/**"
+  - name: application
+    rank: 2
+    globs:
+      - "src/cli.ts"
+      - "src/commands.ts"
+      - "src/index.ts"

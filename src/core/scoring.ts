@@ -1,0 +1,236 @@
+import type {
+  ArchitectureConstraints,
+  BoundaryLeakFinding,
+  CochangeAnalysis,
+  CommandResponse,
+  DomainModel,
+  MetricScore,
+  PolicyConfig
+} from "./contracts.js";
+import { evaluateFormula } from "./formula.js";
+import { normalizeHistory, scoreEvolutionLocality } from "./history.js";
+import { getDomainPolicy } from "./policy.js";
+import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
+import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
+import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
+
+function computeLeakRatio(leaks: BoundaryLeakFinding[], applicableReferences: number): number {
+  if (applicableReferences === 0) {
+    return 0;
+  }
+  return leaks.length / applicableReferences;
+}
+
+function toMetricScore(
+  metricId: string,
+  value: number,
+  components: Record<string, number>,
+  evidenceRefs: string[],
+  confidence: number,
+  unknowns: string[]
+): MetricScore {
+  return {
+    metricId,
+    value,
+    components,
+    confidence,
+    evidenceRefs,
+    unknowns
+  };
+}
+
+export async function computeDomainDesignScores(options: {
+  repoPath: string;
+  model: DomainModel;
+  policyConfig: PolicyConfig;
+  profileName: string;
+}): Promise<
+  CommandResponse<{
+    domainId: "domain_design";
+    metrics: MetricScore[];
+    leakFindings: BoundaryLeakFinding[];
+    history: CochangeAnalysis | null;
+    crossContextReferences: number;
+  }>
+> {
+  const { repoPath, model, policyConfig, profileName } = options;
+  const policy = getDomainPolicy(policyConfig, profileName, "domain_design");
+  const codebase = await parseCodebase(repoPath);
+  const contractUsage = detectContractUsage(codebase, model);
+  const leakFindings = detectBoundaryLeaks(codebase, model);
+  const leakRatio = computeLeakRatio(leakFindings, contractUsage.applicableReferences);
+  const mrp = 1 - leakRatio;
+  const cla = contractUsage.adherence;
+  const evidence = leakFindings.map((finding) =>
+    toEvidence(
+      `${finding.sourceContext} -> ${finding.targetContext} internal leak`,
+      {
+        path: finding.path,
+        violationType: finding.violationType
+      },
+      [finding.findingId],
+      0.95
+    )
+  );
+  const diagnostics: string[] = [];
+  const unknowns: string[] = [];
+  const mccsConfidence = contractUsage.applicableReferences > 0 ? 0.9 : 0.55;
+
+  if (contractUsage.applicableReferences === 0) {
+    unknowns.push("定義したコンテキスト間の参照が見つからず MCCS の判定根拠が限定的です");
+  }
+
+  let history: CochangeAnalysis | null = null;
+  let historySignals = {
+    CCL: 0,
+    FS: 0,
+    SCR: 0
+  };
+  let historyConfidence = 0;
+
+  try {
+    const commits = await normalizeHistory(repoPath, policyConfig, profileName);
+    history = scoreEvolutionLocality(commits, model);
+    historySignals = {
+      CCL: history.crossContextChangeLocality,
+      FS: history.featureScatter,
+      SCR: history.surpriseCouplingRatio
+    };
+    if (history.commits.length === 0) {
+      historyConfidence = 0.5;
+    } else if (history.commits.length < 3) {
+      historyConfidence = 0.6;
+    } else {
+      historyConfidence = 0.9;
+    }
+    if (history.commits.length === 0) {
+      unknowns.push("Git履歴から評価可能なコミットが見つかりませんでした");
+    } else if (history.commits.length < 3) {
+      unknowns.push("Git履歴がまだ少ないため ELS は暫定値です");
+    }
+  } catch (error) {
+    history = null;
+    historyConfidence = 0.2;
+    diagnostics.push(
+      error instanceof Error ? `履歴解析をスキップしました: ${error.message}` : "履歴解析をスキップしました"
+    );
+    unknowns.push("履歴解析に必要なGit情報が不足しています");
+  }
+
+  const mccsComponents = {
+    MRP: mrp,
+    BLR: leakRatio,
+    CLA: cla
+  };
+  const elsComponents = historySignals;
+  const scores: MetricScore[] = [];
+  if (policy.metrics.MCCS) {
+    scores.push(
+      toMetricScore(
+        "MCCS",
+        evaluateFormula(policy.metrics.MCCS.formula, mccsComponents),
+        mccsComponents,
+        evidence.map((entry) => entry.evidenceId),
+        confidenceFromSignals([0.9, mccsConfidence, 0.9]),
+        contractUsage.applicableReferences > 0
+          ? []
+          : ["コンテキスト間参照が観測されていないため MCCS の解釈に注意が必要です"]
+      )
+    );
+  }
+  if (policy.metrics.ELS) {
+    scores.push(
+      toMetricScore(
+        "ELS",
+        evaluateFormula(policy.metrics.ELS.formula, elsComponents),
+        elsComponents,
+        [],
+        historyConfidence,
+        history ? [] : ["履歴解析が完了していないため ELS の信頼度が低い状態です"]
+      )
+    );
+  }
+
+  return createResponse(
+    {
+      domainId: "domain_design",
+      metrics: scores,
+      leakFindings,
+      history,
+      crossContextReferences: contractUsage.applicableReferences
+    },
+    {
+      status: diagnostics.length > 0 ? "warning" : "ok",
+      evidence,
+      confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
+      unknowns,
+      diagnostics,
+      provenance: [toProvenance(repoPath, "domain_design")]
+    }
+  );
+}
+
+export async function computeArchitectureScores(options: {
+  repoPath: string;
+  constraints: ArchitectureConstraints;
+  policyConfig: PolicyConfig;
+  profileName: string;
+}): Promise<
+  CommandResponse<{
+    domainId: "architecture_design";
+    metrics: MetricScore[];
+    violations: ReturnType<typeof detectDirectionViolations>;
+  }>
+> {
+  const { repoPath, constraints, policyConfig, profileName } = options;
+  const policy = getDomainPolicy(policyConfig, profileName, "architecture_design");
+  const codebase = await parseCodebase(repoPath);
+  const directionScore = scoreDependencyDirection(codebase, constraints);
+  const violations = detectDirectionViolations(codebase, constraints);
+  const evidence = violations.map((violation) =>
+    toEvidence(
+      `${violation.sourceLayer} -> ${violation.targetLayer} direction violation`,
+      {
+        source: violation.source,
+        target: violation.target
+      },
+      undefined,
+      0.95
+    )
+  );
+  const scores: MetricScore[] = [];
+  if (policy.metrics.DDS) {
+    scores.push(
+      toMetricScore(
+        "DDS",
+        evaluateFormula(policy.metrics.DDS.formula, {
+          IDR: directionScore.IDR,
+          LRC: directionScore.LRC,
+          APM: directionScore.APM
+        }),
+        {
+          IDR: directionScore.IDR,
+          LRC: directionScore.LRC,
+          APM: directionScore.APM
+        },
+        evidence.map((entry) => entry.evidenceId),
+        directionScore.applicableEdges > 0 ? 0.9 : 0.55,
+        directionScore.applicableEdges > 0 ? [] : ["層に分類できる依存が不足しています"]
+      )
+    );
+  }
+
+  return createResponse(
+    {
+      domainId: "architecture_design",
+      metrics: scores,
+      violations
+    },
+    {
+      evidence,
+      confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
+      unknowns: scores.flatMap((score) => score.unknowns),
+      provenance: [toProvenance(repoPath, "architecture_design")]
+    }
+  );
+}
