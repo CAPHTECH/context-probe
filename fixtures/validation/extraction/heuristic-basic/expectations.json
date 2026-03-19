@@ -1,0 +1,26 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "glossary": {
+    "mustInclude": ["MCCS", "score.compute", "ReviewQueue"],
+    "mustExclude": []
+  },
+  "rules": {
+    "mustInclude": ["heuristic fallback を使わなければならない"],
+    "mustExclude": []
+  },
+  "invariants": {
+    "mustInclude": ["confidence と unknowns は常に返る"],
+    "mustExclude": []
+  },
+  "trace": {
+    "mustLinkToCode": ["MCCS", "score.compute"],
+    "mustStayDocumentOnly": ["ReviewQueue"]
+  },
+  "review": {
+    "sourceCommand": "doc.extract_glossary",
+    "mustIncludeReasons": ["low_confidence"],
+    "maxItems": 6
+  }
+}

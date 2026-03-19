@@ -1,0 +1,22 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "glossary": {
+    "mustInclude": ["EvidenceCard"],
+    "mustExclude": ["TABLE_NOISE", "NOISE_BLOCK"]
+  },
+  "rules": {
+    "mustInclude": ["証拠は常に追跡可能でなければならない"],
+    "mustExclude": ["NOISE_RULE", "evidence_id は常に一意である"]
+  },
+  "invariants": {
+    "mustInclude": ["evidence_id は常に一意である"],
+    "mustExclude": ["NOISE_INVARIANT", "証拠は常に追跡可能でなければならない"]
+  },
+  "review": {
+    "sourceCommand": "doc.extract_glossary",
+    "mustIncludeReasons": ["low_confidence"],
+    "maxItems": 2
+  }
+}

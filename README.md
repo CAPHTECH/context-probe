@@ -135,3 +135,5 @@ node dist/src/cli.js report.generate \
 npm run check
 npm test
 ```
+
+`npm test` には `fixtures/validation/extraction/` の curated golden corpus を使った抽出品質検証も含まれます。ここでは `doc.extract_*` `trace.link_terms` `review.list_unknowns` を既存CLIのまま叩き、`must_include` `must_exclude` `must_link_to_code` `max_review_items` で回帰を検知します。

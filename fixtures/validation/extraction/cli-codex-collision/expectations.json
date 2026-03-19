@@ -1,0 +1,15 @@
+{
+  "extractor": {
+    "backend": "cli",
+    "provider": "codex"
+  },
+  "glossary": {
+    "mustInclude": ["InvoiceContract"],
+    "mustExclude": []
+  },
+  "review": {
+    "sourceCommand": "doc.extract_glossary",
+    "mustIncludeReasons": ["low_confidence", "collision", "unknown"],
+    "maxItems": 4
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "rules": {
+    "mustInclude": [
+      "レビュー結果は 7 日以内に解決しなければならない",
+      "監査ログは常に共有しなければならない"
+    ],
+    "mustExclude": ["evidence_id は常に一意である"]
+  },
+  "invariants": {
+    "mustInclude": ["evidence_id は常に一意である"],
+    "mustExclude": [
+      "レビュー結果は 7 日以内に解決しなければならない",
+      "監査ログは常に共有しなければならない"
+    ]
+  },
+  "review": {
+    "sourceCommand": "doc.extract_rules",
+    "mustIncludeReasons": ["low_confidence", "unknown"],
+    "maxItems": 2
+  }
+}
