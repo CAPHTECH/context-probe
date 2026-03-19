@@ -1,0 +1,40 @@
+version: "1.0"
+contexts:
+  - name: Delivery
+    pathGlobs:
+      - "src/cli.ts"
+      - "src/commands.ts"
+      - "src/index.ts"
+    contractGlobs:
+      - "src/cli.ts"
+      - "src/commands.ts"
+      - "src/index.ts"
+  - name: Core
+    pathGlobs:
+      - "src/core/**"
+    contractGlobs:
+      - "src/core/artifacts.ts"
+      - "src/core/contracts.ts"
+      - "src/core/document-extractors.ts"
+      - "src/core/formula.ts"
+      - "src/core/history.ts"
+      - "src/core/io.ts"
+      - "src/core/model.ts"
+      - "src/core/policy.ts"
+      - "src/core/report.ts"
+      - "src/core/response.ts"
+      - "src/core/review.ts"
+      - "src/core/scoring.ts"
+      - "src/core/trace.ts"
+    internalGlobs:
+      - "src/core/providers.ts"
+  - name: Analysis
+    pathGlobs:
+      - "src/analyzers/**"
+    contractGlobs:
+      - "src/analyzers/**"
+  - name: Packs
+    pathGlobs:
+      - "src/packs/**"
+    contractGlobs:
+      - "src/packs/**"
