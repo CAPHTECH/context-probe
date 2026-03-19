@@ -106,6 +106,14 @@ const INVARIANT_PREDICATE_PATTERNS = [
   /\balways\b.+\b(is|are|returns?|holds?)\b/i
 ];
 const RULE_INVARIANT_AMBIGUITY = "rule と invariant の境界が曖昧です";
+const INVARIANT_ACCEPTANCE_AMBIGUITY = "invariant と受け入れ条件の境界が曖昧です";
+const INVARIANT_REVIEW_SIGNALS = [
+  /返(?:る|される)/u,
+  /表示(?:される|されている)/u,
+  /反映(?:される|されている)/u,
+  /付与(?:される|されている)/u,
+  /欠落しない/u
+];
 
 function isStructuredNoiseFragment(fragment: Fragment): boolean {
   const trimmed = fragment.text.trim();
@@ -251,6 +259,23 @@ function hasPredicateShape(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
+function buildInvariantReviewState(
+  statement: string,
+  sourceKind: "sentence" | "bullet"
+): Pick<HeuristicStatementCandidate, "confidence" | "unknowns"> {
+  const bulletPenalty = sourceKind === "bullet" ? 0.06 : 0;
+  if (hasAnySignal(statement, INVARIANT_REVIEW_SIGNALS)) {
+    return {
+      confidence: 0.68 - bulletPenalty,
+      unknowns: [INVARIANT_ACCEPTANCE_AMBIGUITY]
+    };
+  }
+  return {
+    confidence: 0.82 - bulletPenalty,
+    unknowns: []
+  };
+}
+
 function isQuestionLikeStatement(text: string): boolean {
   return /[か？?][。.]?$/u.test(text);
 }
@@ -318,13 +343,14 @@ function classifyStatement(
   const bulletPenalty = sourceKind === "bullet" ? 0.06 : 0;
 
   if (hasInvariantSignal && hasInvariantPredicate && (!hasRuleSignal || !hasRulePredicate)) {
+    const invariantReviewState = buildInvariantReviewState(normalized, sourceKind);
     return {
       kind: "invariant",
       item: {
         statement: normalized,
         fragment,
-        confidence: 0.82 - bulletPenalty,
-        unknowns: [],
+        confidence: invariantReviewState.confidence,
+        unknowns: invariantReviewState.unknowns,
         sourceKind
       }
     };

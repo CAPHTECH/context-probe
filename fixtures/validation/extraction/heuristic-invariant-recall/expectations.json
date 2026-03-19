@@ -14,5 +14,10 @@
       "Context Map",
       "強い不変条件が単一Aggregate内に閉じているか"
     ]
+  },
+  "review": {
+    "sourceCommand": "doc.extract_invariants",
+    "mustIncludeReasons": ["low_confidence", "unknown"],
+    "maxItems": 4
   }
 }
