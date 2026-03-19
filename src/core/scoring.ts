@@ -4,13 +4,19 @@ import type {
   CochangeAnalysis,
   CommandResponse,
   DomainModel,
+  ExtractionBackend,
+  ExtractionProviderName,
   MetricScore,
-  PolicyConfig
+  PolicyConfig,
+  ReviewResolutionLog,
+  TermTraceLink
 } from "./contracts.js";
+import { extractGlossary } from "./document-extractors.js";
 import { evaluateFormula } from "./formula.js";
 import { normalizeHistory, scoreEvolutionLocality } from "./history.js";
 import { getDomainPolicy } from "./policy.js";
 import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
+import { buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
 
@@ -39,11 +45,56 @@ function toMetricScore(
   };
 }
 
+function computeAliasEntropy(aliasesPerTerm: number, termCount: number): number {
+  if (termCount === 0) {
+    return 1;
+  }
+  return Math.min(1, aliasesPerTerm / termCount);
+}
+
+function computeUliComponents(terms: Awaited<ReturnType<typeof extractGlossary>>["terms"], links: TermTraceLink[]) {
+  const totalTerms = terms.length;
+  if (totalTerms === 0) {
+    return {
+      GC: 0,
+      AE: 1,
+      TC: 1,
+      TL: 0
+    };
+  }
+
+  const linkByTermId = new Map(links.map((link) => [link.termId, link]));
+  const glossaryCovered = terms.filter((term) => {
+    const link = linkByTermId.get(term.termId);
+    return term.count > 1 || (link?.coverage.codeHits ?? 0) > 0;
+  }).length;
+  const tracedTerms = links.filter((link) => link.coverage.documentHits > 0 && link.coverage.codeHits > 0).length;
+  const collisionTerms = terms.filter((term) => term.collision).length;
+  const aliasCount = terms.reduce((sum, term) => sum + term.aliases.length, 0);
+
+  return {
+    GC: glossaryCovered / totalTerms,
+    AE: computeAliasEntropy(aliasCount, totalTerms),
+    TC: collisionTerms / totalTerms,
+    TL: tracedTerms / totalTerms
+  };
+}
+
 export async function computeDomainDesignScores(options: {
   repoPath: string;
   model: DomainModel;
   policyConfig: PolicyConfig;
   profileName: string;
+  docsRoot?: string;
+  extraction?: {
+    extractor: ExtractionBackend;
+    provider?: ExtractionProviderName;
+    providerCommand?: string;
+    promptProfile?: string;
+    fallback?: "heuristic" | "none";
+    reviewLog?: ReviewResolutionLog;
+    applyReviewLog?: boolean;
+  };
 }): Promise<
   CommandResponse<{
     domainId: "domain_design";
@@ -74,6 +125,7 @@ export async function computeDomainDesignScores(options: {
   );
   const diagnostics: string[] = [];
   const unknowns: string[] = [];
+  const additionalEvidence = [];
   const mccsConfidence = contractUsage.applicableReferences > 0 ? 0.9 : 0.55;
 
   if (contractUsage.applicableReferences === 0) {
@@ -124,6 +176,68 @@ export async function computeDomainDesignScores(options: {
   };
   const elsComponents = historySignals;
   const scores: MetricScore[] = [];
+  if (policy.metrics.ULI) {
+    if (!options.docsRoot) {
+      unknowns.push("`--docs-root` が指定されていないため ULI をスキップしました");
+    } else {
+      const glossary = await extractGlossary({
+        root: options.docsRoot,
+        cwd: repoPath,
+        extractor: options.extraction?.extractor ?? "heuristic",
+        ...(options.extraction?.provider ? { provider: options.extraction.provider } : {}),
+        ...(options.extraction?.providerCommand ? { providerCommand: options.extraction.providerCommand } : {}),
+        promptProfile: options.extraction?.promptProfile ?? "default",
+        fallback: options.extraction?.fallback ?? "heuristic",
+        ...(options.extraction?.reviewLog ? { reviewLog: options.extraction.reviewLog } : {}),
+        applyReviewLog: options.extraction?.applyReviewLog ?? false
+      });
+      const links = await buildTermTraceLinks({
+        docsRoot: options.docsRoot,
+        repoRoot: repoPath,
+        terms: glossary.terms
+      });
+      const uliComponents = computeUliComponents(glossary.terms, links);
+      const averageTraceConfidence =
+        links.length === 0 ? 0.5 : links.reduce((sum, link) => sum + link.confidence, 0) / links.length;
+      const uliUnknowns = [...glossary.unknowns];
+
+      if (glossary.terms.length === 0) {
+        uliUnknowns.push("glossary term が抽出されず ULI の判定根拠が不足しています");
+      }
+      if (glossary.terms.every((term) => term.aliases.length === 0)) {
+        uliUnknowns.push("Alias Entropy は alias 数ベースの近似です");
+      }
+
+      const termEvidence = glossary.terms.flatMap((term) => term.evidence);
+      const traceGapEvidence = links
+        .filter((link) => link.coverage.codeHits === 0)
+        .map((link) =>
+          toEvidence(
+            `${link.canonicalTerm} is not traced to code`,
+            {
+              termId: link.termId,
+              docsRoot: options.docsRoot
+            },
+            [link.termId],
+            0.8
+          )
+        );
+      additionalEvidence.push(...termEvidence, ...traceGapEvidence);
+
+      scores.push(
+        toMetricScore(
+          "ULI",
+          evaluateFormula(policy.metrics.ULI.formula, uliComponents),
+          uliComponents,
+          [...termEvidence, ...traceGapEvidence].map((entry) => entry.evidenceId),
+          confidenceFromSignals([glossary.confidence, averageTraceConfidence, glossary.terms.length > 0 ? 0.85 : 0.4]),
+          uliUnknowns
+        )
+      );
+
+      diagnostics.push(...glossary.diagnostics);
+    }
+  }
   if (policy.metrics.MCCS) {
     scores.push(
       toMetricScore(
@@ -161,11 +275,11 @@ export async function computeDomainDesignScores(options: {
     },
     {
       status: diagnostics.length > 0 ? "warning" : "ok",
-      evidence,
+      evidence: [...evidence, ...additionalEvidence],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns,
       diagnostics,
-      provenance: [toProvenance(repoPath, "domain_design")]
+      provenance: [toProvenance(repoPath, "domain_design"), ...(options.docsRoot ? [toProvenance(options.docsRoot, "domain_design_docs")] : [])]
     }
   );
 }
