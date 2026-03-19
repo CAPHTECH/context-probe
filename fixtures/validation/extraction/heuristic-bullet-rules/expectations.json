@@ -1,0 +1,22 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "rules": {
+    "mustInclude": [
+      "外部送信を行わないローカル実行モードを持つ",
+      "機密文書を扱う場合は送信禁止ポリシーを選択できる",
+      "provenance には、必要以上の機密本文を残さない"
+    ],
+    "mustExclude": [
+      "別コンテキストの internal type 参照",
+      "契約DTOを経由しない直接依存",
+      "禁止された cross-context import"
+    ]
+  },
+  "review": {
+    "sourceCommand": "doc.extract_rules",
+    "mustIncludeReasons": ["low_confidence"],
+    "maxItems": 3
+  }
+}

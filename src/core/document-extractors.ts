@@ -33,8 +33,97 @@ interface HeuristicTermCandidate {
   fragmentIds: string[];
 }
 
-const RULE_PATTERNS = [/なければならない/g, /常に/g, /\bmust\b/gi, /\bshould not\b/gi, /禁止/g];
-const INVARIANT_PATTERNS = [/常に/g, /一致/g, /不変/g, /\balways\b/gi];
+interface HeuristicStatementCandidate {
+  statement: string;
+  fragment: Fragment;
+  confidence: number;
+  unknowns: string[];
+  sourceKind: "sentence" | "bullet";
+}
+
+interface StatementSegment {
+  text: string;
+  sourceKind: "sentence" | "bullet";
+}
+
+const RULE_SIGNALS = [
+  /なければならない/u,
+  /べき/u,
+  /\bmust\b/i,
+  /\bmust not\b/i,
+  /\bshould not\b/i,
+  /禁止/u,
+  /行わない/u,
+  /残さない/u
+];
+const INVARIANT_SIGNALS = [/常に/u, /一致/u, /不変/u, /\balways\b/i, /一意/u, /整合/u];
+const RULE_PREDICATE_PATTERNS = [
+  /なければならない[。.]?$/u,
+  /べき[。.]?$/u,
+  /\bmust\b/i,
+  /\bmust not\b/i,
+  /\bshould not\b/i,
+  /選択できる[。.]?$/u,
+  /行わない[。.]?$/u,
+  /残さない[。.]?$/u,
+  /持つ[。.]?$/u,
+  /従う[。.]?$/u,
+  /守る[。.]?$/u
+];
+const INVARIANT_PREDICATE_PATTERNS = [
+  /である[。.]?$/u,
+  /不変である[。.]?$/u,
+  /一致(?:して(?:いる|いなければならない)|する)[。.]?$/u,
+  /返(?:る|される)[。.]?$/u,
+  /一意である[。.]?$/u,
+  /整合(?:して(?:いる|いなければならない)|する)[。.]?$/u,
+  /保た(?:れる|れている)[。.]?$/u,
+  /維持(?:される|している|する)?[。.]?$/u,
+  /成立(?:する|している)?[。.]?$/u,
+  /閉じ(?:ている|る)[。.]?$/u,
+  /\balways\b.+\b(is|are|returns?|holds?)\b/i
+];
+const RULE_INVARIANT_AMBIGUITY = "rule と invariant の境界が曖昧です";
+
+function isStructuredNoiseFragment(fragment: Fragment): boolean {
+  const trimmed = fragment.text.trim();
+  if (trimmed.startsWith("```") || trimmed.includes("\n```")) {
+    return true;
+  }
+  return trimmed
+    .split("\n")
+    .filter(Boolean)
+    .every((line) => line.trim().startsWith("|"));
+}
+
+function normalizeInlineTerm(term: string): string | undefined {
+  const normalized = term.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  if (normalized.includes("\n")) {
+    return undefined;
+  }
+  if (normalized.length > 80) {
+    return undefined;
+  }
+  if (normalized.split(/\s+/).length > 4) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function normalizeStatement(statement: string): string {
+  return statement.replace(/\s+/g, " ").trim();
+}
+
+function isListItemLine(line: string): boolean {
+  return /^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line);
+}
+
+function stripListMarker(line: string): string {
+  return line.replace(/^[-*+]\s+/, "").replace(/^\d+\.\s+/, "").trim();
+}
 
 function buildMetadata(options: ExtractionOptions): ExtractionMetadata {
   return {
@@ -97,46 +186,197 @@ function collectTerms(fragments: Fragment[]): Map<string, HeuristicTermCandidate
   };
 
   for (const fragment of fragments) {
+    if (isStructuredNoiseFragment(fragment)) {
+      continue;
+    }
     for (const match of fragment.text.matchAll(/`([^`]+)`/g)) {
-      if (match[1]) {
-        pushTerm(match[1], fragment);
+      const normalized = match[1] ? normalizeInlineTerm(match[1]) : undefined;
+      if (normalized) {
+        pushTerm(normalized, fragment);
       }
     }
     for (const match of fragment.text.matchAll(/\b[A-Z][A-Za-z0-9_]{2,}\b/g)) {
-      pushTerm(match[0], fragment);
+      const normalized = normalizeInlineTerm(match[0]);
+      if (normalized) {
+        pushTerm(normalized, fragment);
+      }
     }
   }
 
   return terms;
 }
 
-function extractStatements(
-  fragments: Fragment[],
-  patterns: RegExp[]
-): Array<{
-  statement: string;
-  fragment: Fragment;
-}> {
-  const items: Array<{
-    statement: string;
-    fragment: Fragment;
-  }> = [];
+function splitIntoSentences(text: string): string[] {
+  const normalized = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ");
+  if (!normalized) {
+    return [];
+  }
+  return normalized
+    .split(/(?<=[。！？])\s*|(?<=[!?])\s+|(?<=\.)\s+/u)
+    .map((sentence) => normalizeStatement(sentence))
+    .filter(Boolean);
+}
 
-  for (const fragment of fragments) {
-    const matched = patterns.some((pattern) => {
-      pattern.lastIndex = 0;
-      return pattern.test(fragment.text);
+function hasAnySignal(text: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+function hasPredicateShape(text: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+function isQuestionLikeStatement(text: string): boolean {
+  return /[か？?][。.]?$/u.test(text);
+}
+
+function buildStatementSegments(fragment: Fragment): StatementSegment[] {
+  const segments: StatementSegment[] = [];
+  const proseBuffer: string[] = [];
+
+  const flushProse = () => {
+    if (proseBuffer.length === 0) {
+      return;
+    }
+    splitIntoSentences(proseBuffer.join(" ")).forEach((sentence) => {
+      segments.push({
+        text: sentence,
+        sourceKind: "sentence"
+      });
     });
-    if (!matched) {
+    proseBuffer.length = 0;
+  };
+
+  for (const rawLine of fragment.text.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushProse();
       continue;
     }
-    items.push({
-      statement: fragment.text.replace(/\s+/g, " ").trim(),
-      fragment
-    });
+    if (isListItemLine(line)) {
+      flushProse();
+      const bullet = normalizeStatement(stripListMarker(line));
+      if (bullet) {
+        segments.push({
+          text: bullet,
+          sourceKind: "bullet"
+        });
+      }
+      continue;
+    }
+    proseBuffer.push(line);
   }
 
-  return items;
+  flushProse();
+  return segments;
+}
+
+function classifyStatement(
+  statement: string,
+  fragment: Fragment,
+  sourceKind: "sentence" | "bullet"
+): { kind: "rule" | "invariant"; item: HeuristicStatementCandidate } | undefined {
+  const normalized = normalizeStatement(statement);
+  if (!normalized || isQuestionLikeStatement(normalized)) {
+    return undefined;
+  }
+
+  const hasRuleSignal = hasAnySignal(normalized, RULE_SIGNALS);
+  const hasInvariantSignal = hasAnySignal(normalized, INVARIANT_SIGNALS);
+  const hasRulePredicate = hasPredicateShape(normalized, RULE_PREDICATE_PATTERNS);
+  const hasInvariantPredicate = hasPredicateShape(normalized, INVARIANT_PREDICATE_PATTERNS);
+
+  if ((!hasRuleSignal || !hasRulePredicate) && (!hasInvariantSignal || !hasInvariantPredicate)) {
+    return undefined;
+  }
+
+  const bulletPenalty = sourceKind === "bullet" ? 0.06 : 0;
+
+  if (hasInvariantSignal && hasInvariantPredicate && (!hasRuleSignal || !hasRulePredicate)) {
+    return {
+      kind: "invariant",
+      item: {
+        statement: normalized,
+        fragment,
+        confidence: 0.82 - bulletPenalty,
+        unknowns: [],
+        sourceKind
+      }
+    };
+  }
+
+  if (hasRuleSignal && hasRulePredicate && hasInvariantSignal && !hasInvariantPredicate) {
+    return {
+      kind: "rule",
+      item: {
+        statement: normalized,
+        fragment,
+        confidence: 0.62 - bulletPenalty,
+        unknowns: [RULE_INVARIANT_AMBIGUITY],
+        sourceKind
+      }
+    };
+  }
+
+  if (hasRuleSignal && hasRulePredicate && (!hasInvariantSignal || !hasInvariantPredicate)) {
+    return {
+      kind: "rule",
+      item: {
+        statement: normalized,
+        fragment,
+        confidence: 0.78 - bulletPenalty,
+        unknowns: [],
+        sourceKind
+      }
+    };
+  }
+
+  return {
+    kind: hasInvariantPredicate ? "invariant" : "rule",
+    item: {
+      statement: normalized,
+      fragment,
+      confidence: 0.62 - bulletPenalty,
+      unknowns: [RULE_INVARIANT_AMBIGUITY],
+      sourceKind
+    }
+  };
+}
+
+function classifyHeuristicStatements(fragments: Fragment[]): {
+  rules: HeuristicStatementCandidate[];
+  invariants: HeuristicStatementCandidate[];
+} {
+  const rules: HeuristicStatementCandidate[] = [];
+  const invariants: HeuristicStatementCandidate[] = [];
+  const seen = new Set<string>();
+
+  for (const fragment of fragments) {
+    if (fragment.kind !== "paragraph" || isStructuredNoiseFragment(fragment)) {
+      continue;
+    }
+    for (const segment of buildStatementSegments(fragment)) {
+      const classified = classifyStatement(segment.text, fragment, segment.sourceKind);
+      if (!classified) {
+        continue;
+      }
+      const dedupeKey = `${classified.kind}:${fragment.fragmentId}:${classified.item.statement}`;
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+      seen.add(dedupeKey);
+      if (classified.kind === "rule") {
+        rules.push(classified.item);
+      } else {
+        invariants.push(classified.item);
+      }
+    }
+  }
+
+  return { rules, invariants };
 }
 
 function normalizeGlossaryFromHeuristic(fragments: Fragment[]): GlossaryTerm[] {
@@ -156,26 +396,26 @@ function normalizeGlossaryFromHeuristic(fragments: Fragment[]): GlossaryTerm[] {
 }
 
 function normalizeRulesFromHeuristic(fragments: Fragment[]): RuleCandidate[] {
-  return extractStatements(fragments, RULE_PATTERNS).map((item) => ({
+  return classifyHeuristicStatements(fragments).rules.map((item) => ({
     ruleId: createRuleId(`${item.fragment.fragmentId}:${item.statement}`),
     type: "business_rule",
     statement: item.statement,
-    confidence: 0.7,
-    evidence: [createEvidenceFromFragment(item.fragment, item.statement, 0.7)],
-    unknowns: [],
+    confidence: item.confidence,
+    evidence: [createEvidenceFromFragment(item.fragment, item.statement, item.confidence)],
+    unknowns: item.unknowns,
     fragmentIds: [item.fragment.fragmentId],
     relatedTerms: []
   }));
 }
 
 function normalizeInvariantsFromHeuristic(fragments: Fragment[]): InvariantCandidate[] {
-  return extractStatements(fragments, INVARIANT_PATTERNS).map((item) => ({
+  return classifyHeuristicStatements(fragments).invariants.map((item) => ({
     invariantId: createInvariantId(`${item.fragment.fragmentId}:${item.statement}`),
     type: "strong_invariant",
     statement: item.statement,
-    confidence: 0.68,
-    evidence: [createEvidenceFromFragment(item.fragment, item.statement, 0.68)],
-    unknowns: [],
+    confidence: item.confidence,
+    evidence: [createEvidenceFromFragment(item.fragment, item.statement, item.confidence)],
+    unknowns: item.unknowns,
     fragmentIds: [item.fragment.fragmentId],
     relatedTerms: []
   }));

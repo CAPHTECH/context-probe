@@ -1,0 +1,17 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "glossary": {
+    "mustInclude": ["AggregateLens"],
+    "mustExclude": []
+  },
+  "trace": {
+    "mustStayDocumentOnly": ["AggregateLens"]
+  },
+  "review": {
+    "sourceCommand": "doc.extract_glossary",
+    "mustIncludeReasons": ["low_confidence"],
+    "maxItems": 1
+  }
+}
