@@ -1,0 +1,8 @@
+version: "1.0"
+contexts:
+  - name: Billing
+    pathGlobs:
+      - "src/billing/**"
+  - name: Fulfillment
+    pathGlobs:
+      - "src/fulfillment/**"
