@@ -1,5 +1,6 @@
 import type {
   ArchitectureConstraints,
+  ArchitectureScenarioCatalog,
   BoundaryLeakFinding,
   CochangeAnalysis,
   CommandResponse,
@@ -12,6 +13,7 @@ import type {
   PolicyConfig,
   ReviewResolutionLog,
   RuleCandidate,
+  ScenarioObservationSet,
   TermTraceLink
 } from "./contracts.js";
 import { computeAggregateFitness } from "./aggregate-fitness.js";
@@ -25,6 +27,7 @@ import { listReviewItems } from "./review.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
+import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
 import { scoreComplexityTax } from "../analyzers/cti.js";
 import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
@@ -597,6 +600,8 @@ export async function computeArchitectureScores(options: {
   constraints: ArchitectureConstraints;
   policyConfig: PolicyConfig;
   profileName: string;
+  scenarioCatalog?: ArchitectureScenarioCatalog;
+  scenarioObservations?: ScenarioObservationSet;
 }): Promise<
   CommandResponse<{
     domainId: "architecture_design";
@@ -613,6 +618,10 @@ export async function computeArchitectureScores(options: {
     root: repoPath,
     codebase,
     constraints
+  });
+  const scenarioScore = scoreQualityScenarioFit({
+    ...(options.scenarioCatalog ? { catalog: options.scenarioCatalog } : {}),
+    ...(options.scenarioObservations ? { observations: options.scenarioObservations } : {})
   });
   const complexityScore = scoreComplexityTax({
     codebase,
@@ -657,6 +666,19 @@ export async function computeArchitectureScores(options: {
       finding.confidence
     )
   );
+  const scenarioEvidence = scenarioScore.findings.map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        scenarioId: finding.scenarioId,
+        ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
+        ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
+        source: finding.source
+      },
+      undefined,
+      finding.confidence
+    )
+  );
   const complexityEvidence = complexityScore.findings.map((finding) =>
     toEvidence(
       finding.note,
@@ -671,6 +693,25 @@ export async function computeArchitectureScores(options: {
     )
   );
   const scores: MetricScore[] = [];
+  if (policy.metrics.QSF) {
+    scores.push(
+      toMetricScore(
+        "QSF",
+        evaluateFormula(policy.metrics.QSF.formula, {
+          QSF: scenarioScore.QSF
+        }),
+        {
+          scenario_count: scenarioScore.scenarioCount,
+          weighted_coverage: scenarioScore.weightedCoverage,
+          average_normalized_score: scenarioScore.averageNormalizedScore,
+          QSF: scenarioScore.QSF
+        },
+        scenarioEvidence.map((entry) => entry.evidenceId),
+        scenarioScore.confidence,
+        scenarioScore.unknowns
+      )
+    );
+  }
   if (policy.metrics.DDS) {
     scores.push(
       toMetricScore(
@@ -751,7 +792,7 @@ export async function computeArchitectureScores(options: {
       violations
     },
     {
-      evidence: [...evidence, ...purityEvidence, ...protocolEvidence, ...complexityEvidence],
+      evidence: [...scenarioEvidence, ...evidence, ...purityEvidence, ...protocolEvidence, ...complexityEvidence],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: scores.flatMap((score) => score.unknowns),
       provenance: [toProvenance(repoPath, "architecture_design")]
