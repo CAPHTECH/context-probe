@@ -85,10 +85,39 @@ export interface LayerDefinition {
   globs: string[];
 }
 
+export type ComplexityTaxComponentName =
+  | "DeployablesPerTeam"
+  | "PipelinesPerDeployable"
+  | "ContractsOrSchemasPerService"
+  | "DatastoresPerServiceGroup"
+  | "OnCallSurface"
+  | "SyncDepthOverhead"
+  | "RunCostPerBusinessTransaction";
+
+export interface ComplexityTaxBaseline {
+  target?: number;
+  worst?: number;
+}
+
+export interface ArchitectureComplexityMetadata {
+  teamCount?: number;
+  deployableCount?: number;
+  pipelineCount?: number;
+  contractOrSchemaCount?: number;
+  serviceCount?: number;
+  serviceGroupCount?: number;
+  datastoreCount?: number;
+  onCallSurface?: number;
+  syncDepthP95?: number;
+  runCostPerBusinessTransaction?: number;
+  normalization?: Partial<Record<ComplexityTaxComponentName, ComplexityTaxBaseline>>;
+}
+
 export interface ArchitectureConstraints {
   version: string;
   direction?: "inward";
   layers: LayerDefinition[];
+  complexity?: ArchitectureComplexityMetadata;
 }
 
 export interface FileDependency {

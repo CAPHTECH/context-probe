@@ -67,7 +67,7 @@ describe("self measurement", () => {
       violations: unknown[];
     };
     expect(architectureResult.metrics.map((metric) => metric.metricId)).toEqual(
-      expect.arrayContaining(["DDS", "BPS", "IPS"])
+      expect.arrayContaining(["DDS", "BPS", "IPS", "CTI"])
     );
     expect(Array.isArray(architectureResult.violations)).toBe(true);
   }, 20000);

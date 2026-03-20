@@ -25,6 +25,10 @@ const BPS_BAD_REPO = path.resolve("fixtures/validation/scoring/bps/bad-repo");
 const IPS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/ips/constraints.yaml");
 const IPS_GOOD_REPO = path.resolve("fixtures/validation/scoring/ips/good-repo");
 const IPS_BAD_REPO = path.resolve("fixtures/validation/scoring/ips/bad-repo");
+const CTI_GOOD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/cti/good-constraints.yaml");
+const CTI_BAD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/cti/bad-constraints.yaml");
+const CTI_GOOD_REPO = path.resolve("fixtures/validation/scoring/cti/good-repo");
+const CTI_BAD_REPO = path.resolve("fixtures/validation/scoring/cti/bad-repo");
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
 const BFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/bfs/model.yaml");
@@ -162,6 +166,37 @@ describe("score validation", () => {
     expect(goodIps.components.CBC ?? 0).toBeGreaterThan(badIps.components.CBC ?? 0);
     expect(badIps.components.BCR ?? 0).toBeGreaterThan(goodIps.components.BCR ?? 0);
     expect(goodIps.components.SLA ?? 0).toBeGreaterThan(badIps.components.SLA ?? 0);
+  });
+
+  test("CTI is lower for lean operational setups than for complexity-heavy setups", async () => {
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_GOOD_REPO,
+        constraints: CTI_GOOD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design"
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_BAD_REPO,
+        constraints: CTI_BAD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design"
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodCti = getMetric(goodResponse, "CTI");
+    const badCti = getMetric(badResponse, "CTI");
+
+    expect(goodCti.value).toBeLessThan(badCti.value);
+    expect(badCti.components.DeployablesPerTeam ?? 0).toBeGreaterThan(goodCti.components.DeployablesPerTeam ?? 0);
+    expect(badCti.components.ContractsOrSchemasPerService ?? 0).toBeGreaterThan(
+      goodCti.components.ContractsOrSchemasPerService ?? 0
+    );
+    expect(badCti.components.SyncDepthOverhead ?? 0).toBeGreaterThan(goodCti.components.SyncDepthOverhead ?? 0);
   });
 
   test("ELS is higher for localized histories than for scattered histories", async () => {

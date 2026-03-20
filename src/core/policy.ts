@@ -76,6 +76,10 @@ export const DEFAULT_POLICY: PolicyConfig = {
                 warn: 0.72,
                 fail: 0.58
               }
+            },
+            CTI: {
+              formula:
+                "0.20*DeployablesPerTeam + 0.15*PipelinesPerDeployable + 0.15*ContractsOrSchemasPerService + 0.10*DatastoresPerServiceGroup + 0.15*OnCallSurface + 0.10*SyncDepthOverhead + 0.15*RunCostPerBusinessTransaction"
             }
           },
           review: {
