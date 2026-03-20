@@ -14,7 +14,7 @@
 |---|---|---|---|
 | `QSF` | scenario fit | `QSF` | 部分実装 |
 | `PCS` | pattern rule conformance | `DDS`, `BPS`, `IPS` | 実装済み |
-| `OAS` | runtime adequacy | `TIS` の一部が候補 | 部分未実装 |
+| `OAS` | runtime adequacy | `OAS`, `TIS` | 部分実装 |
 | `EES` | delivery + locality | `AELS`, `EES` | 部分実装 |
 | `CTI` | complexity tax | `CTI` | 部分実装 |
 | `APSI` | summary index | `APSI` | 部分実装 |
@@ -51,19 +51,19 @@
 
 ## 5. future metric の位置づけ
 
-### `APSI`
-
-- 想定役割: `QSF` `PCS` `OAS` `EES` `CTI` を束ねる比較用 summary index
-- 実装状態: `PCS = DDS/BPS/IPS proxy`、`OAS = TIS proxy` として初期合成を実装済み
-- 制約: 下位指標の代替ではなく、意思決定の要約値としてのみ使う
-- 制約: `PCS` と `OAS` は current implementation では proxy 合成であり、完成版ではない
-
 ### `TIS`
 
 - 想定役割: runtime containment と topology isolation
 - 上位指標上の位置づけ: `OAS` の bridge 指標
 - 実装状態: topology model と optional runtime observation を用いた初期 proxy を実装済み
 - 制約: full telemetry 直結ではなく、明示入力ベースの partial implementation
+
+### `OAS`
+
+- 想定役割: traffic band ごとの運用健全性と pattern-specific runtime adequacy の合成
+- 実装状態: `telemetry-observations` と `pattern-runtime-observations` による partial implementation を実装済み
+- 制約: raw telemetry 自動取得ではなく normalized score の明示入力から開始
+- 制約: pattern runtime observation がない場合は `TIS` bridge を使う
 
 ### `AELS`
 
@@ -78,13 +78,20 @@
 - 実装状態: `delivery-observations` と `AELS` を用いた partial implementation
 - 制約: DORA raw metrics の自動収集ではなく、normalized score の明示入力から開始
 
+### `APSI`
+
+- 想定役割: `QSF` `PCS` `OAS` `EES` `CTI` を束ねる比較用 summary index
+- 実装状態: `PCS = DDS/BPS/IPS proxy`、`OAS = OAS metric (未観測時は TIS bridge fallback)` として初期合成を実装済み
+- 制約: 下位指標の代替ではなく、意思決定の要約値としてのみ使う
+- 制約: `PCS` と `OAS` は current implementation では proxy / partial 実装を含む
+
 ## 6. 今後の推奨実装順
 
-1. `OAS` の拡張
-2. telemetry / delivery input の実測連携
+1. telemetry / delivery input の実測連携
+2. pattern runtime の profile 別 schema 化
 3. pattern profile ごとの `APSI` 重み調整
 
-この順にする理由は、現在すでに `APSI` の初期合成はあるため、次は summary index を賢くするより、`OAS` と delivery evidence を厚くして下位指標の質を上げる方が価値が高いからである。
+この順にする理由は、現在すでに `APSI` と `OAS` の初期合成はあるため、次は summary index を賢くするより、実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
 
 ## 7. 読み方
 

@@ -202,6 +202,27 @@ export interface ArchitectureDeliveryObservationSet {
   };
 }
 
+export interface ArchitectureTelemetryBandObservation {
+  bandId: string;
+  trafficWeight: number;
+  LatencyScore?: number;
+  ErrorScore?: number;
+  SaturationScore?: number;
+}
+
+export interface ArchitectureTelemetryObservationSet {
+  version: string;
+  bands: ArchitectureTelemetryBandObservation[];
+}
+
+export interface ArchitecturePatternRuntimeObservationSet {
+  version: string;
+  score?: number;
+  metrics?: Record<string, number>;
+  source?: string;
+  note?: string;
+}
+
 export interface ArchitectureConstraints {
   version: string;
   direction?: "inward";
