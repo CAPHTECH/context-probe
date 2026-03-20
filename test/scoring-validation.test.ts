@@ -37,6 +37,13 @@ const QSF_BAD_OBSERVATIONS_PATH = path.resolve("fixtures/validation/scoring/qsf/
 const QSF_THIN_OBSERVATIONS_PATH = path.resolve("fixtures/validation/scoring/qsf/thin-observations.yaml");
 const APSI_GOOD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/apsi/good-constraints.yaml");
 const APSI_BAD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/apsi/bad-constraints.yaml");
+const APSI_FORMULAS = {
+  default: { QSF: 0.3, PCS: 0.2, OAS: 0.2, EES: 0.15, CTI: 0.15 },
+  layered: { QSF: 0.35, PCS: 0.3, OAS: 0.15, EES: 0.1, CTI: 0.1 },
+  service_based: { QSF: 0.2, PCS: 0.2, OAS: 0.15, EES: 0.25, CTI: 0.2 },
+  cqrs: { QSF: 0.3, PCS: 0.15, OAS: 0.25, EES: 0.1, CTI: 0.2 },
+  event_driven: { QSF: 0.2, PCS: 0.15, OAS: 0.3, EES: 0.1, CTI: 0.25 }
+} as const;
 const TIS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/tis/constraints.yaml");
 const TIS_REPO = path.resolve("fixtures/validation/scoring/tis/repo");
 const TIS_GOOD_TOPOLOGY_PATH = path.resolve("fixtures/validation/scoring/tis/good-topology.yaml");
@@ -354,6 +361,86 @@ describe("score validation", () => {
     expect(goodApsi.components.CTI ?? 0).toBeLessThan(badApsi.components.CTI ?? 0);
     expect(goodApsi.unknowns.some((entry) => entry.includes("PCS は DDS/BPS/IPS"))).toBe(true);
     expect(goodApsi.unknowns.some((entry) => entry.includes("OAS は TIS"))).toBe(false);
+  });
+
+  test("APSI follows the selected policy profile weights without changing supporting metrics", async () => {
+    const baseArgs = {
+      repo: QSF_REPO,
+      constraints: APSI_GOOD_CONSTRAINTS_PATH,
+      policy: POLICY_PATH,
+      domain: "architecture_design",
+      "scenario-catalog": QSF_SCENARIOS_PATH,
+      "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH,
+      "topology-model": TIS_GOOD_TOPOLOGY_PATH,
+      "runtime-observations": TIS_GOOD_RUNTIME_PATH,
+      "telemetry-observations": OAS_BAD_TELEMETRY_PATH,
+      "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH,
+      "delivery-observations": EES_BAD_DELIVERY_PATH
+    } as const;
+
+    const defaultResponse = await COMMANDS["score.compute"]!(
+      {
+        ...baseArgs,
+        profile: "default"
+      },
+      { cwd: process.cwd() }
+    );
+    const layeredResponse = await COMMANDS["score.compute"]!(
+      {
+        ...baseArgs,
+        profile: "layered"
+      },
+      { cwd: process.cwd() }
+    );
+    const serviceBasedResponse = await COMMANDS["score.compute"]!(
+      {
+        ...baseArgs,
+        profile: "service_based"
+      },
+      { cwd: process.cwd() }
+    );
+    const cqrsResponse = await COMMANDS["score.compute"]!(
+      {
+        ...baseArgs,
+        profile: "cqrs"
+      },
+      { cwd: process.cwd() }
+    );
+    const eventDrivenResponse = await COMMANDS["score.compute"]!(
+      {
+        ...baseArgs,
+        profile: "event_driven"
+      },
+      { cwd: process.cwd() }
+    );
+
+    const defaultApsi = getMetric(defaultResponse, "APSI");
+    const layeredApsi = getMetric(layeredResponse, "APSI");
+    const serviceBasedApsi = getMetric(serviceBasedResponse, "APSI");
+    const cqrsApsi = getMetric(cqrsResponse, "APSI");
+    const eventDrivenApsi = getMetric(eventDrivenResponse, "APSI");
+
+    expect(layeredApsi.components).toEqual(defaultApsi.components);
+    expect(serviceBasedApsi.components).toEqual(defaultApsi.components);
+    expect(cqrsApsi.components).toEqual(defaultApsi.components);
+    expect(eventDrivenApsi.components).toEqual(defaultApsi.components);
+
+    expect(defaultApsi.value).toBeCloseTo(computeApsiFromWeights(defaultApsi.components, APSI_FORMULAS.default), 10);
+    expect(layeredApsi.value).toBeCloseTo(computeApsiFromWeights(layeredApsi.components, APSI_FORMULAS.layered), 10);
+    expect(serviceBasedApsi.value).toBeCloseTo(
+      computeApsiFromWeights(serviceBasedApsi.components, APSI_FORMULAS.service_based),
+      10
+    );
+    expect(cqrsApsi.value).toBeCloseTo(computeApsiFromWeights(cqrsApsi.components, APSI_FORMULAS.cqrs), 10);
+    expect(eventDrivenApsi.value).toBeCloseTo(
+      computeApsiFromWeights(eventDrivenApsi.components, APSI_FORMULAS.event_driven),
+      10
+    );
+
+    expect(layeredApsi.value).not.toBeCloseTo(defaultApsi.value, 10);
+    expect(serviceBasedApsi.value).not.toBeCloseTo(defaultApsi.value, 10);
+    expect(layeredApsi.unknowns.some((entry) => entry.includes("layered policy profile"))).toBe(true);
+    expect(serviceBasedApsi.unknowns.some((entry) => entry.includes("service_based policy profile"))).toBe(true);
   });
 
   test("OAS is higher when traffic-band operations and pattern runtime both remain healthy", async () => {
@@ -1282,4 +1369,17 @@ function getMetric(
     throw new Error(`Metric not found: ${metricId}`);
   }
   return metric;
+}
+
+function computeApsiFromWeights(
+  components: Record<string, number>,
+  weights: { QSF: number; PCS: number; OAS: number; EES: number; CTI: number }
+): number {
+  return (
+    weights.QSF * (components.QSF ?? 0.5) +
+    weights.PCS * (components.PCS ?? 0.5) +
+    weights.OAS * (components.OAS ?? 0.5) +
+    weights.EES * (components.EES ?? 0.5) +
+    weights.CTI * (1 - (components.CTI ?? 0.5))
+  );
 }

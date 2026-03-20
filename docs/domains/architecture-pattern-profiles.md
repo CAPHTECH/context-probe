@@ -154,16 +154,27 @@
 ### layered / clean / hexagonal
 
 - `QSF` と `PCS` を厚くする
+- current policy preset: `--profile layered`
+- current preset formula: `0.35*QSF + 0.30*PCS + 0.15*OAS + 0.10*EES + 0.10*(1-CTI)`
 
 ### microservices / service-based
 
 - `EES` と `CTI` を厚くする
+- current policy preset: `--profile service_based`
+- current preset formula: `0.20*QSF + 0.20*PCS + 0.15*OAS + 0.25*EES + 0.20*(1-CTI)`
 
 ### CQRS / event-driven
 
 - `OAS` と `CTI` を厚くする
+- current policy preset:
+  - `CQRS`: `--profile cqrs`
+  - `event-driven`: `--profile event_driven`
+- current preset formula:
+  - `cqrs`: `0.30*QSF + 0.15*PCS + 0.25*OAS + 0.10*EES + 0.20*(1-CTI)`
+  - `event_driven`: `0.20*QSF + 0.15*PCS + 0.30*OAS + 0.10*EES + 0.25*(1-CTI)`
 
 重みは組織やプロダクトに応じて policy として調整し、コードへ埋め込まない。
+current implementation では preset を policy に持ち、`score.compute --profile ...` で切り替える。
 
 ## 7. 注意点
 

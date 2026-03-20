@@ -1137,6 +1137,9 @@ export async function computeArchitectureScores(options: {
     if (!ctiMetric) {
       apsiUnknowns.push("CTI が未計算のため APSI は中立値 0.5 を使っています");
     }
+    if (profileName !== "default") {
+      apsiUnknowns.push(`APSI は ${profileName} policy profile の比較重みを使っています`);
+    }
     scores.push(
       toMetricScore(
         "APSI",
@@ -1181,7 +1184,7 @@ export async function computeArchitectureScores(options: {
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: Array.from(new Set(scores.flatMap((score) => score.unknowns))),
       diagnostics: architectureHistoryDiagnostics,
-      provenance: [toProvenance(repoPath, "architecture_design")]
+      provenance: [toProvenance(repoPath, "architecture_design"), toProvenance(repoPath, `profile=${profileName}`)]
     }
   );
 }
