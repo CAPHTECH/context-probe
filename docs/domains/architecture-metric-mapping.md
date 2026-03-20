@@ -17,7 +17,7 @@
 | `OAS` | runtime adequacy | `TIS` の一部が候補 | 部分未実装 |
 | `EES` | delivery + locality | `AELS`, `EES` | 部分実装 |
 | `CTI` | complexity tax | `CTI` | 部分実装 |
-| `APSI` | summary index | なし | 未実装 |
+| `APSI` | summary index | `APSI` | 部分実装 |
 
 ## 3. current metric の意味
 
@@ -51,6 +51,13 @@
 
 ## 5. future metric の位置づけ
 
+### `APSI`
+
+- 想定役割: `QSF` `PCS` `OAS` `EES` `CTI` を束ねる比較用 summary index
+- 実装状態: `PCS = DDS/BPS/IPS proxy`、`OAS = TIS proxy` として初期合成を実装済み
+- 制約: 下位指標の代替ではなく、意思決定の要約値としてのみ使う
+- 制約: `PCS` と `OAS` は current implementation では proxy 合成であり、完成版ではない
+
 ### `TIS`
 
 - 想定役割: runtime containment と topology isolation
@@ -74,10 +81,10 @@
 ## 6. 今後の推奨実装順
 
 1. `OAS` の拡張
-2. `APSI`
-3. telemetry / delivery input の実測連携
+2. telemetry / delivery input の実測連携
+3. pattern profile ごとの `APSI` 重み調整
 
-この順にする理由は、現在すでに `QSF` `PCS` `EES` `CTI` の初期実装があるため、次は runtime adequacy を厚くしてから summary index を合成する方が自然だからである。
+この順にする理由は、現在すでに `APSI` の初期合成はあるため、次は summary index を賢くするより、`OAS` と delivery evidence を厚くして下位指標の質を上げる方が価値が高いからである。
 
 ## 7. 読み方
 
