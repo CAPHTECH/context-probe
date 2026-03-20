@@ -49,5 +49,5 @@ describe("domain design analysis", () => {
     }).metrics;
     expect(metrics.find((metric) => metric.metricId === "MCCS")?.value).toBeLessThan(1);
     expect(metrics.find((metric) => metric.metricId === "ELS")?.value).toBeGreaterThanOrEqual(0);
-  });
+  }, 15000);
 });

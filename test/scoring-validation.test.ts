@@ -19,6 +19,9 @@ const MCCS_BAD_ENTRY = "fixtures/validation/scoring/mccs/bad-repo";
 const DDS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/dds/constraints.yaml");
 const DDS_GOOD_REPO = path.resolve("fixtures/validation/scoring/dds/good-repo");
 const DDS_BAD_REPO = path.resolve("fixtures/validation/scoring/dds/bad-repo");
+const BPS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/bps/constraints.yaml");
+const BPS_GOOD_REPO = path.resolve("fixtures/validation/scoring/bps/good-repo");
+const BPS_BAD_REPO = path.resolve("fixtures/validation/scoring/bps/bad-repo");
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
 const BFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/bfs/model.yaml");
@@ -98,6 +101,35 @@ describe("score validation", () => {
     expect(goodDds.value).toBeGreaterThan(badDds.value);
     expect(goodDds.value).toBe(1);
     expect(badDds.value).toBeLessThan(0.58);
+  });
+
+  test("BPS is higher for contained outer-layer code than for leaked and shared internal code", async () => {
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: BPS_GOOD_REPO,
+        constraints: BPS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design"
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: BPS_BAD_REPO,
+        constraints: BPS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design"
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodBps = getMetric(goodResponse, "BPS");
+    const badBps = getMetric(badResponse, "BPS");
+
+    expect(goodBps.value).toBeGreaterThan(badBps.value);
+    expect(goodBps.components.FCC ?? 0).toBeGreaterThan(badBps.components.FCC ?? 0);
+    expect(badBps.components.ALR ?? 0).toBeGreaterThan(goodBps.components.ALR ?? 0);
+    expect(badBps.components.SICR ?? 0).toBeGreaterThan(goodBps.components.SICR ?? 0);
   });
 
   test("ELS is higher for localized histories than for scattered histories", async () => {

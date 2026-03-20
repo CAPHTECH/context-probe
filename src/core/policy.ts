@@ -62,6 +62,13 @@ export const DEFAULT_POLICY: PolicyConfig = {
                 warn: 0.72,
                 fail: 0.58
               }
+            },
+            BPS: {
+              formula: "0.45*(1-ALR) + 0.30*FCC + 0.25*(1-SICR)",
+              thresholds: {
+                warn: 0.72,
+                fail: 0.58
+              }
             }
           },
           review: {
