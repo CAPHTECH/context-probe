@@ -112,6 +112,21 @@ function average(values: number[], fallback: number): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function weightedAverage(
+  entries: Array<{ value: number | undefined; weight: number }>,
+  fallback: number
+): number {
+  const observed = entries.filter((entry) => entry.value !== undefined && Number.isFinite(entry.value));
+  if (observed.length === 0) {
+    return fallback;
+  }
+  const totalWeight = observed.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight <= 0) {
+    return fallback;
+  }
+  return observed.reduce((sum, entry) => sum + (entry.value ?? 0) * entry.weight, 0) / totalWeight;
+}
+
 function dedupeEvidence<T extends { evidenceId: string }>(items: T[]): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -907,6 +922,69 @@ export async function computeArchitectureScores(options: {
         evolutionEvidence.map((entry) => entry.evidenceId),
         evolutionEfficiencyScore.confidence,
         evolutionEfficiencyScore.unknowns
+      )
+    );
+  }
+  if (policy.metrics.APSI) {
+    const scoreMap = new Map(scores.map((score) => [score.metricId, score]));
+    const qsfMetric = scoreMap.get("QSF");
+    const ddsMetric = scoreMap.get("DDS");
+    const bpsMetric = scoreMap.get("BPS");
+    const ipsMetric = scoreMap.get("IPS");
+    const tisMetric = scoreMap.get("TIS");
+    const eesMetric = scoreMap.get("EES");
+    const ctiMetric = scoreMap.get("CTI");
+    const PCS = weightedAverage(
+      [
+        { value: ddsMetric?.value, weight: 0.4 },
+        { value: bpsMetric?.value, weight: 0.35 },
+        { value: ipsMetric?.value, weight: 0.25 }
+      ],
+      0.5
+    );
+    const OAS = tisMetric?.value ?? 0.5;
+    const apsiComponents = {
+      QSF: qsfMetric?.value ?? 0.5,
+      PCS,
+      OAS,
+      EES: eesMetric?.value ?? 0.5,
+      CTI: ctiMetric?.value ?? 0.5
+    };
+    const apsiUnknowns = [
+      "PCS は DDS/BPS/IPS の proxy 合成です",
+      "OAS は TIS の proxy 合成です"
+    ];
+    if (!qsfMetric) {
+      apsiUnknowns.push("QSF が未計算のため APSI は中立値 0.5 を使っています");
+    }
+    if (!ddsMetric || !bpsMetric || !ipsMetric) {
+      apsiUnknowns.push("DDS/BPS/IPS の一部が未計算のため PCS は部分的な proxy です");
+    }
+    if (!tisMetric) {
+      apsiUnknowns.push("TIS が未計算のため OAS は中立値 0.5 を使っています");
+    }
+    if (!eesMetric) {
+      apsiUnknowns.push("EES が未計算のため APSI は中立値 0.5 を使っています");
+    }
+    if (!ctiMetric) {
+      apsiUnknowns.push("CTI が未計算のため APSI は中立値 0.5 を使っています");
+    }
+    scores.push(
+      toMetricScore(
+        "APSI",
+        evaluateFormula(policy.metrics.APSI.formula, apsiComponents),
+        apsiComponents,
+        Array.from(
+          new Set(
+            [qsfMetric, ddsMetric, bpsMetric, ipsMetric, tisMetric, eesMetric, ctiMetric]
+              .flatMap((metric) => metric?.evidenceRefs ?? [])
+          )
+        ),
+        confidenceFromSignals(
+          [qsfMetric, ddsMetric, bpsMetric, ipsMetric, tisMetric, eesMetric, ctiMetric]
+            .flatMap((metric) => (metric ? [metric.confidence] : []))
+        ),
+        Array.from(new Set(apsiUnknowns))
       )
     );
   }

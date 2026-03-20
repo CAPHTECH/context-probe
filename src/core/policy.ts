@@ -109,6 +109,13 @@ export const DEFAULT_POLICY: PolicyConfig = {
                 warn: 0.68,
                 fail: 0.5
               }
+            },
+            APSI: {
+              formula: "0.30*QSF + 0.20*PCS + 0.20*OAS + 0.15*EES + 0.15*(1-CTI)",
+              thresholds: {
+                warn: 0.68,
+                fail: 0.52
+              }
             }
           },
           review: {
