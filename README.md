@@ -7,7 +7,9 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 1. [docs/overview/platform-vision.md](docs/overview/platform-vision.md)
 2. [docs/platform/measurement-model.md](docs/platform/measurement-model.md)
 3. [docs/domains/domain-design.md](docs/domains/domain-design.md)
-4. [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md)
+4. [docs/domains/architecture-design.md](docs/domains/architecture-design.md)
+5. [docs/domains/architecture-scenario-model.md](docs/domains/architecture-scenario-model.md)
+6. [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md)
 
 ## 文書構成
 
@@ -17,7 +19,11 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 - [docs/platform/runtime-and-commands.md](docs/platform/runtime-and-commands.md): 実行パイプラインとコマンド体系
 - [docs/platform/data-model.md](docs/platform/data-model.md): 標準データモデルと出力契約
 - [docs/domains/domain-design.md](docs/domains/domain-design.md): ドメイン設計評価の詳細仕様
-- [docs/domains/architecture-design.md](docs/domains/architecture-design.md): 将来拡張としてのアーキテクチャ設計評価案
+- [docs/domains/architecture-design.md](docs/domains/architecture-design.md): APSI を中核にしたアーキテクチャ設計評価の本体仕様
+- [docs/domains/architecture-scenario-model.md](docs/domains/architecture-scenario-model.md): quality scenario の入力仕様
+- [docs/domains/architecture-pattern-profiles.md](docs/domains/architecture-pattern-profiles.md): pattern family ごとの重点と利得 / 税
+- [docs/domains/architecture-evidence-lifecycle.md](docs/domains/architecture-evidence-lifecycle.md): greenfield / brownfield の evidence 切替
+- [docs/domains/architecture-metric-mapping.md](docs/domains/architecture-metric-mapping.md): APSI モデルと current implementation の対応表
 - [docs/operations/policy-and-ci.md](docs/operations/policy-and-ci.md): ポリシー設定、CI、レビュー運用
 - [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md): 段階的導入計画
 

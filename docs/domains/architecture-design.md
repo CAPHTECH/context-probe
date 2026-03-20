@@ -1,245 +1,363 @@
 # アーキテクチャ設計評価仕様
 
-- 文書版数: draft v0.1
+- 文書版数: v0.2
 - 評価領域ID: `architecture_design`
-- 位置づけ: 次期拡張対象
-- 目的: アーキテクチャ設計の適合性を、証拠ベースで比較可能にする
+- 位置づけ: 詳細仕様へ移行中
+- 目的: アーキテクチャパターンを一般論で採点せず、特定システムの制約下にある設計案の適合性を証拠ベースで比較する
 
 ## 1. この評価領域が答える問い
 
 アーキテクチャ設計評価は、主に次の問いへ答える。
 
-1. 依存方向は意図した規約に従っているか
-2. ポート / アダプタ、レイヤ、サービス境界は純度を保っているか
-3. 公開契約は内部実装と適切に分離され、安定しているか
-4. 実行トポロジは障害分離や責務分離に適しているか
-5. 変更は局所化され、構造的な変更増幅を起こしていないか
+1. このシステムにとって重要な品質シナリオに、設計案はどれだけ適合しているか
+2. 実装は、選んだアーキテクチャパターンの規律をどれだけ守っているか
+3. 本番の実行時挙動は、そのパターンが約束する性質を満たしているか
+4. 実際の変更は局所化され、進化単位は設計意図と整合しているか
+5. そのパターンがもたらす追加複雑性を、得られる利得が上回っているか
 
-## 2. 対象成果物
+## 2. 評価単位
 
-### 2.1 設計成果物
+本領域が評価する対象は、`layered`、`hexagonal`、`microservices` のような抽象パターンそのものではない。
 
-- アーキテクチャ方針文書
+評価単位は、次を前提にした具体的な設計案である。
+
+- business goal
+- quality attribute scenario
+- 組織制約
+- 運用制約
+- データ制約
+- セキュリティ / 監査制約
+
+したがって、同じパターン名でも、求められる品質シナリオが異なれば評価結果は変わる。
+比較は、同一プロダクト内の候補案比較か、同一プロダクトの時系列比較に限定する。
+
+## 3. 基本原則
+
+1. アーキテクチャ評価は `scenario first` で始める
+2. AIは自由採点を行わず、evidence 抽出と曖昧性整理を支援する
+3. スコアは固定式で計算し、必ず `evidence` `confidence` `unknowns` を伴う
+4. 品質向上の得点と複雑性の税を混ぜない
+5. greenfield と brownfield では、同じ式でも evidence source を切り替える
+
+## 4. 評価フレーム
+
+本領域は、次の考え方を統合して設計する。
+
+- QAW: business goal から architecture-critical な quality scenarios を洗い出す
+- ATAM: scenario に対する tradeoff と risk を評価する
+- CBAM: cost / benefit / ROI を分離して扱う
+- fitness functions: パターン準拠を objective で quantifiable なルールとして継続実行する
+- telemetry / history: 実行時挙動と進化効率を実測で補完する
+
+このため、評価は次の順序で行う。
+
+1. 何を良いとするかを scenario で定義する
+2. 選んだパターンに求める規律を static rules として定義する
+3. 実装、運用、履歴から本当にそう振る舞っているかを検証する
+4. 得られた利得と複雑性税を分けて比較する
+
+## 5. 上位指標体系
+
+### 5.1 `APSI`: Architecture Pattern Suitability Index
+
+```text
+APSI = 0.30 * QSF
+     + 0.20 * PCS
+     + 0.20 * OAS
+     + 0.15 * EES
+     + 0.15 * (1 - CTI)
+```
+
+- `QSF`: Quality Scenario Fit
+- `PCS`: Pattern Conformance Score
+- `OAS`: Operational Adequacy Score
+- `EES`: Evolution Efficiency Score
+- `CTI`: Complexity Tax Index
+
+`APSI` は意思決定の要約値であり、単独で設計の良否を断定しない。
+必ず下位スコアと evidence を併記する。
+
+### 5.2 `QSF`: Quality Scenario Fit
+
+`QSF` は、QAW / ATAM の scenario ベース評価を定量化したものとする。
+
+各 scenario `s` について、少なくとも次を持つ。
+
+- `stimulus`
+- `environment`
+- `response`
+- `response_measure`
+- `priority`
+- `target`
+- `worst_acceptable`
+
+lower-is-better の正規化:
+
+```text
+n_s = clip((worst_s - observed_s) / (worst_s - target_s), 0, 1)
+```
+
+higher-is-better の正規化:
+
+```text
+n_s = clip((observed_s - worst_s) / (target_s - worst_s), 0, 1)
+```
+
+集計式:
+
+```text
+QSF = Σ(priority_s * n_s) / Σ(priority_s)
+```
+
+`QSF` が意味するのは、パターン一般論への適合ではなく、そのシステムにとって重要な品質目標への適合である。
+
+### 5.3 `PCS`: Pattern Conformance Score
+
+`PCS` は、選択したアーキテクチャパターンに固有の規律を実装が守っているかを表す。
+
+```text
+PCS = Σ(weight_r * result_r) / Σ(weight_r)
+```
+
+ここで `result_r` は、0/1 でも連続値でもよい。
+重要なのは、rule set が pattern family ごとに切り替わることである。
+
+`PCS` は static analysis と fitness functions の中心領域であり、現行実装の `DDS` `BPS` `IPS` はこの下位スコアとして位置づける。
+
+### 5.4 `OAS`: Operational Adequacy Score
+
+`OAS` は、本番の実行時挙動がそのパターンの約束を満たしているかを表す。
+
+共通基盤は Google SRE の four golden signals を採るが、`traffic` は評価対象ではなく、他指標を層別化する条件変数として扱う。
+
+traffic band ごとの集計:
+
+```text
+band_score_b = 0.45 * LatencyScore_b
+             + 0.35 * ErrorScore_b
+             + 0.20 * SaturationScore_b
+```
+
+共通実行時スコア:
+
+```text
+CommonOps = Σ(traffic_weight_b * band_score_b)
+```
+
+総合:
+
+```text
+OAS = 0.50 * CommonOps + 0.50 * PatternRuntime
+```
+
+`PatternRuntime` には pattern-specific runtime metrics を入れる。
+
+### 5.5 `EES`: Evolution Efficiency Score
+
+`EES` は、delivery performance と historical locality を分けて扱う。
+
+delivery 側:
+
+```text
+Delivery = 0.25 * LeadTimeScore
+         + 0.20 * DeployFreqScore
+         + 0.20 * RecoveryScore
+         + 0.20 * (1 - ChangeFailScore)
+         + 0.15 * (1 - ReworkScore)
+```
+
+locality 側:
+
+```text
+Locality = 0.40 * (1 - CrossBoundaryCoChange)
+         + 0.30 * (1 - WeightedPropagationCost)
+         + 0.30 * (1 - WeightedClusteringCost)
+```
+
+総合:
+
+```text
+EES = 0.60 * Delivery + 0.40 * Locality
+```
+
+ここでの論点は、パッケージ図の整然さではなく、実際の変更単位が局所化しているかである。
+
+### 5.6 `CTI`: Complexity Tax Index
+
+`CTI` は、選んだパターンが追加で払わせる運用税・認知税を表す。
+
+```text
+CTI = 0.20 * DeployablesPerTeam
+    + 0.15 * PipelinesPerDeployable
+    + 0.15 * ContractsOrSchemasPerService
+    + 0.10 * DatastoresPerServiceGroup
+    + 0.15 * OnCallSurface
+    + 0.10 * SyncDepthOverhead
+    + 0.15 * RunCostPerBusinessTransaction
+```
+
+`CTI` は絶対数ではなく、business volume や team capacity で正規化する。
+この指標を別立てにしないと、複雑なパターンを「高度な設計」と誤認しやすい。
+
+## 6. pattern family ごとの重点
+
+同じ `APSI` でも、pattern family によって重く見る下位スコアは異なる。
+
+### 6.1 layered / clean / hexagonal
+
+- 主戦場: `QSF` と `PCS`
+- 重点論点: dependency discipline、domain isolation、framework contamination、port 経由性
+- `OAS` と `CTI` は補助的だが、failure containment は無視しない
+
+### 6.2 modular monolith / microservices
+
+- 主戦場: `EES` と `CTI`
+- 重点論点: independent deployability、cross-boundary co-change、shared database、sync depth、運用面の coordination cost
+- 見かけ上の分割ではなく、進化単位と運用税を見る
+
+### 6.3 CQRS
+
+- 主戦場: `QSF` `OAS` `CTI`
+- 重点論点: write-side の invariant closure、projection freshness、replay divergence、stale read の許容性
+
+### 6.4 event-driven
+
+- 主戦場: `OAS` `CTI`
+- 重点論点: schema compatibility、idempotency、dead-letter、replay recovery、end-to-end lag
+
+## 7. 現時点の下位指標例
+
+pattern family ごとの典型的な下位指標例を示す。
+これらは current implementation と future implementation の混在を含む。
+
+### 7.1 layered / clean / hexagonal の例
+
+- `DDVR`: forbidden dependency edges / total dependency edges
+- `LBR`: layer bypass calls / total cross-layer calls
+- `CPR`: nodes participating in cycles / total nodes
+- `DPR`: framework 依存のない domain classes / total domain classes
+- `PMR`: port 経由の外部 I/O / total external I/O
+
+### 7.2 service-based / microservices の例
+
+- `IDR`: single-service deployments / all deployments
+- `SDVR`: shared-database or cross-service write violations / all service data accesses
+- `SCD95`: p95 synchronous call depth per request
+- `DTNR`: critical use cases needing atomic multi-service writes / critical use cases
+- `CSCR`: cross-service co-change ratio
+
+### 7.3 CQRS の例
+
+- `RWSC`: read/write path separation coverage
+- `ICR`: write-side transaction 内に閉じる strong invariants / all strong invariants
+- `PFL95`: p95 projection freshness lag
+- `RDR`: replay divergence rate
+- `SCR`: stale-read related complaints or incidents / total relevant interactions
+
+### 7.4 event-driven の例
+
+- `ABR`: asynchronous durable messaging across intended boundaries / total intended boundary interactions
+- `SCPR`: schema compatibility pass rate
+- `ICC`: idempotent consumer coverage
+- `DLR`: dead-letter rate
+- `EL95`: p95 end-to-end lag
+- `RRSR`: replay recovery success rate
+
+## 8. greenfield / brownfield の切替
+
+greenfield と brownfield では観測可能な evidence が異なる。
+
+### 8.1 greenfield
+
+主に次を使う。
+
+- `QSF`: scenario fit
+- `PCS`: rule と構造の妥当性
+- pre-prod benchmark
+- chaos / contract test
+- `CTI_est`: 想定される運用税
+
+### 8.2 brownfield
+
+主に次を使う。
+
+- `QSF`: 実測 scenario fit
+- `PCS`: 継続 fitness function
+- `OAS`: telemetry
+- `EES`: delivery metrics + history locality
+- `CTI`: 実測された運用税
+
+同じ式を使いながら、evidence source を phase に応じて切り替えることが重要である。
+
+## 9. 初期導入セット
+
+最初から全指標を入れる必要はない。
+導入初期は、次の 9 項目を最小セットとする。
+
+- `QSF`: top 10 scenario の weighted score
+- `PCS`: dependency rule pass rate
+- `PCS`: cycle participation ratio
+- `OAS`: p95 latency / error / saturation by traffic band
+- `EES`: lead time
+- `EES`: change fail rate
+- `EES`: cross-boundary co-change ratio
+- `CTI`: deployables per team
+- `CTI`: on-call surface
+
+これにより、パターン適合性、実装準拠、本番挙動、変更局所性、複雑性税の5観点を最小コストで観測できる。
+
+## 10. 対象成果物
+
+### 10.1 設計成果物
+
+- architecture vision
+- business goal
+- quality attribute scenario catalog
 - ADR
-- レイヤ規約、依存規約
-- コンポーネント図、コンテキスト図、サービス図
-- ポート / アダプタ定義
-- API仕様、イベント仕様、スキーマ契約
-- セキュリティゾーン、ネットワーク境界、所有境界
+- layer / port / service / contract 規約
+- component / topology / service / deployment diagram
+- ownership / team boundary / security zone
 
-### 2.2 実装成果物
+### 10.2 実装成果物
 
-- アプリケーションコード
-- モジュール定義、ビルド定義
-- API定義、イベント定義
-- IaC、デプロイマニフェスト
-- ランタイム設定
+- application code
+- build / module definition
+- API / event / schema contracts
+- IaC / deploy manifest
+- runtime configuration
 
-### 2.3 履歴・運用成果物
+### 10.3 履歴・運用成果物
 
-- Git履歴
-- PR、Issue
-- リリース履歴
-- Incident
+- Git history
+- CI / CD history
+- deploy history
+- incident / postmortem
+- metrics / traces / logs
 - SLO / SLI
+- runbook / dashboard / alert rule
 
-## 3. 主要機能案
+## 11. 現行実装との関係
 
-| ID | 機能 | 概要 | 主な出力 |
-|---|---|---|---|
-| A1 | アーキテクチャモデル読込 | 明示されたアーキテクチャ意図を取り込む | Architecture Model Graph |
-| A2 | 構造候補推定 | レイヤ、コンポーネント、サービス候補を推定する | Structure Candidates |
-| A3 | 依存方向解析 | 規約違反依存を検出する | Dependency Direction Findings |
-| A4 | 境界純度解析 | アダプタ漏れ、フレームワーク汚染、内部共有を検出する | Boundary Purity Findings |
-| A5 | 契約安定性解析 | 破壊的変更、公開境界の逸脱を検出する | Interface Stability Report |
-| A6 | トポロジ分離解析 | ランタイム上の意図しない共有や障害伝播を可視化する | Topology Isolation Report |
-| A7 | 進化解析 | 変更増幅、跨り変更、驚きの結合を計測する | Architecture Evolution Report |
-| A8 | スコア計算とCI連携 | 指標計算、閾値判定、差分回帰検出を行う | Architecture Scorecard |
+現行の `architecture_design` 実装は、主に `PCS` の下位部品を構成している。
 
-## 4. 機能詳細
+- `DDS`: dependency direction と abstraction path の適合
+- `BPS`: boundary purity の適合
+- `IPS`: interface / contract stability の適合
 
-### A1. アーキテクチャモデル読込
+今後追加される想定:
 
-#### 主コマンド案
+- `TIS`: `OAS` と runtime containment の bridge 指標
+- `AELS`: `EES` の locality 側に近い指標
+- `QSF`: scenario model と benchmark / telemetry に基づく評価
+- `CTI`: complexity tax の観測
+- `APSI`: 下位スコアを要約する比較用指数
 
-- `arch.load_topology`
-- `arch.load_constraints`
+詳細な対応表は [architecture-metric-mapping.md](architecture-metric-mapping.md) を参照する。
 
-#### 目的
+## 12. 注意点
 
-- 明示されたアーキテクチャ意図を取り込む
-- 実装から推定した構造と、明示意図を分けて扱う
-
-### A2. 構造候補推定
-
-#### 主コマンド案
-
-- `arch.infer_layer_candidates`
-- `arch.infer_component_candidates`
-- `arch.infer_service_boundaries`
-
-#### 根拠
-
-- モジュール依存
-- 命名規約
-- パッケージ構成
-- デプロイ単位
-- ownership
-
-### A3. 依存方向解析
-
-#### 主コマンド案
-
-- `arch.detect_direction_violations`
-
-#### 検出対象
-
-- 下位レイヤから上位レイヤへの逆依存
-- ドメイン層からフレームワーク層への直接依存
-- ルールで禁止された横断依存
-
-### A4. 境界純度解析
-
-#### 主コマンド案
-
-- `arch.detect_adapter_leaks`
-- `arch.detect_framework_contamination`
-- `arch.detect_shared_internal_components`
-
-#### 検出対象
-
-- ポートを経由しないアダプタ呼び出し
-- ドメインモデルへのフレームワーク注釈浸食
-- 公開していない内部コンポーネントの共有
-
-### A5. 契約安定性解析
-
-#### 主コマンド案
-
-- `arch.detect_contract_breaks`
-- `arch.detect_schema_drift`
-
-#### 検出対象
-
-- 破壊的な API / Event / Schema 変更
-- Published Language と実装DTOの乖離
-- バージョニング規約違反
-
-### A6. トポロジ分離解析
-
-#### 主コマンド案
-
-- `arch.detect_runtime_sharing`
-- `arch.score_topology_isolation`
-
-#### 検出対象
-
-- 障害が連鎖しやすい同期依存
-- 共有DBや共有キャッシュによる密結合
-- セキュリティゾーン越境
-
-### A7. 進化解析
-
-#### 主コマンド案
-
-- `history.mine_cochange`
-- `arch.score_architecture_evolution`
-
-#### 観点
-
-- 変更が局所化されるか
-- 小変更が広範囲改修に波及していないか
-- 設計意図と実際の変更の流れがずれていないか
-
-## 5. 指標案
-
-この領域の指標は初期案であり、実データ検証を前提とする。
-
-### 5.1 `DDS`: Dependency Direction Score
-
-```text
-DDS = 0.60*(1-IDR) + 0.25*LRC + 0.15*APM
-```
-
-- `IDR`: Illegal Dependency Ratio
-- `LRC`: Layer Rule Compliance
-- `APM`: Abstraction Path Match
-
-### 5.2 `BPS`: Boundary Purity Score
-
-```text
-BPS = 0.45*(1-ALR) + 0.30*FCC + 0.25*(1-SICR)
-```
-
-- `ALR`: Adapter Leak Ratio
-- `FCC`: Framework Containment Compliance
-- `SICR`: Shared Internal Component Ratio
-
-### 5.3 `IPS`: Interface Protocol Stability
-
-```text
-IPS = 0.50*CBC + 0.25*(1-BCR) + 0.25*SLA
-```
-
-- `CBC`: Contract Backward Compatibility
-- `BCR`: Breaking Change Ratio
-- `SLA`: Schema Language Adherence
-
-### 5.4 `TIS`: Topology Isolation Score
-
-```text
-TIS = 0.40*FI + 0.30*RC + 0.30*(1-SDR)
-```
-
-- `FI`: Failure Isolation
-- `RC`: Runtime Containment
-- `SDR`: Shared Dependency Ratio
-
-### 5.5 `AELS`: Architecture Evolution Locality Score
-
-```text
-AELS = 0.40*CAL + 0.30*(1-CA) + 0.30*(1-SCR)
-```
-
-- `CAL`: Change Amplification Locality
-- `CA`: Change Amplification
-- `SCR`: Surprise Coupling Ratio
-
-### 5.6 比較用総合指数案
-
-```text
-AAFI = 0.25*DDS + 0.20*BPS + 0.20*IPS + 0.15*TIS + 0.20*AELS
-```
-
-この総合指数は、候補比較と時系列比較専用であり、絶対評価には使わない。
-
-## 6. 代表ユースケース
-
-### 6.1 レイヤードアーキテクチャの健全性確認
-
-- レイヤ規約が守られているか
-- ドメイン層がフレームワーク依存で汚染されていないか
-
-### 6.2 ヘキサゴナル化リファクタリングの比較
-
-- 案Aはポート / アダプタ分離が強いが依存数が多い
-- 案Bは変更局所性が高いが共有コンポーネントが残る
-
-### 6.3 マイクロサービス分割前後比較
-
-- 契約安定性とトポロジ分離度が改善したか
-- shared database が残っていないか
-
-## 7. 実装方針
-
-この領域は、ドメイン設計パックの後続として導入する。
-
-1. まず `DDS` `BPS` のような静的解析寄りの指標から始める
-2. 次に契約安定性とトポロジ解析を足す
-3. 最後に運用データを含む `TIS` や `AELS` を強化する
-
-## 8. 注意点
-
-- アーキテクチャ意図が文書化されていない場合、推定依存が増え `confidence` が下がる
-- ランタイム分離度は、コードだけではなくIaCや運用情報が必要になる
-- この領域の指標式は実証で調整される前提であり、初期段階では比較用途に限定する
+- パターン名の一般論で採点してはいけない
+- `APSI` を単独で運用してはいけない
+- pattern-specific metrics は family ごとに切り替える
+- greenfield の想定値と brownfield の実測値を混同してはいけない
+- `CTI` を除外すると、複雑な設計が不当に有利に見える
