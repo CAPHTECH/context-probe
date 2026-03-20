@@ -1,0 +1,7 @@
+version: "1.0"
+patternFamily: "hexagonal"
+layeredRuntime:
+  FailureContainment: 0.48
+  DependencyIsolation: 0.4
+source: "synthetic-raw-runtime"
+note: "adapter failures leak into the domain path"

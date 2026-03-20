@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "cqrs"
+cqrsRuntime:
+  ProjectionFreshness: 1.0
+  ReplayDivergence: 0.02
+  StaleReadAcceptability: 0.87
+source: "synthetic-raw-runtime"
+note: "projection freshness and replay behavior stay within business tolerance"

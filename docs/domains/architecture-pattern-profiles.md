@@ -42,6 +42,9 @@
 
 - `FailureContainmentScore`
 - `DependencyIsolationScore`
+- current input path:
+  - normalized `layeredRuntime`
+  - または raw runtime + normalization profile
 
 ## 3. modular monolith / microservices
 
@@ -77,6 +80,9 @@
 - `PartialFailureContainmentScore`
 - `RetryAmplificationScore`
 - `SyncHopDepthScore`
+- current input path:
+  - normalized `serviceBasedRuntime`
+  - または raw runtime + normalization profile
 
 ## 4. CQRS
 
@@ -111,6 +117,9 @@
 - `ProjectionFreshnessScore`
 - `ReplayDivergenceScore`
 - `StaleReadAcceptabilityScore`
+- current input path:
+  - normalized `cqrsRuntime`
+  - または raw runtime + normalization profile
 
 ## 5. event-driven
 
@@ -146,6 +155,9 @@
 - `DeadLetterHealthScore`
 - `ConsumerLagScore`
 - `ReplayRecoveryScore`
+- current input path:
+  - normalized `eventDrivenRuntime`
+  - または raw runtime + normalization profile
 
 ## 6. default weight profile の考え方
 

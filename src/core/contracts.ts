@@ -149,6 +149,8 @@ export interface ScenarioObservationSet {
   observations: ScenarioObservation[];
 }
 
+export interface ArchitectureScenarioObservationSourceConfig extends ArchitectureCanonicalSourceConfig {}
+
 export interface ArchitectureTopologyNode {
   nodeId: string;
   kind: "service" | "datastore" | "queue" | "cache" | "gateway" | "worker" | "unknown";
@@ -228,6 +230,19 @@ export interface ArchitectureDeliveryExportBundle {
   note?: string;
 }
 
+export type ArchitectureSourceType = "file" | "command";
+
+export interface ArchitectureCanonicalSourceConfig {
+  version: string;
+  sourceType: ArchitectureSourceType;
+  path?: string;
+  command?: string;
+  cwd?: string;
+  note?: string;
+}
+
+export interface ArchitectureDeliverySourceConfig extends ArchitectureCanonicalSourceConfig {}
+
 export interface ArchitectureDeliveryNormalizationProfile {
   version: string;
   signals: Partial<
@@ -282,6 +297,8 @@ export interface ArchitectureTelemetryExportBundle {
   note?: string;
 }
 
+export interface ArchitectureTelemetrySourceConfig extends ArchitectureCanonicalSourceConfig {}
+
 export interface TelemetryNormalizationRule {
   direction: ScenarioDirection;
   target: number;
@@ -330,6 +347,29 @@ export interface EventDrivenPatternRuntimeObservationSet {
   ReplayRecoveryScore?: number;
 }
 
+export interface LayeredPatternRuntimeRawObservationSet {
+  FailureContainment?: number;
+  DependencyIsolation?: number;
+}
+
+export interface ServiceBasedPatternRuntimeRawObservationSet {
+  PartialFailureContainment?: number;
+  RetryAmplification?: number;
+  SyncHopDepth?: number;
+}
+
+export interface CqrsPatternRuntimeRawObservationSet {
+  ProjectionFreshness?: number;
+  ReplayDivergence?: number;
+  StaleReadAcceptability?: number;
+}
+
+export interface EventDrivenPatternRuntimeRawObservationSet {
+  DeadLetterHealth?: number;
+  ConsumerLag?: number;
+  ReplayRecovery?: number;
+}
+
 export interface ArchitecturePatternRuntimeObservationSet {
   version: string;
   patternFamily?: ArchitecturePatternFamily;
@@ -341,6 +381,29 @@ export interface ArchitecturePatternRuntimeObservationSet {
   metrics?: Record<string, number>;
   source?: string;
   note?: string;
+}
+
+export interface ArchitecturePatternRuntimeRawObservationSet {
+  version: string;
+  patternFamily?: ArchitecturePatternFamily;
+  layeredRuntime?: LayeredPatternRuntimeRawObservationSet;
+  serviceBasedRuntime?: ServiceBasedPatternRuntimeRawObservationSet;
+  cqrsRuntime?: CqrsPatternRuntimeRawObservationSet;
+  eventDrivenRuntime?: EventDrivenPatternRuntimeRawObservationSet;
+  source?: string;
+  note?: string;
+}
+
+export interface ArchitecturePatternRuntimeNormalizationProfile {
+  version: string;
+  layeredRuntime?: Partial<Record<"FailureContainment" | "DependencyIsolation", TelemetryNormalizationRule>>;
+  serviceBasedRuntime?: Partial<
+    Record<"PartialFailureContainment" | "RetryAmplification" | "SyncHopDepth", TelemetryNormalizationRule>
+  >;
+  cqrsRuntime?: Partial<
+    Record<"ProjectionFreshness" | "ReplayDivergence" | "StaleReadAcceptability", TelemetryNormalizationRule>
+  >;
+  eventDrivenRuntime?: Partial<Record<"DeadLetterHealth" | "ConsumerLag" | "ReplayRecovery", TelemetryNormalizationRule>>;
 }
 
 export interface ArchitectureConstraints {
@@ -367,6 +430,8 @@ export interface ArchitectureComplexityExportBundle {
   };
   note?: string;
 }
+
+export interface ArchitectureComplexitySourceConfig extends ArchitectureCanonicalSourceConfig {}
 
 export interface FileDependency {
   source: string;

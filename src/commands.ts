@@ -3,18 +3,24 @@ import { promises as fs } from "node:fs";
 import type {
   ArchitectureBoundaryMap,
   ArchitectureComplexityExportBundle,
+  ArchitectureComplexitySourceConfig,
   ArchitectureConstraints,
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
   ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryRawObservationSet,
+  ArchitectureDeliverySourceConfig,
   ArchitecturePatternRuntimeObservationSet,
+  ArchitecturePatternRuntimeNormalizationProfile,
+  ArchitecturePatternRuntimeRawObservationSet,
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTopologyModel,
   ArchitectureScenarioCatalog,
+  ArchitectureScenarioObservationSourceConfig,
   ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryObservationSet,
   ArchitectureTelemetryRawObservationSet,
+  ArchitectureTelemetrySourceConfig,
   CommandContext,
   CommandResponse,
   DomainModel,
@@ -42,6 +48,12 @@ import { createResponse, mergeStatus, toProvenance } from "./core/response.js";
 import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./core/trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "./analyzers/architecture.js";
+import {
+  resolveComplexitySourceConfig,
+  resolveDeliverySourceConfig,
+  resolveScenarioObservationSourceConfig,
+  resolveTelemetrySourceConfig
+} from "./analyzers/architecture-source-loader.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "./analyzers/code.js";
 import { DOMAIN_PACKS } from "./packs/index.js";
 
@@ -95,6 +107,21 @@ async function loadScenarioObservationsIfRequested(
     return undefined;
   }
   return readDataFile<ScenarioObservationSet>(observationsPath);
+}
+
+async function loadScenarioObservationSourceConfigIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<{ config: ArchitectureScenarioObservationSourceConfig; configPath: string } | undefined> {
+  const configPath =
+    typeof args["scenario-observation-source"] === "string"
+      ? new URL(args["scenario-observation-source"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!configPath) {
+    return undefined;
+  }
+  const config = await readDataFile<ArchitectureScenarioObservationSourceConfig>(configPath);
+  return { config, configPath };
 }
 
 async function loadTopologyModelIfRequested(
@@ -195,6 +222,21 @@ async function loadDeliveryNormalizationProfileIfRequested(
   return readDataFile<ArchitectureDeliveryNormalizationProfile>(profilePath);
 }
 
+async function loadDeliverySourceConfigIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<{ config: ArchitectureDeliverySourceConfig; configPath: string } | undefined> {
+  const configPath =
+    typeof args["delivery-source"] === "string"
+      ? new URL(args["delivery-source"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!configPath) {
+    return undefined;
+  }
+  const config = await readDataFile<ArchitectureDeliverySourceConfig>(configPath);
+  return { config, configPath };
+}
+
 async function loadTelemetryObservationsIfRequested(
   args: Record<string, string | boolean>,
   context: CommandContext
@@ -251,6 +293,21 @@ async function loadTelemetryNormalizationProfileIfRequested(
   return readDataFile<ArchitectureTelemetryNormalizationProfile>(profilePath);
 }
 
+async function loadTelemetrySourceConfigIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<{ config: ArchitectureTelemetrySourceConfig; configPath: string } | undefined> {
+  const configPath =
+    typeof args["telemetry-source"] === "string"
+      ? new URL(args["telemetry-source"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!configPath) {
+    return undefined;
+  }
+  const config = await readDataFile<ArchitectureTelemetrySourceConfig>(configPath);
+  return { config, configPath };
+}
+
 async function loadPatternRuntimeObservationsIfRequested(
   args: Record<string, string | boolean>,
   context: CommandContext
@@ -265,6 +322,34 @@ async function loadPatternRuntimeObservationsIfRequested(
   return readDataFile<ArchitecturePatternRuntimeObservationSet>(runtimePath);
 }
 
+async function loadPatternRuntimeRawObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitecturePatternRuntimeRawObservationSet | undefined> {
+  const runtimePath =
+    typeof args["pattern-runtime-raw-observations"] === "string"
+      ? new URL(args["pattern-runtime-raw-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!runtimePath) {
+    return undefined;
+  }
+  return readDataFile<ArchitecturePatternRuntimeRawObservationSet>(runtimePath);
+}
+
+async function loadPatternRuntimeNormalizationProfileIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitecturePatternRuntimeNormalizationProfile | undefined> {
+  const profilePath =
+    typeof args["pattern-runtime-normalization-profile"] === "string"
+      ? new URL(args["pattern-runtime-normalization-profile"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!profilePath) {
+    return undefined;
+  }
+  return readDataFile<ArchitecturePatternRuntimeNormalizationProfile>(profilePath);
+}
+
 async function loadComplexityExportIfRequested(
   args: Record<string, string | boolean>,
   context: CommandContext
@@ -277,6 +362,21 @@ async function loadComplexityExportIfRequested(
     return undefined;
   }
   return readDataFile<ArchitectureComplexityExportBundle>(complexityPath);
+}
+
+async function loadComplexitySourceConfigIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<{ config: ArchitectureComplexitySourceConfig; configPath: string } | undefined> {
+  const configPath =
+    typeof args["complexity-source"] === "string"
+      ? new URL(args["complexity-source"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!configPath) {
+    return undefined;
+  }
+  const config = await readDataFile<ArchitectureComplexitySourceConfig>(configPath);
+  return { config, configPath };
 }
 
 function getRootPath(args: Record<string, string | boolean>, context: CommandContext): string {
@@ -500,6 +600,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       const [
         scenarioCatalog,
         scenarioObservations,
+        scenarioObservationSourceConfig,
         topologyModel,
         boundaryMap,
         runtimeObservations,
@@ -507,15 +608,21 @@ export const COMMANDS: Record<string, CommandHandler> = {
         deliveryRawObservations,
         deliveryExport,
         deliveryNormalizationProfile,
+        deliverySourceConfig,
         telemetryObservations,
         telemetryRawObservations,
         telemetryExport,
         telemetryNormalizationProfile,
+        telemetrySourceConfig,
         patternRuntimeObservations,
-        complexityExport
+        patternRuntimeRawObservations,
+        patternRuntimeNormalizationProfile,
+        complexityExport,
+        complexitySourceConfig
       ] = await Promise.all([
         loadScenarioCatalogIfRequested(args, context),
         loadScenarioObservationsIfRequested(args, context),
+        loadScenarioObservationSourceConfigIfRequested(args, context),
         loadTopologyModelIfRequested(args, context),
         loadBoundaryMapIfRequested(args, context),
         loadRuntimeObservationsIfRequested(args, context),
@@ -523,13 +630,77 @@ export const COMMANDS: Record<string, CommandHandler> = {
         loadDeliveryRawObservationsIfRequested(args, context),
         loadDeliveryExportIfRequested(args, context),
         loadDeliveryNormalizationProfileIfRequested(args, context),
+        loadDeliverySourceConfigIfRequested(args, context),
         loadTelemetryObservationsIfRequested(args, context),
         loadTelemetryRawObservationsIfRequested(args, context),
         loadTelemetryExportIfRequested(args, context),
         loadTelemetryNormalizationProfileIfRequested(args, context),
+        loadTelemetrySourceConfigIfRequested(args, context),
         loadPatternRuntimeObservationsIfRequested(args, context),
-        loadComplexityExportIfRequested(args, context)
+        loadPatternRuntimeRawObservationsIfRequested(args, context),
+        loadPatternRuntimeNormalizationProfileIfRequested(args, context),
+        loadComplexityExportIfRequested(args, context),
+        loadComplexitySourceConfigIfRequested(args, context)
       ]);
+
+      const usableTelemetryRaw = Boolean(telemetryRawObservations && telemetryNormalizationProfile);
+      const usableDeliveryRaw = Boolean(deliveryRawObservations && deliveryNormalizationProfile);
+      const usablePatternRuntimeRaw = Boolean(
+        patternRuntimeRawObservations && patternRuntimeNormalizationProfile
+      );
+
+      const scenarioObservationSource =
+        !scenarioObservations && scenarioObservationSourceConfig
+          ? await resolveScenarioObservationSourceConfig(scenarioObservationSourceConfig)
+          : undefined;
+      const telemetrySource =
+        !telemetryObservations && !usableTelemetryRaw && !telemetryExport && telemetrySourceConfig
+          ? await resolveTelemetrySourceConfig(telemetrySourceConfig)
+          : undefined;
+      const deliverySource =
+        !deliveryObservations && !usableDeliveryRaw && !deliveryExport && deliverySourceConfig
+          ? await resolveDeliverySourceConfig(deliverySourceConfig)
+          : undefined;
+      const complexitySource =
+        !complexityExport && complexitySourceConfig
+          ? await resolveComplexitySourceConfig(complexitySourceConfig)
+          : undefined;
+
+      const additionalProvenance = [
+        ...(scenarioObservationSource
+          ? [
+              toProvenance(scenarioObservationSource.configPath, "scenario_observation_source_config"),
+              ...(scenarioObservationSource.resolvedPath
+                ? [toProvenance(scenarioObservationSource.resolvedPath, "scenario_observation_source_file")]
+                : [])
+            ]
+          : []),
+        ...(telemetrySource
+          ? [
+              toProvenance(telemetrySource.configPath, "telemetry_source_config"),
+              ...(telemetrySource.resolvedPath
+                ? [toProvenance(telemetrySource.resolvedPath, "telemetry_source_file")]
+                : [])
+            ]
+          : []),
+        ...(deliverySource
+          ? [
+              toProvenance(deliverySource.configPath, "delivery_source_config"),
+              ...(deliverySource.resolvedPath
+                ? [toProvenance(deliverySource.resolvedPath, "delivery_source_file")]
+                : [])
+            ]
+          : []),
+        ...(complexitySource
+          ? [
+              toProvenance(complexitySource.configPath, "complexity_source_config"),
+              ...(complexitySource.resolvedPath
+                ? [toProvenance(complexitySource.resolvedPath, "complexity_source_file")]
+                : [])
+            ]
+          : [])
+      ];
+
       return computeArchitectureScores({
         repoPath: getRootPath(args, context),
         constraints,
@@ -537,19 +708,32 @@ export const COMMANDS: Record<string, CommandHandler> = {
         profileName: getProfile(args),
         ...(scenarioCatalog ? { scenarioCatalog } : {}),
         ...(scenarioObservations ? { scenarioObservations } : {}),
+        ...(scenarioObservationSource ? { scenarioObservationSource } : {}),
         ...(topologyModel ? { topologyModel } : {}),
         ...(boundaryMap ? { boundaryMap } : {}),
         ...(runtimeObservations ? { runtimeObservations } : {}),
         ...(deliveryObservations ? { deliveryObservations } : {}),
         ...(deliveryRawObservations ? { deliveryRawObservations } : {}),
         ...(deliveryExport ? { deliveryExport } : {}),
+        ...(deliverySource ? { deliverySource } : {}),
         ...(deliveryNormalizationProfile ? { deliveryNormalizationProfile } : {}),
         ...(telemetryObservations ? { telemetryObservations } : {}),
         ...(telemetryRawObservations ? { telemetryRawObservations } : {}),
         ...(telemetryExport ? { telemetryExport } : {}),
+        ...(telemetrySource ? { telemetrySource } : {}),
         ...(telemetryNormalizationProfile ? { telemetryNormalizationProfile } : {}),
         ...(patternRuntimeObservations ? { patternRuntimeObservations } : {}),
-        ...(complexityExport ? { complexityExport } : {})
+        ...(patternRuntimeRawObservations ? { patternRuntimeRawObservations } : {}),
+        ...(patternRuntimeNormalizationProfile ? { patternRuntimeNormalizationProfile } : {}),
+        ...(complexityExport ? { complexityExport } : {}),
+        ...(complexitySource ? { complexitySource } : {}),
+        additionalProvenance,
+        scenarioObservationSourceRequested: Boolean(scenarioObservationSourceConfig),
+        telemetrySourceRequested: Boolean(telemetrySourceConfig),
+        deliverySourceRequested: Boolean(deliverySourceConfig),
+        complexitySourceRequested: Boolean(complexitySourceConfig),
+        patternRuntimeRawRequested: Boolean(patternRuntimeRawObservations),
+        patternRuntimeNormalizationProfileRequested: Boolean(patternRuntimeNormalizationProfile)
       });
     }
     const model = await requireDomainModel(args, context);
