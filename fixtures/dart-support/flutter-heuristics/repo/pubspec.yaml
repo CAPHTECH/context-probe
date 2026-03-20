@@ -1,0 +1,7 @@
+name: flutter_heuristics
+description: "Flutter heuristic fixture"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0

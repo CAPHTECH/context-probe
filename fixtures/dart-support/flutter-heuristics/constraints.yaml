@@ -1,0 +1,29 @@
+version: "1.0"
+direction: inward
+layers:
+  - name: shared
+    rank: 0
+    globs:
+      - "lib/core/**"
+  - name: domain
+    rank: 1
+    globs:
+      - "lib/features/*/domain/**"
+  - name: data
+    rank: 2
+    globs:
+      - "lib/features/*/data/**"
+  - name: presentation
+    rank: 3
+    globs:
+      - "lib/features/*/presentation/**"
+complexity:
+  teamCount: 1
+  deployableCount: 1
+  pipelineCount: 1
+  serviceCount: 1
+  serviceGroupCount: 1
+  datastoreCount: 1
+  onCallSurface: 2
+  syncDepthP95: 1
+  runCostPerBusinessTransaction: 1
