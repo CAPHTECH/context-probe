@@ -1,0 +1,30 @@
+version: "1.0"
+sourceSystem: "synthetic-observability"
+bands:
+  - bandId: "low"
+    trafficWeight: 0.2
+    latencyP95: 210
+    errorRate: 0.008
+    saturationRatio: 0.48
+    window: "5m"
+  - bandId: "median"
+    trafficWeight: 0.5
+    latencyP95: 310
+    errorRate: 0.015
+    saturationRatio: 0.62
+    window: "5m"
+  - bandId: "peak"
+    trafficWeight: 0.3
+    latencyP95: 430
+    errorRate: 0.024
+    saturationRatio: 0.73
+    window: "5m"
+patternRuntime:
+  version: "1.0"
+  score: 0.88
+  metrics:
+    partialFailureContainment: 0.9
+    syncHopDepth: 0.82
+  source: "synthetic-runtime-embedded"
+  note: "runtime behavior remains stable under representative traffic"
+note: "export bundle with embedded runtime evidence"

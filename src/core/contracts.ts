@@ -215,6 +215,19 @@ export interface ArchitectureDeliveryRawObservationSet {
   note?: string;
 }
 
+export interface ArchitectureDeliveryExportBundle {
+  version: string;
+  sourceSystem?: string;
+  measurements: {
+    leadTime?: number;
+    deployFrequency?: number;
+    recoveryTime?: number;
+    changeFailRate?: number;
+    reworkRate?: number;
+  };
+  note?: string;
+}
+
 export interface ArchitectureDeliveryNormalizationProfile {
   version: string;
   signals: Partial<
@@ -249,6 +262,24 @@ export interface ArchitectureTelemetryRawBandObservation {
 export interface ArchitectureTelemetryRawObservationSet {
   version: string;
   bands: ArchitectureTelemetryRawBandObservation[];
+}
+
+export interface ArchitectureTelemetryExportBand {
+  bandId: string;
+  trafficWeight: number;
+  latencyP95?: number;
+  errorRate?: number;
+  saturationRatio?: number;
+  source?: string;
+  window?: string;
+}
+
+export interface ArchitectureTelemetryExportBundle {
+  version: string;
+  sourceSystem?: string;
+  bands: ArchitectureTelemetryExportBand[];
+  patternRuntime?: ArchitecturePatternRuntimeObservationSet;
+  note?: string;
 }
 
 export interface TelemetryNormalizationRule {
@@ -317,6 +348,24 @@ export interface ArchitectureConstraints {
   direction?: "inward";
   layers: LayerDefinition[];
   complexity?: ArchitectureComplexityMetadata;
+}
+
+export interface ArchitectureComplexityExportBundle {
+  version: string;
+  sourceSystem?: string;
+  metrics: {
+    teamCount?: number;
+    deployableCount?: number;
+    pipelineCount?: number;
+    contractOrSchemaCount?: number;
+    serviceCount?: number;
+    serviceGroupCount?: number;
+    datastoreCount?: number;
+    onCallSurface?: number;
+    syncDepthP95?: number;
+    runCostPerBusinessTransaction?: number;
+  };
+  note?: string;
 }
 
 export interface FileDependency {

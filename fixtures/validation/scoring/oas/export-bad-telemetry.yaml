@@ -1,0 +1,30 @@
+version: "1.0"
+sourceSystem: "synthetic-observability"
+bands:
+  - bandId: "low"
+    trafficWeight: 0.2
+    latencyP95: 480
+    errorRate: 0.03
+    saturationRatio: 0.72
+    window: "5m"
+  - bandId: "median"
+    trafficWeight: 0.5
+    latencyP95: 760
+    errorRate: 0.055
+    saturationRatio: 0.88
+    window: "5m"
+  - bandId: "peak"
+    trafficWeight: 0.3
+    latencyP95: 980
+    errorRate: 0.095
+    saturationRatio: 0.99
+    window: "5m"
+patternRuntime:
+  version: "1.0"
+  score: 0.3
+  metrics:
+    partialFailureContainment: 0.34
+    syncHopDepth: 0.28
+  source: "synthetic-runtime-embedded"
+  note: "runtime behavior degrades under representative traffic"
+note: "export bundle with degraded runtime evidence"

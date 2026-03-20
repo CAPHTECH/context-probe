@@ -1,0 +1,9 @@
+version: "1.0"
+sourceSystem: "synthetic-cicd"
+measurements:
+  leadTime: 12
+  deployFrequency: 4
+  recoveryTime: 6.5
+  changeFailRate: 0.32
+  reworkRate: 0.28
+note: "degraded delivery export"

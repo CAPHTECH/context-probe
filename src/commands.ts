@@ -2,14 +2,17 @@ import { promises as fs } from "node:fs";
 
 import type {
   ArchitectureBoundaryMap,
+  ArchitectureComplexityExportBundle,
   ArchitectureConstraints,
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
+  ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryRawObservationSet,
   ArchitecturePatternRuntimeObservationSet,
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTopologyModel,
   ArchitectureScenarioCatalog,
+  ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryObservationSet,
   ArchitectureTelemetryRawObservationSet,
   CommandContext,
@@ -164,6 +167,20 @@ async function loadDeliveryRawObservationsIfRequested(
   return readDataFile<ArchitectureDeliveryRawObservationSet>(deliveryPath);
 }
 
+async function loadDeliveryExportIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureDeliveryExportBundle | undefined> {
+  const deliveryPath =
+    typeof args["delivery-export"] === "string"
+      ? new URL(args["delivery-export"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!deliveryPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureDeliveryExportBundle>(deliveryPath);
+}
+
 async function loadDeliveryNormalizationProfileIfRequested(
   args: Record<string, string | boolean>,
   context: CommandContext
@@ -206,6 +223,20 @@ async function loadTelemetryRawObservationsIfRequested(
   return readDataFile<ArchitectureTelemetryRawObservationSet>(telemetryPath);
 }
 
+async function loadTelemetryExportIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureTelemetryExportBundle | undefined> {
+  const telemetryPath =
+    typeof args["telemetry-export"] === "string"
+      ? new URL(args["telemetry-export"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!telemetryPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureTelemetryExportBundle>(telemetryPath);
+}
+
 async function loadTelemetryNormalizationProfileIfRequested(
   args: Record<string, string | boolean>,
   context: CommandContext
@@ -232,6 +263,20 @@ async function loadPatternRuntimeObservationsIfRequested(
     return undefined;
   }
   return readDataFile<ArchitecturePatternRuntimeObservationSet>(runtimePath);
+}
+
+async function loadComplexityExportIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureComplexityExportBundle | undefined> {
+  const complexityPath =
+    typeof args["complexity-export"] === "string"
+      ? new URL(args["complexity-export"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!complexityPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureComplexityExportBundle>(complexityPath);
 }
 
 function getRootPath(args: Record<string, string | boolean>, context: CommandContext): string {
@@ -460,11 +505,14 @@ export const COMMANDS: Record<string, CommandHandler> = {
         runtimeObservations,
         deliveryObservations,
         deliveryRawObservations,
+        deliveryExport,
         deliveryNormalizationProfile,
         telemetryObservations,
         telemetryRawObservations,
+        telemetryExport,
         telemetryNormalizationProfile,
-        patternRuntimeObservations
+        patternRuntimeObservations,
+        complexityExport
       ] = await Promise.all([
         loadScenarioCatalogIfRequested(args, context),
         loadScenarioObservationsIfRequested(args, context),
@@ -473,11 +521,14 @@ export const COMMANDS: Record<string, CommandHandler> = {
         loadRuntimeObservationsIfRequested(args, context),
         loadDeliveryObservationsIfRequested(args, context),
         loadDeliveryRawObservationsIfRequested(args, context),
+        loadDeliveryExportIfRequested(args, context),
         loadDeliveryNormalizationProfileIfRequested(args, context),
         loadTelemetryObservationsIfRequested(args, context),
         loadTelemetryRawObservationsIfRequested(args, context),
+        loadTelemetryExportIfRequested(args, context),
         loadTelemetryNormalizationProfileIfRequested(args, context),
-        loadPatternRuntimeObservationsIfRequested(args, context)
+        loadPatternRuntimeObservationsIfRequested(args, context),
+        loadComplexityExportIfRequested(args, context)
       ]);
       return computeArchitectureScores({
         repoPath: getRootPath(args, context),
@@ -491,11 +542,14 @@ export const COMMANDS: Record<string, CommandHandler> = {
         ...(runtimeObservations ? { runtimeObservations } : {}),
         ...(deliveryObservations ? { deliveryObservations } : {}),
         ...(deliveryRawObservations ? { deliveryRawObservations } : {}),
+        ...(deliveryExport ? { deliveryExport } : {}),
         ...(deliveryNormalizationProfile ? { deliveryNormalizationProfile } : {}),
         ...(telemetryObservations ? { telemetryObservations } : {}),
         ...(telemetryRawObservations ? { telemetryRawObservations } : {}),
+        ...(telemetryExport ? { telemetryExport } : {}),
         ...(telemetryNormalizationProfile ? { telemetryNormalizationProfile } : {}),
-        ...(patternRuntimeObservations ? { patternRuntimeObservations } : {})
+        ...(patternRuntimeObservations ? { patternRuntimeObservations } : {}),
+        ...(complexityExport ? { complexityExport } : {})
       });
     }
     const model = await requireDomainModel(args, context);
