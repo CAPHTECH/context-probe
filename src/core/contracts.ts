@@ -215,6 +215,35 @@ export interface ArchitectureTelemetryObservationSet {
   bands: ArchitectureTelemetryBandObservation[];
 }
 
+export interface ArchitectureTelemetryRawBandObservation {
+  bandId: string;
+  trafficWeight: number;
+  latencyP95?: number;
+  errorRate?: number;
+  saturationRatio?: number;
+}
+
+export interface ArchitectureTelemetryRawObservationSet {
+  version: string;
+  bands: ArchitectureTelemetryRawBandObservation[];
+}
+
+export interface TelemetryNormalizationRule {
+  direction: ScenarioDirection;
+  target: number;
+  worstAcceptable: number;
+}
+
+export interface ArchitectureTelemetryNormalizationProfile {
+  version: string;
+  signals: Partial<
+    Record<
+      "LatencyScore" | "ErrorScore" | "SaturationScore",
+      TelemetryNormalizationRule
+    >
+  >;
+}
+
 export interface ArchitecturePatternRuntimeObservationSet {
   version: string;
   score?: number;

@@ -61,8 +61,8 @@
 ### `OAS`
 
 - 想定役割: traffic band ごとの運用健全性と pattern-specific runtime adequacy の合成
-- 実装状態: `telemetry-observations` と `pattern-runtime-observations` による partial implementation を実装済み
-- 制約: raw telemetry 自動取得ではなく normalized score の明示入力から開始
+- 実装状態: `telemetry-observations` に加えて `telemetry-raw-observations + telemetry-normalization-profile` による partial implementation を実装済み
+- 制約: raw telemetry 自動取得ではなく file-based normalization から開始
 - 制約: pattern runtime observation がない場合は `TIS` bridge を使う
 
 ### `AELS`

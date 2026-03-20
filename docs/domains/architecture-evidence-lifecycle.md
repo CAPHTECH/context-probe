@@ -56,6 +56,8 @@
 - errors
 - saturation
 - traffic bands
+- telemetry export
+- normalization profile
 - consumer lag
 - replay success
 - DLQ rate
@@ -89,6 +91,12 @@ fitness functions は単独指標ではなく、greenfield から brownfield に
 - `QSF` の一部を pre-prod で検証する
 - `OAS` の runtime expectation を regression 化する
 - `CTI` の複雑性増加を継続観測する
+
+`OAS` については current implementation で次の段階を持つ。
+
+1. normalized score の明示入力
+2. raw telemetry export + normalization profile
+3. 将来の telemetry backend 直結
 
 ## 6. telemetry と history の役割分担
 

@@ -46,6 +46,10 @@ const TIS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/tis/bad-r
 const OAS_GOOD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/good-telemetry.yaml");
 const OAS_BAD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/bad-telemetry.yaml");
 const OAS_THIN_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/thin-telemetry.yaml");
+const OAS_RAW_PROFILE_PATH = path.resolve("fixtures/validation/scoring/oas/raw-normalization-profile.yaml");
+const OAS_RAW_GOOD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-good-telemetry.yaml");
+const OAS_RAW_BAD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-bad-telemetry.yaml");
+const OAS_RAW_THIN_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-thin-telemetry.yaml");
 const OAS_GOOD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/good-runtime.yaml");
 const OAS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/bad-runtime.yaml");
 const AELS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/aels/constraints.yaml");
@@ -363,6 +367,52 @@ describe("score validation", () => {
     expect(goodOas.components.PatternRuntime ?? 0).toBeGreaterThan(badOas.components.PatternRuntime ?? 0);
     expect(thinOas.unknowns.some((entry) => entry.includes("CommonOps"))).toBe(true);
     expect(thinOas.unknowns.some((entry) => entry.includes("PatternRuntime"))).toBe(true);
+  });
+
+  test("OAS also supports raw telemetry observations through an explicit normalization profile", async () => {
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-raw-observations": OAS_RAW_GOOD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
+        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-raw-observations": OAS_RAW_BAD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
+        "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-raw-observations": OAS_RAW_THIN_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodOas = getMetric(goodResponse, "OAS");
+    const badOas = getMetric(badResponse, "OAS");
+    const thinOas = getMetric(thinResponse, "OAS");
+
+    expect(goodOas.value).toBeGreaterThan(badOas.value);
+    expect(goodOas.components.CommonOps ?? 0).toBeGreaterThan(badOas.components.CommonOps ?? 0);
+    expect(thinOas.unknowns.some((entry) => entry.includes("raw"))).toBe(true);
   });
 
   test("TIS is higher for isolated topologies than for shared-dependency topologies", async () => {

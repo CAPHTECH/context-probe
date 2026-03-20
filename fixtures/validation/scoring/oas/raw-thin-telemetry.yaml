@@ -1,0 +1,5 @@
+version: "1.0"
+bands:
+  - bandId: "peak"
+    trafficWeight: 1.0
+    latencyP95: 520

@@ -1,0 +1,17 @@
+version: "1.0"
+bands:
+  - bandId: "low"
+    trafficWeight: 0.2
+    latencyP95: 210
+    errorRate: 0.008
+    saturationRatio: 0.48
+  - bandId: "median"
+    trafficWeight: 0.5
+    latencyP95: 310
+    errorRate: 0.015
+    saturationRatio: 0.62
+  - bandId: "peak"
+    trafficWeight: 0.3
+    latencyP95: 430
+    errorRate: 0.024
+    saturationRatio: 0.73

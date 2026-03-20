@@ -5,9 +5,11 @@ import type {
   ArchitectureConstraints,
   ArchitectureDeliveryObservationSet,
   ArchitecturePatternRuntimeObservationSet,
+  ArchitectureTelemetryNormalizationProfile,
   ArchitectureTopologyModel,
   ArchitectureScenarioCatalog,
   ArchitectureTelemetryObservationSet,
+  ArchitectureTelemetryRawObservationSet,
   CommandContext,
   CommandResponse,
   DomainModel,
@@ -158,6 +160,34 @@ async function loadTelemetryObservationsIfRequested(
     return undefined;
   }
   return readDataFile<ArchitectureTelemetryObservationSet>(telemetryPath);
+}
+
+async function loadTelemetryRawObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureTelemetryRawObservationSet | undefined> {
+  const telemetryPath =
+    typeof args["telemetry-raw-observations"] === "string"
+      ? new URL(args["telemetry-raw-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!telemetryPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureTelemetryRawObservationSet>(telemetryPath);
+}
+
+async function loadTelemetryNormalizationProfileIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureTelemetryNormalizationProfile | undefined> {
+  const profilePath =
+    typeof args["telemetry-normalization-profile"] === "string"
+      ? new URL(args["telemetry-normalization-profile"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!profilePath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureTelemetryNormalizationProfile>(profilePath);
 }
 
 async function loadPatternRuntimeObservationsIfRequested(
@@ -400,6 +430,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         runtimeObservations,
         deliveryObservations,
         telemetryObservations,
+        telemetryRawObservations,
+        telemetryNormalizationProfile,
         patternRuntimeObservations
       ] = await Promise.all([
         loadScenarioCatalogIfRequested(args, context),
@@ -409,6 +441,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         loadRuntimeObservationsIfRequested(args, context),
         loadDeliveryObservationsIfRequested(args, context),
         loadTelemetryObservationsIfRequested(args, context),
+        loadTelemetryRawObservationsIfRequested(args, context),
+        loadTelemetryNormalizationProfileIfRequested(args, context),
         loadPatternRuntimeObservationsIfRequested(args, context)
       ]);
       return computeArchitectureScores({
@@ -423,6 +457,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         ...(runtimeObservations ? { runtimeObservations } : {}),
         ...(deliveryObservations ? { deliveryObservations } : {}),
         ...(telemetryObservations ? { telemetryObservations } : {}),
+        ...(telemetryRawObservations ? { telemetryRawObservations } : {}),
+        ...(telemetryNormalizationProfile ? { telemetryNormalizationProfile } : {}),
         ...(patternRuntimeObservations ? { patternRuntimeObservations } : {})
       });
     }
