@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 
 import type {
   ArchitectureConstraints,
+  ArchitectureTopologyModel,
   ArchitectureScenarioCatalog,
   CommandContext,
   CommandResponse,
@@ -11,7 +12,8 @@ import type {
   ReviewItem,
   ReviewResolution,
   ReviewResolutionLog,
-  ScenarioObservationSet
+  ScenarioObservationSet,
+  TopologyRuntimeObservationSet
 } from "./core/contracts.js";
 import { normalizeDocuments, registerArtifacts } from "./core/artifacts.js";
 import {
@@ -82,6 +84,34 @@ async function loadScenarioObservationsIfRequested(
     return undefined;
   }
   return readDataFile<ScenarioObservationSet>(observationsPath);
+}
+
+async function loadTopologyModelIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureTopologyModel | undefined> {
+  const topologyPath =
+    typeof args["topology-model"] === "string"
+      ? new URL(args["topology-model"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!topologyPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureTopologyModel>(topologyPath);
+}
+
+async function loadRuntimeObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<TopologyRuntimeObservationSet | undefined> {
+  const runtimePath =
+    typeof args["runtime-observations"] === "string"
+      ? new URL(args["runtime-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!runtimePath) {
+    return undefined;
+  }
+  return readDataFile<TopologyRuntimeObservationSet>(runtimePath);
 }
 
 function getRootPath(args: Record<string, string | boolean>, context: CommandContext): string {
@@ -302,9 +332,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const domain = typeof args.domain === "string" ? args.domain : "domain_design";
     if (domain === "architecture_design") {
       const constraints = await requireArchitectureConstraints(args, context);
-      const [scenarioCatalog, scenarioObservations] = await Promise.all([
+      const [scenarioCatalog, scenarioObservations, topologyModel, runtimeObservations] = await Promise.all([
         loadScenarioCatalogIfRequested(args, context),
-        loadScenarioObservationsIfRequested(args, context)
+        loadScenarioObservationsIfRequested(args, context),
+        loadTopologyModelIfRequested(args, context),
+        loadRuntimeObservationsIfRequested(args, context)
       ]);
       return computeArchitectureScores({
         repoPath: getRootPath(args, context),
@@ -312,7 +344,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
         policyConfig,
         profileName: getProfile(args),
         ...(scenarioCatalog ? { scenarioCatalog } : {}),
-        ...(scenarioObservations ? { scenarioObservations } : {})
+        ...(scenarioObservations ? { scenarioObservations } : {}),
+        ...(topologyModel ? { topologyModel } : {}),
+        ...(runtimeObservations ? { runtimeObservations } : {})
       });
     }
     const model = await requireDomainModel(args, context);

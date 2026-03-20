@@ -14,7 +14,7 @@
 |---|---|---|---|
 | `QSF` | scenario fit | `QSF` | 部分実装 |
 | `PCS` | pattern rule conformance | `DDS`, `BPS`, `IPS` | 実装済み |
-| `OAS` | runtime adequacy | `TIS` の一部が候補 | 未実装 |
+| `OAS` | runtime adequacy | `TIS` の一部が候補 | 部分未実装 |
 | `EES` | delivery + locality | `AELS` が locality 側候補 | 部分未実装 |
 | `CTI` | complexity tax | `CTI` | 部分実装 |
 | `APSI` | summary index | なし | 未実装 |
@@ -54,7 +54,9 @@
 ### `TIS`
 
 - 想定役割: runtime containment と topology isolation
-- 上位指標上の位置づけ: `OAS` の bridge 指標候補
+- 上位指標上の位置づけ: `OAS` の bridge 指標
+- 実装状態: topology model と optional runtime observation を用いた初期 proxy を実装済み
+- 制約: full telemetry 直結ではなく、明示入力ベースの partial implementation
 
 ### `AELS`
 
@@ -63,10 +65,9 @@
 
 ## 6. 今後の推奨実装順
 
-1. `QSF`
-2. `APSI`
-3. `OAS` / `TIS`
-4. `EES` / `AELS` の拡張
+1. `APSI`
+2. `OAS` の拡張
+3. `EES` / `AELS` の拡張
 
 この順にする理由は、現在すでに `PCS` と初期 `CTI` の土台がある一方で、pattern suitability を成立させるには `QSF` がなお欠けているためである。
 

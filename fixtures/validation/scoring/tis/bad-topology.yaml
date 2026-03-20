@@ -1,0 +1,36 @@
+version: "1.0"
+nodes:
+  - nodeId: api
+    kind: service
+    isolationBoundary: core
+  - nodeId: billing
+    kind: service
+    isolationBoundary: core
+  - nodeId: fulfillment
+    kind: service
+    isolationBoundary: core
+  - nodeId: shared-db
+    kind: datastore
+    isolationBoundary: shared
+  - nodeId: shared-cache
+    kind: cache
+    isolationBoundary: shared
+edges:
+  - source: api
+    target: billing
+    kind: sync_call
+  - source: billing
+    target: fulfillment
+    kind: sync_call
+  - source: billing
+    target: shared-db
+    kind: shared_resource
+    shared: true
+  - source: fulfillment
+    target: shared-db
+    kind: shared_resource
+    shared: true
+  - source: billing
+    target: shared-cache
+    kind: shared_resource
+    shared: true

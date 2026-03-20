@@ -1,6 +1,7 @@
 import type {
   ArchitectureConstraints,
   ArchitectureScenarioCatalog,
+  ArchitectureTopologyModel,
   BoundaryLeakFinding,
   CochangeAnalysis,
   CommandResponse,
@@ -14,6 +15,7 @@ import type {
   ReviewResolutionLog,
   RuleCandidate,
   ScenarioObservationSet,
+  TopologyRuntimeObservationSet,
   TermTraceLink
 } from "./contracts.js";
 import { computeAggregateFitness } from "./aggregate-fitness.js";
@@ -28,6 +30,7 @@ import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
 import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
+import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
 import { scoreComplexityTax } from "../analyzers/cti.js";
 import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
@@ -602,6 +605,8 @@ export async function computeArchitectureScores(options: {
   profileName: string;
   scenarioCatalog?: ArchitectureScenarioCatalog;
   scenarioObservations?: ScenarioObservationSet;
+  topologyModel?: ArchitectureTopologyModel;
+  runtimeObservations?: TopologyRuntimeObservationSet;
 }): Promise<
   CommandResponse<{
     domainId: "architecture_design";
@@ -622,6 +627,10 @@ export async function computeArchitectureScores(options: {
   const scenarioScore = scoreQualityScenarioFit({
     ...(options.scenarioCatalog ? { catalog: options.scenarioCatalog } : {}),
     ...(options.scenarioObservations ? { observations: options.scenarioObservations } : {})
+  });
+  const topologyScore = scoreTopologyIsolation({
+    ...(options.topologyModel ? { topology: options.topologyModel } : {}),
+    ...(options.runtimeObservations ? { observations: options.runtimeObservations } : {})
   });
   const complexityScore = scoreComplexityTax({
     codebase,
@@ -674,6 +683,19 @@ export async function computeArchitectureScores(options: {
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
         source: finding.source
+      },
+      undefined,
+      finding.confidence
+    )
+  );
+  const topologyEvidence = topologyScore.findings.map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        ...(finding.nodeId ? { nodeId: finding.nodeId } : {}),
+        ...(finding.source ? { source: finding.source } : {}),
+        ...(finding.target ? { target: finding.target } : {})
       },
       undefined,
       finding.confidence
@@ -772,6 +794,26 @@ export async function computeArchitectureScores(options: {
       )
     );
   }
+  if (policy.metrics.TIS) {
+    scores.push(
+      toMetricScore(
+        "TIS",
+        evaluateFormula(policy.metrics.TIS.formula, {
+          FI: topologyScore.FI,
+          RC: topologyScore.RC,
+          SDR: topologyScore.SDR
+        }),
+        {
+          FI: topologyScore.FI,
+          RC: topologyScore.RC,
+          SDR: topologyScore.SDR
+        },
+        topologyEvidence.map((entry) => entry.evidenceId),
+        topologyScore.confidence,
+        topologyScore.unknowns
+      )
+    );
+  }
   if (policy.metrics.CTI) {
     scores.push(
       toMetricScore(
@@ -792,7 +834,14 @@ export async function computeArchitectureScores(options: {
       violations
     },
     {
-      evidence: [...scenarioEvidence, ...evidence, ...purityEvidence, ...protocolEvidence, ...complexityEvidence],
+      evidence: [
+        ...scenarioEvidence,
+        ...evidence,
+        ...purityEvidence,
+        ...protocolEvidence,
+        ...topologyEvidence,
+        ...complexityEvidence
+      ],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: scores.flatMap((score) => score.unknowns),
       provenance: [toProvenance(repoPath, "architecture_design")]
