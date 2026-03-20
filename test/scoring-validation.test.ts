@@ -41,6 +41,14 @@ const TIS_GOOD_TOPOLOGY_PATH = path.resolve("fixtures/validation/scoring/tis/goo
 const TIS_BAD_TOPOLOGY_PATH = path.resolve("fixtures/validation/scoring/tis/bad-topology.yaml");
 const TIS_GOOD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/tis/good-runtime.yaml");
 const TIS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/tis/bad-runtime.yaml");
+const AELS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/aels/constraints.yaml");
+const AELS_BOUNDARY_MAP_PATH = path.resolve("fixtures/validation/scoring/aels/boundary-map.yaml");
+const AELS_BASE_ENTRY = "fixtures/validation/scoring/aels/base-repo";
+const EES_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/ees/constraints.yaml");
+const EES_BOUNDARY_MAP_PATH = path.resolve("fixtures/validation/scoring/ees/boundary-map.yaml");
+const EES_GOOD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/good-delivery.yaml");
+const EES_BAD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/bad-delivery.yaml");
+const EES_BASE_ENTRY = "fixtures/validation/scoring/ees/base-repo";
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
 const BFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/bfs/model.yaml");
@@ -303,6 +311,187 @@ describe("score validation", () => {
     expect(badTis.components.SDR ?? 0).toBeGreaterThan(goodTis.components.SDR ?? 0);
     expect(thinTis.unknowns.some((entry) => entry.includes("runtime observation"))).toBe(true);
   });
+
+  test("AELS is higher for architecture histories that stay within boundaries", async () => {
+    const localRepo = await materializeGitFixture(AELS_BASE_ENTRY, tempRoots, "feat: init aels local");
+    const scatteredRepo = await materializeGitFixture(AELS_BASE_ENTRY, tempRoots, "feat: init aels scattered");
+
+    await appendAndCommit(
+      localRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingLocalOne = 'billing-local-1';\n"
+      },
+      "feat: billing local 1"
+    );
+    await appendAndCommit(
+      localRepo,
+      {
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentLocalOne = 'fulfillment-local-1';\n"
+      },
+      "feat: fulfillment local 1"
+    );
+    await appendAndCommit(
+      localRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingLocalTwo = 'billing-local-2';\n"
+      },
+      "feat: billing local 2"
+    );
+
+    await appendAndCommit(
+      scatteredRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingCrossOne = 'billing-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCrossOne = 'fulfillment-cross-1';\n"
+      },
+      "feat: cross-boundary 1"
+    );
+    await appendAndCommit(
+      scatteredRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingCrossTwo = 'billing-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCrossTwo = 'fulfillment-cross-2';\n"
+      },
+      "feat: cross-boundary 2"
+    );
+    await appendAndCommit(
+      scatteredRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingCrossThree = 'billing-cross-3';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCrossThree = 'fulfillment-cross-3';\n"
+      },
+      "feat: cross-boundary 3"
+    );
+
+    const localResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: localRepo,
+        constraints: AELS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": AELS_BOUNDARY_MAP_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const scatteredResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: scatteredRepo,
+        constraints: AELS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": AELS_BOUNDARY_MAP_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const localAels = getMetric(localResponse, "AELS");
+    const scatteredAels = getMetric(scatteredResponse, "AELS");
+
+    expect(localAels.value).toBeGreaterThan(scatteredAels.value);
+    expect(scatteredAels.components.CrossBoundaryCoChange ?? 0).toBeGreaterThan(
+      localAels.components.CrossBoundaryCoChange ?? 0
+    );
+    expect(scatteredAels.components.WeightedPropagationCost ?? 0).toBeGreaterThan(
+      localAels.components.WeightedPropagationCost ?? 0
+    );
+    expect(scatteredAels.components.WeightedClusteringCost ?? 0).toBeGreaterThan(
+      localAels.components.WeightedClusteringCost ?? 0
+    );
+  }, 30000);
+
+  test("EES is higher when delivery and architecture locality are both healthy", async () => {
+    const goodRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees good");
+    const badRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees bad");
+
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryLocalOne = 'billing-delivery-local-1';\n"
+      },
+      "feat: billing local 1"
+    );
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryLocalOne = 'fulfillment-delivery-local-1';\n"
+      },
+      "feat: fulfillment local 1"
+    );
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryLocalTwo = 'billing-delivery-local-2';\n"
+      },
+      "feat: billing local 2"
+    );
+
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryCrossOne = 'billing-delivery-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryCrossOne = 'fulfillment-delivery-cross-1';\n"
+      },
+      "feat: cross-boundary 1"
+    );
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryCrossTwo = 'billing-delivery-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryCrossTwo = 'fulfillment-delivery-cross-2';\n"
+      },
+      "feat: cross-boundary 2"
+    );
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryCrossThree = 'billing-delivery-cross-3';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryCrossThree = 'fulfillment-delivery-cross-3';\n"
+      },
+      "feat: cross-boundary 3"
+    );
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-observations": EES_GOOD_DELIVERY_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: badRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-observations": EES_BAD_DELIVERY_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodEes = getMetric(goodResponse, "EES");
+    const badEes = getMetric(badResponse, "EES");
+    const thinEes = getMetric(thinResponse, "EES");
+
+    expect(goodEes.value).toBeGreaterThan(badEes.value);
+    expect(goodEes.components.Delivery ?? 0).toBeGreaterThan(badEes.components.Delivery ?? 0);
+    expect(goodEes.components.Locality ?? 0).toBeGreaterThan(badEes.components.Locality ?? 0);
+    expect(thinEes.unknowns.some((entry) => entry.includes("delivery observations"))).toBe(true);
+  }, 30000);
 
   test("ELS is higher for localized histories than for scattered histories", async () => {
     const localRepo = await materializeGitFixture(ELS_BASE_ENTRY, tempRoots, "feat: init local history");
