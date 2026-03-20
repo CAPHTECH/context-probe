@@ -1,0 +1,5 @@
+version: "1.0"
+sourceType: "command"
+cwd: "../../.."
+command: "node scripts/collectors/architecture/scenario-actualization-to-qsf.mjs fixtures/examples/architecture-sources/scenario-benchmark-summary.json"
+note: "example scenario observation command source"

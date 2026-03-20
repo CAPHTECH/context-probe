@@ -27,6 +27,7 @@
 - 実装状態: scenario catalog と `scenario-observations`、または `scenario-observation-source` から取り込んだ actual observation を用いた部分実装
 - 制約: raw telemetry を直接読むのではなく、scenario 単位へ要約された観測を入力にする
 - 制約: vendor API 直結ではなく canonical source config 経由の取り込みから開始する
+- 実装状態: repo には benchmark / incident summary を canonical `ScenarioObservationSet` へ変換する reference collector を同梱
 ### `DDS`
 
 - 主な役割: dependency direction と abstraction path の適合
@@ -50,6 +51,7 @@
 - 実装状態: static metadata と codebase-derived count による初期 proxy を実装済み
 - 実装状態: `complexity-export` bundle、または `complexity-source` から取り込んだ canonical export を ingest して CTI component に反映できる
 - 制約: on-call surface や run cost は metadata 依存で、未観測時は unknown 扱い
+- 実装状態: repo には complexity snapshot を canonical bundle へ変換する reference collector を同梱
 
 ## 5. future metric の位置づけ
 
@@ -69,6 +71,7 @@
 - 制約: source config は canonical export / command stdout(JSON) を読む adapter 層であり、vendor API client はまだ持たない
 - 制約: pattern runtime observation がない場合は `TIS` bridge を使う
 - 制約: telemetry export は canonical ingest schema を前提とし、vendor API 直結ではない
+- 実装状態: repo には golden signals summary を canonical telemetry export へ変換する reference collector を同梱
 
 ### `AELS`
 
@@ -82,6 +85,7 @@
 - 想定役割: delivery performance と historical locality を合成した進化効率
 - 実装状態: `delivery-observations` に加えて `delivery-raw-observations + delivery-normalization-profile`、`delivery-export + delivery-normalization-profile`、`delivery-source + delivery-normalization-profile` と `AELS` を用いた partial implementation
 - 制約: DORA raw metrics の自動収集ではなく、file-based normalization から開始
+- 実装状態: repo には DORA / deploy summary を canonical delivery export へ変換する reference collector を同梱
 
 ### `APSI`
 

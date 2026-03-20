@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "sourceSystem": "example-benchmark",
+  "benchmarkSummary": {
+    "observations": [
+      {
+        "scenarioId": "S-001",
+        "observed": 280,
+        "note": "benchmark p95 latency"
+      },
+      {
+        "scenarioId": "S-002",
+        "observed": 0.85,
+        "note": "independent deploy review"
+      },
+      {
+        "scenarioId": "S-003",
+        "observed": 28,
+        "note": "benchmark recovery drill"
+      }
+    ]
+  },
+  "note": "example scenario actualization input"
+}

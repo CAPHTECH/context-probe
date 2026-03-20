@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "sourceSystem": "synthetic-dora",
+  "dora": {
+    "leadTime": 3,
+    "deployFrequency": 18,
+    "recoveryTime": 1.5,
+    "changeFailRate": 0.08,
+    "reworkRate": 0.06
+  }
+}

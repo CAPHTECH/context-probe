@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "sourceSystem": "incident-review",
+  "incidentReviewSummary": {
+    "observations": [
+      { "scenarioId": "S-001", "observed": 610, "note": "latency incident review" }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+version: "1.0"
+sourceType: "command"
+cwd: "../../.."
+command: "node scripts/collectors/architecture/telemetry-export-to-oas.mjs fixtures/examples/architecture-sources/telemetry-golden-signals.json"
+note: "example telemetry command source"

@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "sourceSystem": "benchmark-summary",
+  "benchmarkSummary": {
+    "observations": [
+      { "scenarioId": "S-001", "observed": 720, "note": "p95 latency benchmark" },
+      { "scenarioId": "S-002", "observed": 0.42, "note": "deploy review" },
+      { "scenarioId": "S-003", "observed": 75, "note": "recovery drill" }
+    ]
+  }
+}

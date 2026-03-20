@@ -15,7 +15,8 @@
 9. [domains/architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
 10. [domains/architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
 11. [operations/policy-and-ci.md](operations/policy-and-ci.md)
-12. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
+12. [operations/architecture-source-collectors.md](operations/architecture-source-collectors.md)
+13. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
 
 ## ディレクトリ構成
 
@@ -52,6 +53,8 @@
 
 - [policy-and-ci.md](operations/policy-and-ci.md)
   - 閾値設定、レビュー条件、CI運用、監査方針を定義します。
+- [architecture-source-collectors.md](operations/architecture-source-collectors.md)
+  - canonical source config を brownfield evidence へ接続する reference collector と example config をまとめます。
 
 ### `roadmap/`
 
