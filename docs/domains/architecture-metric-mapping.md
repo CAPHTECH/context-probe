@@ -83,17 +83,19 @@
 
 - 想定役割: `QSF` `PCS` `OAS` `EES` `CTI` を束ねる比較用 summary index
 - 実装状態: `PCS = DDS/BPS/IPS proxy`、`OAS = OAS metric (未観測時は TIS bridge fallback)` として初期合成を実装済み
+- 実装状態: `default` `layered` `service_based` `cqrs` `event_driven` の policy profile で比較重みを切り替えられる
 - 制約: 下位指標の代替ではなく、意思決定の要約値としてのみ使う
 - 制約: `PCS` と `OAS` は current implementation では proxy / partial 実装を含む
 - 運用上の扱い: `report.generate` では summary section に分離し、`gate.evaluate` では supporting metric を主判定対象とする
+- 運用上の扱い: active profile は report に表示されるが、`patternFamily` 自動推定とは結びつけない
 
 ## 6. 今後の推奨実装順
 
-1. pattern runtime の raw 正規化または profile 別 normalization
-2. pattern profile ごとの `APSI` 重み調整
-3. delivery / telemetry backend の直接連携
+1. delivery / telemetry backend の直接連携
+2. pattern runtime の raw 正規化または profile 別 normalization
+3. profile preset の現場最適化
 
-この順にする理由は、現在すでに `APSI` と `OAS` の初期合成、family-specific runtime schema、delivery raw normalization はあるため、次は summary index を賢くするより、backend 由来の実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
+この順にする理由は、現在すでに `APSI` の profile 別重み、family-specific runtime schema、delivery raw normalization はあるため、次は summary index の微調整より backend 由来の実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
 
 ## 7. 読み方
 

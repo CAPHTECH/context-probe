@@ -29,13 +29,28 @@ function proxyOrPartialUnknowns(metric: MetricScore): string[] {
   return metric.unknowns.filter((entry) => /(proxy|partial|bridge|中立値|未観測|近似)/iu.test(entry));
 }
 
+function detectPolicyProfile(
+  response: CommandResponse<{
+    domainId: string;
+    metrics: MetricScore[];
+  }>,
+  explicitProfileName?: string
+): string | undefined {
+  if (explicitProfileName) {
+    return explicitProfileName;
+  }
+  const profileEntry = response.provenance.find((entry) => entry.note?.startsWith("profile="));
+  return profileEntry?.note?.slice("profile=".length);
+}
+
 function renderArchitectureReport(
   response: CommandResponse<{
     domainId: string;
     metrics: MetricScore[];
     leakFindings?: unknown[];
     violations?: unknown[];
-  }>
+  }>,
+  profileName?: string
 ): string {
   const lines = ["# Measurement Report", ""];
   const metrics = architectureMetricMap(response.result.metrics);
@@ -53,10 +68,14 @@ function renderArchitectureReport(
       proxyOrPartialUnknowns(metric).map((entry) => `${metric.metricId}: ${entry}`)
     )
   );
+  const activeProfile = detectPolicyProfile(response, profileName);
 
   lines.push(`- Domain: ${response.result.domainId}`);
   lines.push(`- Status: ${response.status}`);
   lines.push(`- Confidence: ${response.confidence.toFixed(3)}`);
+  if (activeProfile) {
+    lines.push(`- Policy Profile: ${activeProfile}`);
+  }
   lines.push("");
   lines.push("## Architecture Summary");
   if (summaryMetric) {
@@ -97,10 +116,11 @@ export function renderMarkdownReport(
     metrics: MetricScore[];
     leakFindings?: unknown[];
     violations?: unknown[];
-  }>
+  }>,
+  profileName?: string
 ): string {
   if (isArchitectureDomain(response)) {
-    return renderArchitectureReport(response);
+    return renderArchitectureReport(response, profileName);
   }
 
   const lines = ["# Measurement Report", ""];

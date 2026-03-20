@@ -53,10 +53,11 @@ describe("report and gate", () => {
       diagnostics: [],
       provenance: [],
       version: "1.0"
-    });
+    }, "layered");
 
     expect(report).toContain("## Architecture Summary");
     expect(report).toContain("APSI is a summary-only metric");
+    expect(report).toContain("Policy Profile: layered");
     expect(report).toContain("## Supporting Metrics");
     expect(report).toContain("## Bridge Metrics");
     expect(report).toContain("## Proxy / Partial Signals");

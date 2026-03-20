@@ -598,10 +598,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
     }>;
     const format = typeof args.format === "string" ? args.format : "json";
     if (format === "md") {
+      const profileName = getProfile(args);
       return createResponse(
         {
           format,
-          report: renderMarkdownReport(response)
+          report: renderMarkdownReport(response, profileName)
         },
         {
           status: response.status,
