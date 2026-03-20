@@ -15,7 +15,7 @@
 | `QSF` | scenario fit | `QSF` | 部分実装 |
 | `PCS` | pattern rule conformance | `DDS`, `BPS`, `IPS` | 実装済み |
 | `OAS` | runtime adequacy | `TIS` の一部が候補 | 部分未実装 |
-| `EES` | delivery + locality | `AELS` が locality 側候補 | 部分未実装 |
+| `EES` | delivery + locality | `AELS`, `EES` | 部分実装 |
 | `CTI` | complexity tax | `CTI` | 部分実装 |
 | `APSI` | summary index | なし | 未実装 |
 
@@ -62,14 +62,22 @@
 
 - 想定役割: architecture evolution locality
 - 上位指標上の位置づけ: `EES` の locality 側候補
+- 実装状態: Git history と boundary map または constraints layers を使った初期実装
+- 制約: delivery 指標は含まず、architecture boundary grouping の粒度に依存する
+
+### `EES`
+
+- 想定役割: delivery performance と historical locality を合成した進化効率
+- 実装状態: `delivery-observations` と `AELS` を用いた partial implementation
+- 制約: DORA raw metrics の自動収集ではなく、normalized score の明示入力から開始
 
 ## 6. 今後の推奨実装順
 
-1. `APSI`
-2. `OAS` の拡張
-3. `EES` / `AELS` の拡張
+1. `OAS` の拡張
+2. `APSI`
+3. telemetry / delivery input の実測連携
 
-この順にする理由は、現在すでに `PCS` と初期 `CTI` の土台がある一方で、pattern suitability を成立させるには `QSF` がなお欠けているためである。
+この順にする理由は、現在すでに `QSF` `PCS` `EES` `CTI` の初期実装があるため、次は runtime adequacy を厚くしてから summary index を合成する方が自然だからである。
 
 ## 7. 読み方
 

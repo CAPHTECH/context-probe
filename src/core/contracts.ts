@@ -181,6 +181,27 @@ export interface TopologyRuntimeObservationSet {
   observations: TopologyRuntimeObservation[];
 }
 
+export interface ArchitectureBoundaryDefinition {
+  name: string;
+  pathGlobs: string[];
+}
+
+export interface ArchitectureBoundaryMap {
+  version: string;
+  boundaries: ArchitectureBoundaryDefinition[];
+}
+
+export interface ArchitectureDeliveryObservationSet {
+  version: string;
+  scores: {
+    LeadTimeScore?: number;
+    DeployFreqScore?: number;
+    RecoveryScore?: number;
+    ChangeFailScore?: number;
+    ReworkScore?: number;
+  };
+}
+
 export interface ArchitectureConstraints {
   version: string;
   direction?: "inward";

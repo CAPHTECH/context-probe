@@ -1,9 +1,12 @@
 import type {
+  ArchitectureBoundaryMap,
   ArchitectureConstraints,
+  ArchitectureDeliveryObservationSet,
   ArchitectureScenarioCatalog,
   ArchitectureTopologyModel,
   BoundaryLeakFinding,
   CochangeAnalysis,
+  CochangeCommit,
   CommandResponse,
   DomainModel,
   ExtractionBackend,
@@ -31,6 +34,10 @@ import { detectDirectionViolations, scoreDependencyDirection } from "../analyzer
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
 import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
 import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
+import {
+  scoreArchitectureEvolutionEfficiency,
+  scoreArchitectureEvolutionLocality
+} from "../analyzers/architecture-evolution.js";
 import { scoreComplexityTax } from "../analyzers/cti.js";
 import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
@@ -606,7 +613,9 @@ export async function computeArchitectureScores(options: {
   scenarioCatalog?: ArchitectureScenarioCatalog;
   scenarioObservations?: ScenarioObservationSet;
   topologyModel?: ArchitectureTopologyModel;
+  boundaryMap?: ArchitectureBoundaryMap;
   runtimeObservations?: TopologyRuntimeObservationSet;
+  deliveryObservations?: ArchitectureDeliveryObservationSet;
 }): Promise<
   CommandResponse<{
     domainId: "architecture_design";
@@ -635,6 +644,35 @@ export async function computeArchitectureScores(options: {
   const complexityScore = scoreComplexityTax({
     codebase,
     constraints
+  });
+  let architectureCommits: CochangeCommit[] = [];
+  let architectureHistoryDiagnostics: string[] = [];
+  try {
+    architectureCommits = await normalizeHistory(repoPath, policyConfig, profileName);
+  } catch (error) {
+    architectureHistoryDiagnostics = [
+      error instanceof Error ? `architecture 履歴解析をスキップしました: ${error.message}` : "architecture 履歴解析をスキップしました"
+    ];
+  }
+  const evolutionLocalityScore = scoreArchitectureEvolutionLocality({
+    commits: architectureCommits,
+    constraints,
+    ...(options.boundaryMap ? { boundaryMap: options.boundaryMap } : {})
+  });
+  const localityValue = policy.metrics.AELS
+    ? evaluateFormula(policy.metrics.AELS.formula, {
+        CrossBoundaryCoChange: evolutionLocalityScore.CrossBoundaryCoChange,
+        WeightedPropagationCost: evolutionLocalityScore.WeightedPropagationCost,
+        WeightedClusteringCost: evolutionLocalityScore.WeightedClusteringCost
+      })
+    : 0.40 * (1 - evolutionLocalityScore.CrossBoundaryCoChange) +
+        0.30 * (1 - evolutionLocalityScore.WeightedPropagationCost) +
+        0.30 * (1 - evolutionLocalityScore.WeightedClusteringCost);
+  const evolutionEfficiencyScore = scoreArchitectureEvolutionEfficiency({
+    ...(options.deliveryObservations ? { deliveryObservations: options.deliveryObservations } : {}),
+    locality: localityValue,
+    localityConfidence: evolutionLocalityScore.confidence,
+    localityUnknowns: evolutionLocalityScore.unknowns
   });
   const violations = detectDirectionViolations(codebase, constraints);
   const evidence = violations.map((violation) =>
@@ -709,6 +747,18 @@ export async function computeArchitectureScores(options: {
         observed: finding.observed,
         normalized: finding.normalized,
         source: finding.source
+      },
+      undefined,
+      finding.confidence
+    )
+  );
+  const evolutionEvidence = evolutionLocalityScore.findings.concat(evolutionEfficiencyScore.findings).map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        ...(finding.commitHash ? { commitHash: finding.commitHash } : {}),
+        ...(finding.component ? { component: finding.component } : {})
       },
       undefined,
       finding.confidence
@@ -826,6 +876,40 @@ export async function computeArchitectureScores(options: {
       )
     );
   }
+  if (policy.metrics.AELS) {
+    scores.push(
+      toMetricScore(
+        "AELS",
+        localityValue,
+        {
+          CrossBoundaryCoChange: evolutionLocalityScore.CrossBoundaryCoChange,
+          WeightedPropagationCost: evolutionLocalityScore.WeightedPropagationCost,
+          WeightedClusteringCost: evolutionLocalityScore.WeightedClusteringCost
+        },
+        evolutionEvidence.map((entry) => entry.evidenceId),
+        evolutionLocalityScore.confidence,
+        evolutionLocalityScore.unknowns
+      )
+    );
+  }
+  if (policy.metrics.EES) {
+    scores.push(
+      toMetricScore(
+        "EES",
+        evaluateFormula(policy.metrics.EES.formula, {
+          Delivery: evolutionEfficiencyScore.Delivery,
+          Locality: evolutionEfficiencyScore.Locality
+        }),
+        {
+          Delivery: evolutionEfficiencyScore.Delivery,
+          Locality: evolutionEfficiencyScore.Locality
+        },
+        evolutionEvidence.map((entry) => entry.evidenceId),
+        evolutionEfficiencyScore.confidence,
+        evolutionEfficiencyScore.unknowns
+      )
+    );
+  }
 
   return createResponse(
     {
@@ -834,16 +918,19 @@ export async function computeArchitectureScores(options: {
       violations
     },
     {
+      status: architectureHistoryDiagnostics.length > 0 ? "warning" : "ok",
       evidence: [
         ...scenarioEvidence,
         ...evidence,
         ...purityEvidence,
         ...protocolEvidence,
         ...topologyEvidence,
-        ...complexityEvidence
+        ...complexityEvidence,
+        ...evolutionEvidence
       ],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
-      unknowns: scores.flatMap((score) => score.unknowns),
+      unknowns: Array.from(new Set(scores.flatMap((score) => score.unknowns))),
+      diagnostics: architectureHistoryDiagnostics,
       provenance: [toProvenance(repoPath, "architecture_design")]
     }
   );

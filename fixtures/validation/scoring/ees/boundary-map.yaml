@@ -1,0 +1,8 @@
+version: "1.0"
+boundaries:
+  - name: Billing
+    pathGlobs:
+      - "src/billing/**"
+  - name: Fulfillment
+    pathGlobs:
+      - "src/fulfillment/**"
