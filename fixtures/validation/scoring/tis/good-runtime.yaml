@@ -1,0 +1,8 @@
+version: "1.0"
+observations:
+  - nodeId: api
+    failureContainmentRatio: 0.9
+    runtimeContainment: 0.88
+  - nodeId: worker
+    failureContainmentRatio: 0.92
+    runtimeContainment: 0.9
