@@ -14,13 +14,14 @@ import type {
   RuleCandidate,
   TermTraceLink
 } from "./contracts.js";
+import { computeBoundaryFitness } from "./boundary-fitness.js";
 import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
 import { evaluateFormula } from "./formula.js";
 import { normalizeHistory, scoreEvolutionLocality } from "./history.js";
 import { getDomainPolicy } from "./policy.js";
 import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
 import { listReviewItems } from "./review.js";
-import { buildTermTraceLinks } from "./trace.js";
+import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
 
@@ -226,6 +227,64 @@ export async function computeDomainDesignScores(options: {
   const { repoPath, model, policyConfig, profileName } = options;
   const policy = getDomainPolicy(policyConfig, profileName, "domain_design");
   const codebase = await parseCodebase(repoPath);
+  const docsExtractionOptions = options.docsRoot
+    ? ({
+        root: options.docsRoot,
+        cwd: repoPath,
+        extractor: options.extraction?.extractor ?? "heuristic",
+        ...(options.extraction?.provider ? { provider: options.extraction.provider } : {}),
+        ...(options.extraction?.providerCommand ? { providerCommand: options.extraction.providerCommand } : {}),
+        promptProfile: options.extraction?.promptProfile ?? "default",
+        fallback: options.extraction?.fallback ?? "heuristic",
+        ...(options.extraction?.reviewLog ? { reviewLog: options.extraction.reviewLog } : {}),
+        applyReviewLog: options.extraction?.applyReviewLog ?? false
+      } as const)
+    : null;
+  let glossaryResultCache: Awaited<ReturnType<typeof extractGlossary>> | undefined;
+  let rulesResultCache: Awaited<ReturnType<typeof extractRules>> | undefined;
+  let invariantsResultCache: Awaited<ReturnType<typeof extractInvariants>> | undefined;
+  let termTraceLinksCache: Awaited<ReturnType<typeof buildTermTraceLinks>> | undefined;
+  const getGlossaryResult = async () => {
+    if (!docsExtractionOptions) {
+      throw new Error("docs extraction requires docsRoot");
+    }
+    if (!glossaryResultCache) {
+      glossaryResultCache = await extractGlossary(docsExtractionOptions);
+    }
+    return glossaryResultCache;
+  };
+  const getRulesResult = async () => {
+    if (!docsExtractionOptions) {
+      throw new Error("docs extraction requires docsRoot");
+    }
+    if (!rulesResultCache) {
+      rulesResultCache = await extractRules(docsExtractionOptions);
+    }
+    return rulesResultCache;
+  };
+  const getInvariantsResult = async () => {
+    if (!docsExtractionOptions) {
+      throw new Error("docs extraction requires docsRoot");
+    }
+    if (!invariantsResultCache) {
+      invariantsResultCache = await extractInvariants(docsExtractionOptions);
+    }
+    return invariantsResultCache;
+  };
+  const getTermTraceLinks = async () => {
+    if (!options.docsRoot) {
+      throw new Error("term trace requires docsRoot");
+    }
+    if (!termTraceLinksCache) {
+      const glossary = await getGlossaryResult();
+      termTraceLinksCache = await buildTermTraceLinks({
+        docsRoot: options.docsRoot,
+        repoRoot: repoPath,
+        terms: glossary.terms
+      });
+    }
+    return termTraceLinksCache;
+  };
   const contractUsage = detectContractUsage(codebase, model);
   const leakFindings = detectBoundaryLeaks(codebase, model);
   const leakRatio = computeLeakRatio(leakFindings, contractUsage.applicableReferences);
@@ -299,19 +358,7 @@ export async function computeDomainDesignScores(options: {
     if (!options.docsRoot) {
       unknowns.push("`--docs-root` が指定されていないため DRF をスキップしました");
     } else {
-      const extractionOptions = {
-        root: options.docsRoot,
-        cwd: repoPath,
-        extractor: options.extraction?.extractor ?? "heuristic",
-        ...(options.extraction?.provider ? { provider: options.extraction.provider } : {}),
-        ...(options.extraction?.providerCommand ? { providerCommand: options.extraction.providerCommand } : {}),
-        promptProfile: options.extraction?.promptProfile ?? "default",
-        fallback: options.extraction?.fallback ?? "heuristic",
-        ...(options.extraction?.reviewLog ? { reviewLog: options.extraction.reviewLog } : {}),
-        applyReviewLog: options.extraction?.applyReviewLog ?? false
-      } as const;
-      const rulesResult = await extractRules(extractionOptions);
-      const invariantsResult = await extractInvariants(extractionOptions);
+      const [rulesResult, invariantsResult] = await Promise.all([getRulesResult(), getInvariantsResult()]);
       const reviewItems = [
         ...buildReviewItemsForCandidates("rules", rulesResult.rules, rulesResult.confidence, rulesResult.unknowns),
         ...buildReviewItemsForCandidates(
@@ -373,22 +420,7 @@ export async function computeDomainDesignScores(options: {
     if (!options.docsRoot) {
       unknowns.push("`--docs-root` が指定されていないため ULI をスキップしました");
     } else {
-      const glossary = await extractGlossary({
-        root: options.docsRoot,
-        cwd: repoPath,
-        extractor: options.extraction?.extractor ?? "heuristic",
-        ...(options.extraction?.provider ? { provider: options.extraction.provider } : {}),
-        ...(options.extraction?.providerCommand ? { providerCommand: options.extraction.providerCommand } : {}),
-        promptProfile: options.extraction?.promptProfile ?? "default",
-        fallback: options.extraction?.fallback ?? "heuristic",
-        ...(options.extraction?.reviewLog ? { reviewLog: options.extraction.reviewLog } : {}),
-        applyReviewLog: options.extraction?.applyReviewLog ?? false
-      });
-      const links = await buildTermTraceLinks({
-        docsRoot: options.docsRoot,
-        repoRoot: repoPath,
-        terms: glossary.terms
-      });
+      const [glossary, links] = await Promise.all([getGlossaryResult(), getTermTraceLinks()]);
       const uliComponents = computeUliComponents(glossary.terms, links);
       const averageTraceConfidence =
         links.length === 0 ? 0.5 : links.reduce((sum, link) => sum + link.confidence, 0) / links.length;
@@ -429,6 +461,48 @@ export async function computeDomainDesignScores(options: {
       );
 
       diagnostics.push(...glossary.diagnostics);
+    }
+  }
+  if (policy.metrics.BFS) {
+    if (!options.docsRoot) {
+      unknowns.push("`--docs-root` が指定されていないため BFS をスキップしました");
+    } else {
+      const [glossary, rulesResult, invariantsResult, links] = await Promise.all([
+        getGlossaryResult(),
+        getRulesResult(),
+        getInvariantsResult(),
+        getTermTraceLinks()
+      ]);
+      const bfsResult = computeBoundaryFitness({
+        model,
+        fragments: rulesResult.fragments,
+        terms: glossary.terms,
+        links,
+        rules: rulesResult.rules,
+        invariants: invariantsResult.invariants,
+        contractUsage,
+        leakFindings,
+        modelCodeLinks: buildModelCodeLinks(model, codebase.sourceFiles)
+      });
+
+      additionalEvidence.push(...bfsResult.evidence);
+      diagnostics.push(...bfsResult.diagnostics);
+      scores.push(
+        toMetricScore(
+          "BFS",
+          evaluateFormula(policy.metrics.BFS.formula, {
+            A: bfsResult.A,
+            R: bfsResult.R
+          }),
+          {
+            A: bfsResult.A,
+            R: bfsResult.R
+          },
+          bfsResult.evidence.map((entry) => entry.evidenceId),
+          bfsResult.confidence,
+          bfsResult.unknowns
+        )
+      );
     }
   }
   if (policy.metrics.MCCS) {
