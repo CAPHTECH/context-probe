@@ -2,7 +2,16 @@
   "name": "context-probe",
   "version": "0.1.0",
   "description": "AI支援設計計測プラットフォームのCLI実装",
+  "license": "Apache-2.0",
   "type": "module",
+  "homepage": "https://github.com/CAPHTECH/context-probe",
+  "bugs": {
+    "url": "https://github.com/CAPHTECH/context-probe/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CAPHTECH/context-probe.git"
+  },
   "bin": {
     "context-probe": "./dist/src/cli.js"
   },
