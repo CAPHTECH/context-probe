@@ -114,6 +114,11 @@ const INVARIANT_REVIEW_SIGNALS = [
   /付与(?:される|されている)/u,
   /欠落しない/u
 ];
+const STRUCTURAL_GLOSSARY_FLAG_PATTERN = /^--[a-z0-9][a-z0-9-]*$/;
+const STRUCTURAL_GLOSSARY_FILE_SUFFIX_PATTERN = /\.(?:ts|tsx|js|mjs|md|yaml|yml|json)$/i;
+const STRUCTURAL_GLOSSARY_ID_PATTERN = /^(?:ART|FRG|TERM|RULE|INV|EV|RUN|RV)-[A-Za-z0-9._-]+$/;
+const STRUCTURAL_GLOSSARY_RESPONSE_PATH_PATTERN = /^(?:result|response)\.[A-Za-z0-9_*.-]+$/;
+const STRUCTURAL_GLOSSARY_SNAKE_CASE_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)+$/;
 
 function isStructuredNoiseFragment(fragment: Fragment): boolean {
   const trimmed = fragment.text.trim();
@@ -124,6 +129,17 @@ function isStructuredNoiseFragment(fragment: Fragment): boolean {
     .split("\n")
     .filter(Boolean)
     .every((line) => line.trim().startsWith("|"));
+}
+
+function isStructuralGlossaryNoise(term: string): boolean {
+  return (
+    STRUCTURAL_GLOSSARY_FLAG_PATTERN.test(term) ||
+    term.includes("/") ||
+    STRUCTURAL_GLOSSARY_FILE_SUFFIX_PATTERN.test(term) ||
+    STRUCTURAL_GLOSSARY_ID_PATTERN.test(term) ||
+    STRUCTURAL_GLOSSARY_RESPONSE_PATH_PATTERN.test(term) ||
+    STRUCTURAL_GLOSSARY_SNAKE_CASE_PATTERN.test(term)
+  );
 }
 
 function normalizeInlineTerm(term: string): string | undefined {
@@ -138,6 +154,9 @@ function normalizeInlineTerm(term: string): string | undefined {
     return undefined;
   }
   if (normalized.split(/\s+/).length > 4) {
+    return undefined;
+  }
+  if (isStructuralGlossaryNoise(normalized)) {
     return undefined;
   }
   return normalized;

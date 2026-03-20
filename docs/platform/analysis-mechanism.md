@@ -93,6 +93,7 @@ current implementation 上の特徴:
 - 文書抽出系は `--docs-root` がないと実行されません
 - `DRF` `ULI` `BFS` `AFS` は docs 依存です
 - `MCCS` と `ELS` は docs なしでも動きます
+- heuristic glossary は CLI flag、path、artifact ID、response field path、snake_case 設定名のような構造参照を用語候補から除外します
 - response の `unknowns` は、メトリクス単位の `unknowns` とは別に、スキップや履歴不足も集約されます
 
 ### 4.2 メトリクス別の見方
