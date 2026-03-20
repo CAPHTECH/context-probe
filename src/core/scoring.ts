@@ -334,7 +334,8 @@ export async function computeDomainDesignScores(options: {
       termTraceLinksCache = await buildTermTraceLinks({
         docsRoot: options.docsRoot,
         repoRoot: repoPath,
-        terms: glossary.terms
+        terms: glossary.terms,
+        codeFiles: codebase.scorableSourceFiles
       });
     }
     return termTraceLinksCache;
@@ -536,7 +537,7 @@ export async function computeDomainDesignScores(options: {
         invariants: invariantsResult.invariants,
         contractUsage,
         leakFindings,
-        modelCodeLinks: buildModelCodeLinks(model, codebase.sourceFiles)
+        modelCodeLinks: buildModelCodeLinks(model, codebase.scorableSourceFiles)
       });
 
       additionalEvidence.push(...bfsResult.evidence);

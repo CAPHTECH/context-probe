@@ -344,6 +344,11 @@ greenfield と brownfield では観測可能な evidence が異なる。
 - `BPS`: boundary purity の適合
 - `IPS`: interface / contract stability の適合
 
+補足:
+
+- `IPS` の現行実装は JS / TS に加えて Dart も対象とし、Dart では public top-level 宣言と contract import を proxy として評価する
+- Dart の `part of` と `*.g.dart` などの生成ファイルは raw dependency には残すが、採点時の主対象からは除外する
+
 今後追加される想定:
 
 - `TIS`: `OAS` と runtime containment の bridge 指標

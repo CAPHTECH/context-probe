@@ -6,7 +6,7 @@ import { minimatch } from "minimatch";
 import YAML from "yaml";
 
 const DOCUMENT_EXTENSIONS = new Set([".md", ".adoc", ".txt"]);
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]);
+const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs", ".dart"]);
 const DEFAULT_IGNORES = ["node_modules/**", "dist/**", ".git/**"];
 
 export function toPosixPath(input: string): string {

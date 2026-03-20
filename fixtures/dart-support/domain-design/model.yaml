@@ -1,0 +1,17 @@
+version: "1.0"
+contexts:
+  - name: Billing
+    pathGlobs:
+      - "lib/billing/**"
+    contractGlobs:
+      - "lib/billing/contracts/**"
+    internalGlobs:
+      - "lib/billing/internal/**"
+  - name: Fulfillment
+    pathGlobs:
+      - "lib/fulfillment/**"
+    contractGlobs:
+      - "lib/fulfillment/contracts/**"
+    internalGlobs:
+      - "lib/fulfillment/internal/**"
+
