@@ -56,6 +56,13 @@ export const DEFAULT_POLICY: PolicyConfig = {
         },
         architecture_design: {
           metrics: {
+            QSF: {
+              formula: "QSF",
+              thresholds: {
+                warn: 0.72,
+                fail: 0.58
+              }
+            },
             DDS: {
               formula: "0.60*(1-IDR) + 0.25*LRC + 0.15*APM",
               thresholds: {

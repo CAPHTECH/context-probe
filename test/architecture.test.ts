@@ -22,7 +22,8 @@ describe("architecture direction scoring", () => {
       violations: unknown[];
     };
     expect(result.violations).toHaveLength(1);
-    expect(result.metrics[0]?.metricId).toBe("DDS");
-    expect(result.metrics[0]?.value).toBeLessThan(1);
+    const dds = result.metrics.find((metric) => metric.metricId === "DDS");
+    expect(dds?.metricId).toBe("DDS");
+    expect(dds?.value).toBeLessThan(1);
   });
 });

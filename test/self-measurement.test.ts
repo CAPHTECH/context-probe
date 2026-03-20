@@ -67,9 +67,10 @@ describe("self measurement", () => {
       violations: unknown[];
     };
     expect(architectureResult.metrics.map((metric) => metric.metricId)).toEqual(
-      expect.arrayContaining(["DDS", "BPS", "IPS", "CTI"])
+      expect.arrayContaining(["QSF", "DDS", "BPS", "IPS", "CTI"])
     );
     expect(Array.isArray(architectureResult.violations)).toBe(true);
+    expect(architectureResponse.unknowns).toContain("scenario catalog が指定されていないため QSF は未観測です");
   }, 20000);
 
   test("degrades gracefully when git metadata is absent", async () => {

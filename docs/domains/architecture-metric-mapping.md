@@ -12,7 +12,7 @@
 
 | 上位指標 | 役割 | current implementation | 状態 |
 |---|---|---|---|
-| `QSF` | scenario fit | なし | 未実装 |
+| `QSF` | scenario fit | `QSF` | 部分実装 |
 | `PCS` | pattern rule conformance | `DDS`, `BPS`, `IPS` | 実装済み |
 | `OAS` | runtime adequacy | `TIS` の一部が候補 | 未実装 |
 | `EES` | delivery + locality | `AELS` が locality 側候補 | 部分未実装 |
@@ -21,6 +21,11 @@
 
 ## 3. current metric の意味
 
+### `QSF`
+
+- 主な役割: quality scenario に対する候補設計の適合度
+- 実装状態: scenario catalog と observed value file を用いた初期実装
+- 制約: telemetry 直結ではなく、明示入力ベースの greenfield 向け proxy から開始
 ### `DDS`
 
 - 主な役割: dependency direction と abstraction path の適合

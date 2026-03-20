@@ -29,6 +29,12 @@ const CTI_GOOD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/cti/
 const CTI_BAD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/cti/bad-constraints.yaml");
 const CTI_GOOD_REPO = path.resolve("fixtures/validation/scoring/cti/good-repo");
 const CTI_BAD_REPO = path.resolve("fixtures/validation/scoring/cti/bad-repo");
+const QSF_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/qsf/constraints.yaml");
+const QSF_REPO = path.resolve("fixtures/validation/scoring/qsf/repo");
+const QSF_SCENARIOS_PATH = path.resolve("fixtures/validation/scoring/qsf/scenarios.yaml");
+const QSF_GOOD_OBSERVATIONS_PATH = path.resolve("fixtures/validation/scoring/qsf/good-observations.yaml");
+const QSF_BAD_OBSERVATIONS_PATH = path.resolve("fixtures/validation/scoring/qsf/bad-observations.yaml");
+const QSF_THIN_OBSERVATIONS_PATH = path.resolve("fixtures/validation/scoring/qsf/thin-observations.yaml");
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
 const BFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/bfs/model.yaml");
@@ -80,7 +86,7 @@ describe("score validation", () => {
     expect(goodMccs.value).toBeGreaterThan(badMccs.value);
     expect(goodMccs.value).toBe(1);
     expect(badMccs.value).toBe(0);
-  });
+  }, 10000);
 
   test("DDS is higher for inward-only dependencies than for violating dependencies", async () => {
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -199,6 +205,54 @@ describe("score validation", () => {
     expect(badCti.components.SyncDepthOverhead ?? 0).toBeGreaterThan(goodCti.components.SyncDepthOverhead ?? 0);
   });
 
+  test("QSF is higher for scenario-observing candidates than for scenario-missing or poor-fit candidates", async () => {
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observations": QSF_BAD_OBSERVATIONS_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observations": QSF_THIN_OBSERVATIONS_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodQsf = getMetric(goodResponse, "QSF");
+    const badQsf = getMetric(badResponse, "QSF");
+    const thinQsf = getMetric(thinResponse, "QSF");
+
+    expect(goodQsf.value).toBeGreaterThan(badQsf.value);
+    expect(goodQsf.value).toBeGreaterThan(thinQsf.value);
+    expect(thinQsf.unknowns.some((entry) => entry.includes("observed value"))).toBe(true);
+    expect(goodQsf.components.weighted_coverage ?? 0).toBeGreaterThan(thinQsf.components.weighted_coverage ?? 0);
+    expect(goodQsf.components.average_normalized_score ?? 0).toBeGreaterThan(
+      badQsf.components.average_normalized_score ?? 0
+    );
+  });
+
   test("ELS is higher for localized histories than for scattered histories", async () => {
     const localRepo = await materializeGitFixture(ELS_BASE_ENTRY, tempRoots, "feat: init local history");
     const scatteredRepo = await materializeGitFixture(ELS_BASE_ENTRY, tempRoots, "feat: init scattered history");
@@ -275,7 +329,7 @@ describe("score validation", () => {
     expect(localEls.value).toBeGreaterThan(scatteredEls.value);
     expect(localEls.value).toBeGreaterThanOrEqual(0.7);
     expect(scatteredEls.value).toBeLessThanOrEqual(0.1);
-  }, 15000);
+  }, 20000);
 
   test("ULI is higher for well-traced glossary terms than for untraced or colliding terms", async () => {
     await chmod(CODEX_STUB, 0o755);

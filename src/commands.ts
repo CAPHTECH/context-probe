@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 
 import type {
   ArchitectureConstraints,
+  ArchitectureScenarioCatalog,
   CommandContext,
   CommandResponse,
   DomainModel,
@@ -9,7 +10,8 @@ import type {
   ExtractionProviderName,
   ReviewItem,
   ReviewResolution,
-  ReviewResolutionLog
+  ReviewResolutionLog,
+  ScenarioObservationSet
 } from "./core/contracts.js";
 import { normalizeDocuments, registerArtifacts } from "./core/artifacts.js";
 import {
@@ -52,6 +54,34 @@ async function requireArchitectureConstraints(
     throw new Error("`--constraints` is required");
   }
   return loadArchitectureConstraints(new URL(constraintsPath, `file://${context.cwd}/`).pathname);
+}
+
+async function loadScenarioCatalogIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureScenarioCatalog | undefined> {
+  const scenarioCatalogPath =
+    typeof args["scenario-catalog"] === "string"
+      ? new URL(args["scenario-catalog"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!scenarioCatalogPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureScenarioCatalog>(scenarioCatalogPath);
+}
+
+async function loadScenarioObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ScenarioObservationSet | undefined> {
+  const observationsPath =
+    typeof args["scenario-observations"] === "string"
+      ? new URL(args["scenario-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!observationsPath) {
+    return undefined;
+  }
+  return readDataFile<ScenarioObservationSet>(observationsPath);
 }
 
 function getRootPath(args: Record<string, string | boolean>, context: CommandContext): string {
@@ -272,11 +302,17 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const domain = typeof args.domain === "string" ? args.domain : "domain_design";
     if (domain === "architecture_design") {
       const constraints = await requireArchitectureConstraints(args, context);
+      const [scenarioCatalog, scenarioObservations] = await Promise.all([
+        loadScenarioCatalogIfRequested(args, context),
+        loadScenarioObservationsIfRequested(args, context)
+      ]);
       return computeArchitectureScores({
         repoPath: getRootPath(args, context),
         constraints,
         policyConfig,
-        profileName: getProfile(args)
+        profileName: getProfile(args),
+        ...(scenarioCatalog ? { scenarioCatalog } : {}),
+        ...(scenarioObservations ? { scenarioObservations } : {})
       });
     }
     const model = await requireDomainModel(args, context);
