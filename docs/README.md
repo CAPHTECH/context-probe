@@ -5,20 +5,27 @@
 ## 推奨読順
 
 1. [overview/platform-vision.md](overview/platform-vision.md)
-2. [platform/measurement-model.md](platform/measurement-model.md)
-3. [platform/runtime-and-commands.md](platform/runtime-and-commands.md)
-4. [platform/data-model.md](platform/data-model.md)
-5. [domains/domain-design.md](domains/domain-design.md)
-6. [domains/architecture-design.md](domains/architecture-design.md)
-7. [domains/architecture-scenario-model.md](domains/architecture-scenario-model.md)
-8. [domains/architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
-9. [domains/architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
-10. [domains/architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
-11. [operations/policy-and-ci.md](operations/policy-and-ci.md)
-12. [operations/architecture-source-collectors.md](operations/architecture-source-collectors.md)
-13. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
+2. [guides/user-guide.md](guides/user-guide.md)
+3. [platform/measurement-model.md](platform/measurement-model.md)
+4. [platform/runtime-and-commands.md](platform/runtime-and-commands.md)
+5. [platform/analysis-mechanism.md](platform/analysis-mechanism.md)
+6. [platform/data-model.md](platform/data-model.md)
+7. [domains/domain-design.md](domains/domain-design.md)
+8. [domains/architecture-design.md](domains/architecture-design.md)
+9. [domains/architecture-scenario-model.md](domains/architecture-scenario-model.md)
+10. [domains/architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
+11. [domains/architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
+12. [domains/architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
+13. [operations/policy-and-ci.md](operations/policy-and-ci.md)
+14. [operations/architecture-source-collectors.md](operations/architecture-source-collectors.md)
+15. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
 
 ## ディレクトリ構成
+
+### `guides/`
+
+- [user-guide.md](guides/user-guide.md)
+  - 初回利用者向けのクイックスタートです。CLI の起動、代表コマンド、結果の読み方、次に読む文書を案内します。
 
 ### `overview/`
 
@@ -31,6 +38,8 @@
   - 評価領域を増やしても崩れない共通計測モデルを定義します。
 - [runtime-and-commands.md](platform/runtime-and-commands.md)
   - AI処理と決定的解析を分離した実行パイプライン、コマンド体系を定義します。
+- [analysis-mechanism.md](platform/analysis-mechanism.md)
+  - current implementation で、どの入力がどの解析器を通って各 metric や `unknowns` に反映されるかを整理します。
 - [data-model.md](platform/data-model.md)
   - Artifact、Evidence、MetricScore などの標準データ構造を定義します。
 
