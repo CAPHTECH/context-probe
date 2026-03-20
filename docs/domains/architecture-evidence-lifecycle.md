@@ -69,6 +69,8 @@
 - recovery time
 - change fail rate
 - rework rate
+- delivery export
+- delivery normalization profile
 - cross-boundary co-change
 - weighted propagation cost
 - weighted clustering cost

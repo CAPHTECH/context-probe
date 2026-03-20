@@ -1,0 +1,9 @@
+version: "1.0"
+values:
+  LeadTime: 12
+  DeployFrequency: 4
+  RecoveryTime: 6.5
+  ChangeFailRate: 0.32
+  ReworkRate: 0.28
+source: "synthetic-delivery"
+note: "delivery signals degrade across lead time, recovery, and failure rates"

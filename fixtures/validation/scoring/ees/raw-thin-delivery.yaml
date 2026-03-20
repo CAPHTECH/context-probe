@@ -1,0 +1,5 @@
+version: "1.0"
+values:
+  LeadTime: 5
+source: "synthetic-delivery"
+note: "only lead time is currently observed"

@@ -76,8 +76,8 @@
 ### `EES`
 
 - 想定役割: delivery performance と historical locality を合成した進化効率
-- 実装状態: `delivery-observations` と `AELS` を用いた partial implementation
-- 制約: DORA raw metrics の自動収集ではなく、normalized score の明示入力から開始
+- 実装状態: `delivery-observations` に加えて `delivery-raw-observations + delivery-normalization-profile` と `AELS` を用いた partial implementation
+- 制約: DORA raw metrics の自動収集ではなく、file-based normalization から開始
 
 ### `APSI`
 
@@ -89,11 +89,11 @@
 
 ## 6. 今後の推奨実装順
 
-1. delivery input の raw/normalized 両対応
-2. pattern runtime の raw 正規化または profile 別 normalization
-3. pattern profile ごとの `APSI` 重み調整
+1. pattern runtime の raw 正規化または profile 別 normalization
+2. pattern profile ごとの `APSI` 重み調整
+3. delivery / telemetry backend の直接連携
 
-この順にする理由は、現在すでに `APSI` と `OAS` の初期合成と family-specific runtime schema はあるため、次は summary index を賢くするより、raw evidence を厚くして下位指標の質を上げる方が価値が高いからである。
+この順にする理由は、現在すでに `APSI` と `OAS` の初期合成、family-specific runtime schema、delivery raw normalization はあるため、次は summary index を賢くするより、backend 由来の実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
 
 ## 7. 読み方
 

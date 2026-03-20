@@ -87,6 +87,10 @@ const EES_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/ees/const
 const EES_BOUNDARY_MAP_PATH = path.resolve("fixtures/validation/scoring/ees/boundary-map.yaml");
 const EES_GOOD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/good-delivery.yaml");
 const EES_BAD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/bad-delivery.yaml");
+const EES_RAW_PROFILE_PATH = path.resolve("fixtures/validation/scoring/ees/raw-normalization-profile.yaml");
+const EES_RAW_GOOD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/raw-good-delivery.yaml");
+const EES_RAW_BAD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/raw-bad-delivery.yaml");
+const EES_RAW_THIN_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/raw-thin-delivery.yaml");
 const EES_BASE_ENTRY = "fixtures/validation/scoring/ees/base-repo";
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
@@ -805,6 +809,153 @@ describe("score validation", () => {
     expect(goodEes.components.Delivery ?? 0).toBeGreaterThan(badEes.components.Delivery ?? 0);
     expect(goodEes.components.Locality ?? 0).toBeGreaterThan(badEes.components.Locality ?? 0);
     expect(thinEes.unknowns.some((entry) => entry.includes("delivery observations"))).toBe(true);
+  }, 30000);
+
+  test("EES also supports raw delivery observations through an explicit normalization profile", async () => {
+    const goodRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees raw good");
+    const badRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees raw bad");
+
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawDeliveryOne = 'billing-raw-1';\n"
+      },
+      "feat: boundary-local 1"
+    );
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawDeliveryOne = 'fulfillment-raw-1';\n"
+      },
+      "feat: boundary-local 2"
+    );
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawDeliveryTwo = 'billing-raw-2';\n"
+      },
+      "feat: boundary-local 3"
+    );
+
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawCrossOne = 'billing-raw-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawCrossOne = 'fulfillment-raw-cross-1';\n"
+      },
+      "feat: raw cross-boundary 1"
+    );
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawCrossTwo = 'billing-raw-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawCrossTwo = 'fulfillment-raw-cross-2';\n"
+      },
+      "feat: raw cross-boundary 2"
+    );
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawCrossThree = 'billing-raw-cross-3';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawCrossThree = 'fulfillment-raw-cross-3';\n"
+      },
+      "feat: raw cross-boundary 3"
+    );
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-raw-observations": EES_RAW_GOOD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: badRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-raw-observations": EES_RAW_THIN_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodEes = getMetric(goodResponse, "EES");
+    const badEes = getMetric(badResponse, "EES");
+    const thinEes = getMetric(thinResponse, "EES");
+
+    expect(goodEes.value).toBeGreaterThan(badEes.value);
+    expect(goodEes.components.Delivery ?? 0).toBeGreaterThan(badEes.components.Delivery ?? 0);
+    expect(thinEes.unknowns.some((entry) => entry.includes("raw DeployFrequency"))).toBe(true);
+  }, 30000);
+
+  test("normalized delivery observations take precedence over raw delivery inputs", async () => {
+    const repo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees precedence");
+
+    await appendAndCommit(
+      repo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingPrecedenceOne = 'billing-precedence-1';\n"
+      },
+      "feat: precedence local 1"
+    );
+    await appendAndCommit(
+      repo,
+      {
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentPrecedenceOne = 'fulfillment-precedence-1';\n"
+      },
+      "feat: precedence local 2"
+    );
+
+    const normalizedResponse = await COMMANDS["score.compute"]!(
+      {
+        repo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-observations": EES_GOOD_DELIVERY_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const precedenceResponse = await COMMANDS["score.compute"]!(
+      {
+        repo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-observations": EES_GOOD_DELIVERY_PATH,
+        "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const normalizedEes = getMetric(normalizedResponse, "EES");
+    const precedenceEes = getMetric(precedenceResponse, "EES");
+
+    expect(precedenceEes.components.Delivery ?? 0).toBeCloseTo(normalizedEes.components.Delivery ?? 0, 6);
+    expect(precedenceEes.unknowns.some((entry) => entry.includes("raw delivery input は優先されません"))).toBe(true);
   }, 30000);
 
   test("ELS is higher for localized histories than for scattered histories", async () => {
