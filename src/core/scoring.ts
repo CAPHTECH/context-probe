@@ -24,6 +24,7 @@ import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from 
 import { listReviewItems } from "./review.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
+import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
 import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
 
@@ -607,6 +608,11 @@ export async function computeArchitectureScores(options: {
   const codebase = await parseCodebase(repoPath);
   const directionScore = scoreDependencyDirection(codebase, constraints);
   const purityScore = scoreBoundaryPurity(codebase, constraints);
+  const protocolScore = await scoreInterfaceProtocolStability({
+    root: repoPath,
+    codebase,
+    constraints
+  });
   const violations = detectDirectionViolations(codebase, constraints);
   const evidence = violations.map((violation) =>
     toEvidence(
@@ -629,6 +635,18 @@ export async function computeArchitectureScores(options: {
         ...(finding.target ? { target: finding.target } : {}),
         ...(finding.sourceLayer ? { sourceLayer: finding.sourceLayer } : {}),
         ...(finding.targetLayer ? { targetLayer: finding.targetLayer } : {})
+      },
+      undefined,
+      finding.confidence
+    )
+  );
+  const protocolEvidence = protocolScore.findings.map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        path: finding.path,
+        ...(finding.symbol ? { symbol: finding.symbol } : {})
       },
       undefined,
       finding.confidence
@@ -675,6 +693,26 @@ export async function computeArchitectureScores(options: {
       )
     );
   }
+  if (policy.metrics.IPS) {
+    scores.push(
+      toMetricScore(
+        "IPS",
+        evaluateFormula(policy.metrics.IPS.formula, {
+          CBC: protocolScore.CBC,
+          BCR: protocolScore.BCR,
+          SLA: protocolScore.SLA
+        }),
+        {
+          CBC: protocolScore.CBC,
+          BCR: protocolScore.BCR,
+          SLA: protocolScore.SLA
+        },
+        protocolEvidence.map((entry) => entry.evidenceId),
+        protocolScore.confidence,
+        protocolScore.unknowns
+      )
+    );
+  }
 
   return createResponse(
     {
@@ -683,7 +721,7 @@ export async function computeArchitectureScores(options: {
       violations
     },
     {
-      evidence: [...evidence, ...purityEvidence],
+      evidence: [...evidence, ...purityEvidence, ...protocolEvidence],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: scores.flatMap((score) => score.unknowns),
       provenance: [toProvenance(repoPath, "architecture_design")]

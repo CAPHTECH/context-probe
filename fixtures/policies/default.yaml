@@ -45,6 +45,11 @@ profiles:
             thresholds:
               warn: 0.72
               fail: 0.58
+          IPS:
+            formula: "0.50*CBC + 0.25*(1-BCR) + 0.25*SLA"
+            thresholds:
+              warn: 0.72
+              fail: 0.58
     history_filters:
       ignore_commit_patterns:
         - "^chore: format"

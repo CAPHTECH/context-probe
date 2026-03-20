@@ -22,6 +22,9 @@ const DDS_BAD_REPO = path.resolve("fixtures/validation/scoring/dds/bad-repo");
 const BPS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/bps/constraints.yaml");
 const BPS_GOOD_REPO = path.resolve("fixtures/validation/scoring/bps/good-repo");
 const BPS_BAD_REPO = path.resolve("fixtures/validation/scoring/bps/bad-repo");
+const IPS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/ips/constraints.yaml");
+const IPS_GOOD_REPO = path.resolve("fixtures/validation/scoring/ips/good-repo");
+const IPS_BAD_REPO = path.resolve("fixtures/validation/scoring/ips/bad-repo");
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
 const BFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/bfs/model.yaml");
@@ -130,6 +133,35 @@ describe("score validation", () => {
     expect(goodBps.components.FCC ?? 0).toBeGreaterThan(badBps.components.FCC ?? 0);
     expect(badBps.components.ALR ?? 0).toBeGreaterThan(goodBps.components.ALR ?? 0);
     expect(badBps.components.SICR ?? 0).toBeGreaterThan(goodBps.components.SICR ?? 0);
+  });
+
+  test("IPS is higher for clean public contracts than for implementation-coupled contracts", async () => {
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: IPS_GOOD_REPO,
+        constraints: IPS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design"
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: IPS_BAD_REPO,
+        constraints: IPS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design"
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodIps = getMetric(goodResponse, "IPS");
+    const badIps = getMetric(badResponse, "IPS");
+
+    expect(goodIps.value).toBeGreaterThan(badIps.value);
+    expect(goodIps.components.CBC ?? 0).toBeGreaterThan(badIps.components.CBC ?? 0);
+    expect(badIps.components.BCR ?? 0).toBeGreaterThan(goodIps.components.BCR ?? 0);
+    expect(goodIps.components.SLA ?? 0).toBeGreaterThan(badIps.components.SLA ?? 0);
   });
 
   test("ELS is higher for localized histories than for scattered histories", async () => {
