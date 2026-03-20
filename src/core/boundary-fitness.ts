@@ -91,7 +91,7 @@ function contextMentionPattern(name: string): RegExp | null {
   return null;
 }
 
-function detectContextMentions(text: string, model: DomainModel): string[] {
+export function detectContextMentions(text: string, model: DomainModel): string[] {
   return model.contexts
     .filter((context) => {
       const pattern = contextMentionPattern(context.name);
@@ -127,13 +127,13 @@ function hasSeparationSignal(text: string): boolean {
   return SEPARATION_SIGNALS.some((pattern) => pattern.test(text));
 }
 
-function buildFragmentContextMentions(fragments: Fragment[], model: DomainModel): Map<string, string[]> {
+export function buildFragmentContextMentions(fragments: Fragment[], model: DomainModel): Map<string, string[]> {
   return new Map(
     fragments.map((fragment) => [fragment.fragmentId, unique(detectContextMentions(fragment.text, model))])
   );
 }
 
-function collectTermContexts(
+export function collectTermContexts(
   term: GlossaryTerm,
   link: TermTraceLink | undefined,
   fragmentContextMentions: Map<string, string[]>,
@@ -161,7 +161,7 @@ function collectTermContexts(
   return Array.from(contexts);
 }
 
-function collectStatementContexts(
+export function collectStatementContexts(
   statement: string,
   fragmentIds: string[],
   fragmentContextMentions: Map<string, string[]>,
