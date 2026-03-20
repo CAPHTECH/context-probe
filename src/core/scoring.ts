@@ -14,6 +14,7 @@ import type {
   RuleCandidate,
   TermTraceLink
 } from "./contracts.js";
+import { computeAggregateFitness } from "./aggregate-fitness.js";
 import { computeBoundaryFitness } from "./boundary-fitness.js";
 import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
 import { evaluateFormula } from "./formula.js";
@@ -501,6 +502,43 @@ export async function computeDomainDesignScores(options: {
           bfsResult.evidence.map((entry) => entry.evidenceId),
           bfsResult.confidence,
           bfsResult.unknowns
+        )
+      );
+    }
+  }
+  if (policy.metrics.AFS) {
+    if (!options.docsRoot) {
+      unknowns.push("`--docs-root` が指定されていないため AFS をスキップしました");
+    } else {
+      const [glossary, invariantsResult, links] = await Promise.all([
+        getGlossaryResult(),
+        getInvariantsResult(),
+        getTermTraceLinks()
+      ]);
+      const afsResult = computeAggregateFitness({
+        model,
+        fragments: invariantsResult.fragments,
+        terms: glossary.terms,
+        links,
+        invariants: invariantsResult.invariants
+      });
+
+      additionalEvidence.push(...afsResult.evidence);
+      diagnostics.push(...afsResult.diagnostics);
+      scores.push(
+        toMetricScore(
+          "AFS",
+          evaluateFormula(policy.metrics.AFS.formula, {
+            SIC: afsResult.SIC,
+            XTC: afsResult.XTC
+          }),
+          {
+            SIC: afsResult.SIC,
+            XTC: afsResult.XTC
+          },
+          afsResult.evidence.map((entry) => entry.evidenceId),
+          afsResult.confidence,
+          afsResult.unknowns
         )
       );
     }

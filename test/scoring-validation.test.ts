@@ -24,6 +24,9 @@ const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
 const BFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/bfs/model.yaml");
 const BFS_GOOD_ENTRY = "fixtures/validation/scoring/bfs/good";
 const BFS_BAD_ENTRY = "fixtures/validation/scoring/bfs/bad-misaligned";
+const AFS_MODEL_PATH = path.resolve("fixtures/validation/scoring/afs/model.yaml");
+const AFS_GOOD_ENTRY = "fixtures/validation/scoring/afs/good";
+const AFS_BAD_ENTRY = "fixtures/validation/scoring/afs/bad-cross-transaction";
 const DRF_MODEL_PATH = path.resolve("fixtures/validation/scoring/drf/model.yaml");
 const DRF_GOOD_ENTRY = "fixtures/validation/scoring/drf/good";
 const DRF_BAD_ENTRY = "fixtures/validation/scoring/drf/bad-ambiguous";
@@ -318,6 +321,49 @@ describe("score validation", () => {
     expect(goodBfs.value).toBeGreaterThan(badBfs.value);
     expect(goodBfs.components.A ?? 0).toBeGreaterThan(badBfs.components.A ?? 0);
     expect(goodBfs.components.R ?? 0).toBeGreaterThanOrEqual(badBfs.components.R ?? 0);
+  }, 15000);
+
+  test("AFS is higher for localized invariants than for cross-context transaction invariants", async () => {
+    const goodRoot = await createTemporaryWorkspace([AFS_GOOD_ENTRY]);
+    const badRoot = await createTemporaryWorkspace([AFS_BAD_ENTRY]);
+    tempRoots.push(goodRoot, badRoot);
+
+    const goodRepo = path.join(goodRoot, AFS_GOOD_ENTRY, "repo");
+    const goodDocs = path.join(goodRoot, AFS_GOOD_ENTRY, "docs");
+    const badRepo = path.join(badRoot, AFS_BAD_ENTRY, "repo");
+    const badDocs = path.join(badRoot, AFS_BAD_ENTRY, "docs");
+
+    await initializeTemporaryGitRepo(goodRepo, "feat: init afs good");
+    await initializeTemporaryGitRepo(badRepo, "feat: init afs bad");
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        model: AFS_MODEL_PATH,
+        policy: POLICY_PATH,
+        domain: "domain_design",
+        "docs-root": goodDocs
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: badRepo,
+        model: AFS_MODEL_PATH,
+        policy: POLICY_PATH,
+        domain: "domain_design",
+        "docs-root": badDocs
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodAfs = getMetric(goodResponse, "AFS");
+    const badAfs = getMetric(badResponse, "AFS");
+
+    expect(goodAfs.value).toBeGreaterThan(badAfs.value);
+    expect(goodAfs.components.SIC ?? 0).toBeGreaterThan(badAfs.components.SIC ?? 0);
+    expect(badAfs.components.XTC ?? 0).toBeGreaterThan(goodAfs.components.XTC ?? 0);
+    expect(goodAfs.unknowns).toContain("Aggregate 定義がないため context を aggregate proxy として扱っています");
   }, 15000);
 });
 
