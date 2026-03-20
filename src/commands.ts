@@ -505,9 +505,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
 
   async "trace.link_terms"(args, context) {
     const glossary = await extractGlossary(await buildExtractionOptions(args, context));
+    const codebase = typeof args.repo === "string" ? await parseCodebase(getRootPath(args, context)) : undefined;
     const links = await buildTermTraceLinks({
       docsRoot: getDocsRoot(args, context),
       ...(typeof args.repo === "string" ? { repoRoot: getRootPath(args, context) } : {}),
+      ...(codebase ? { codeFiles: codebase.scorableSourceFiles } : {}),
       terms: glossary.terms
     });
     return createResponse(
@@ -532,7 +534,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const codebase = await parseCodebase(getRootPath(args, context));
     return createResponse(
       {
-        links: buildModelCodeLinks(model, codebase.sourceFiles)
+        links: buildModelCodeLinks(model, codebase.scorableSourceFiles)
       },
       {
         provenance: [toProvenance(getRootPath(args, context), "trace.link_model_to_code")]

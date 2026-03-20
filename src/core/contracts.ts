@@ -438,17 +438,22 @@ export interface FileDependency {
   target: string;
   specifier: string;
   targetKind: "file" | "external" | "missing";
+  kind: "import" | "export" | "part";
 }
 
 export interface ParsedSourceFile {
   path: string;
   imports: FileDependency[];
+  language: "typescript" | "javascript" | "dart";
+  generated: boolean;
+  libraryRole?: "library" | "part";
 }
 
 export interface CodebaseAnalysis {
   files: ParsedSourceFile[];
   dependencies: FileDependency[];
   sourceFiles: string[];
+  scorableSourceFiles: string[];
 }
 
 export interface ContractUsageReport {
