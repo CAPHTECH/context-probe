@@ -9,8 +9,13 @@
 3. [platform/runtime-and-commands.md](platform/runtime-and-commands.md)
 4. [platform/data-model.md](platform/data-model.md)
 5. [domains/domain-design.md](domains/domain-design.md)
-6. [operations/policy-and-ci.md](operations/policy-and-ci.md)
-7. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
+6. [domains/architecture-design.md](domains/architecture-design.md)
+7. [domains/architecture-scenario-model.md](domains/architecture-scenario-model.md)
+8. [domains/architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
+9. [domains/architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
+10. [domains/architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
+11. [operations/policy-and-ci.md](operations/policy-and-ci.md)
+12. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
 
 ## ディレクトリ構成
 
@@ -33,7 +38,15 @@
 - [domain-design.md](domains/domain-design.md)
   - ドメイン設計評価の詳細仕様です。最初に実装対象とする評価領域です。
 - [architecture-design.md](domains/architecture-design.md)
-  - 将来拡張としてのアーキテクチャ設計評価案です。
+  - APSI を中核にしたアーキテクチャ設計評価の本体仕様です。
+- [architecture-scenario-model.md](domains/architecture-scenario-model.md)
+  - QAW / ATAM ベースの quality scenario を計算可能な形に正規化する入力仕様です。
+- [architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
+  - pattern family ごとの重点指標、利得、複雑性税の見方を整理します。
+- [architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
+  - greenfield / brownfield で evidence source をどう切り替えるかを定義します。
+- [architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
+  - APSI モデルと current implementation の対応表です。
 
 ### `operations/`
 
