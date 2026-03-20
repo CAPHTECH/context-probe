@@ -4,6 +4,7 @@ import type {
   ComplexityTaxBaseline,
   ComplexityTaxComponentName
 } from "../core/contracts.js";
+import { collectContractFilePaths } from "./contract-files.js";
 
 export interface ComplexityTaxFinding {
   component: ComplexityTaxComponentName;
@@ -28,9 +29,6 @@ export interface ComplexityTaxScore {
   unknowns: string[];
   findings: ComplexityTaxFinding[];
 }
-
-const CONTRACT_FILE_SIGNAL =
-  /(^|\/)(contracts?|dtos?|events?|schemas?|protocols?)(\/|$)|(?:contract|dto|event|schema|protocol)s?\.[^.]+$/i;
 
 const DEFAULT_BASELINES: Record<ComplexityTaxComponentName, Required<ComplexityTaxBaseline>> = {
   DeployablesPerTeam: { target: 1, worst: 8 },
@@ -80,10 +78,6 @@ function uniqueUnknowns(entries: string[]): string[] {
 
 function round(value: number): number {
   return Math.round(value * 1000) / 1000;
-}
-
-function contractFileCount(codebase: CodebaseAnalysis): number {
-  return codebase.scorableSourceFiles.filter((filePath) => CONTRACT_FILE_SIGNAL.test(filePath)).length;
 }
 
 export function scoreComplexityTax(options: {
@@ -164,7 +158,13 @@ export function scoreComplexityTax(options: {
     missingUnknown: "pipelineCount または deployableCount が不足しており PipelinesPerDeployable は近似できません"
   });
 
-  const observedContractCount = metadata?.contractOrSchemaCount ?? contractFileCount(codebase);
+  const observedContractCount =
+    metadata?.contractOrSchemaCount
+    ?? collectContractFilePaths({
+      codebase,
+      constraints,
+      allowDartDomainFallback: false
+    }).length;
   const serviceCount = metadata?.serviceCount ?? metadata?.deployableCount;
   recordObservedComponent({
     component: "ContractsOrSchemasPerService",

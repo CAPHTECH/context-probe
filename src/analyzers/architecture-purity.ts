@@ -1,5 +1,5 @@
 import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition } from "../core/contracts.js";
-import { matchGlobs } from "../core/io.js";
+import { classifyArchitectureLayer } from "./contract-files.js";
 import { getScorableDependencies } from "./code.js";
 
 export interface PurityFinding {
@@ -22,11 +22,12 @@ export interface BoundaryPurityScore {
   findings: PurityFinding[];
 }
 
-const FRAMEWORK_SIGNAL = /(infrastructure|infra|adapter|adapters|framework|frameworks|controller|controllers|gateway|gateways|schema|logger|repository|http|web|ui)/i;
-const INTERNAL_SIGNAL = /(internal|infra|infrastructure|adapter|adapters|schema|logger|repository|gateway|gateways)/i;
+const FRAMEWORK_SIGNAL = /(infrastructure|infra|adapter|adapters|framework|frameworks|controller|controllers|gateway|gateways|schema|logger|http|web|ui)/i;
+const INTERNAL_SIGNAL = /(internal|infra|infrastructure|adapter|adapters|schema|logger|gateway|gateways)/i;
+const SHARED_FRAMEWORK_LAYER_SIGNAL = /(shared|common|platform|core|foundation|theme|ui)/i;
 
 function classifyLayer(filePath: string, constraints: ArchitectureConstraints): LayerDefinition | undefined {
-  return constraints.layers.find((layer) => matchGlobs(filePath, layer.globs));
+  return classifyArchitectureLayer(filePath, constraints);
 }
 
 function isFrameworkish(filePath: string, layerName?: string): boolean {
@@ -38,7 +39,7 @@ function isInternalish(filePath: string, layerName?: string): boolean {
 }
 
 function isAllowedFrameworkLayer(layer: LayerDefinition, maxRank: number): boolean {
-  return layer.rank === maxRank || isFrameworkish(layer.name);
+  return layer.rank === maxRank || isFrameworkish(layer.name) || SHARED_FRAMEWORK_LAYER_SIGNAL.test(layer.name);
 }
 
 function average(values: number[], fallback: number): number {

@@ -2,11 +2,14 @@ import path from "node:path";
 
 import { describe, expect, test } from "vitest";
 
+import { scoreInterfaceProtocolStability } from "../src/analyzers/architecture-contracts.js";
+import { scoreBoundaryPurity } from "../src/analyzers/architecture-purity.js";
+import { scoreComplexityTax } from "../src/analyzers/cti.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../src/analyzers/code.js";
 import { COMMANDS } from "../src/commands.js";
 import { registerArtifacts } from "../src/core/artifacts.js";
 import type { CommandResponse, GlossaryTerm, MetricScore } from "../src/core/contracts.js";
-import { loadDomainModel } from "../src/core/model.js";
+import { loadArchitectureConstraints, loadDomainModel } from "../src/core/model.js";
 import { buildTermTraceLinks } from "../src/core/trace.js";
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
@@ -17,6 +20,8 @@ const DART_DOMAIN_BAD_REPO = path.resolve("fixtures/dart-support/domain-design/b
 const DART_ARCHITECTURE_CONSTRAINTS = path.resolve("fixtures/dart-support/architecture-design/constraints.yaml");
 const DART_ARCHITECTURE_GOOD_REPO = path.resolve("fixtures/dart-support/architecture-design/good-repo");
 const DART_ARCHITECTURE_BAD_REPO = path.resolve("fixtures/dart-support/architecture-design/bad-repo");
+const FLUTTER_HEURISTIC_CONSTRAINTS = path.resolve("fixtures/dart-support/flutter-heuristics/constraints.yaml");
+const FLUTTER_HEURISTIC_REPO = path.resolve("fixtures/dart-support/flutter-heuristics/repo");
 
 function getMetric(response: CommandResponse<unknown>, metricId: string): MetricScore {
   const result = response.result as { metrics: MetricScore[] };
@@ -201,5 +206,42 @@ describe("dart support", () => {
     expect(getMetric(goodResponse, "BPS").value).toBeGreaterThan(getMetric(badResponse, "BPS").value);
     expect(getMetric(goodResponse, "IPS").value).toBeGreaterThan(getMetric(badResponse, "IPS").value);
     expect(getMetric(goodResponse, "CTI").value).toBeLessThan(getMetric(badResponse, "CTI").value);
+  });
+
+  test("uses Flutter-friendly heuristics for domain contracts without misclassifying feature events folders", async () => {
+    const constraints = await loadArchitectureConstraints(FLUTTER_HEURISTIC_CONSTRAINTS);
+    const codebase = await parseCodebase(FLUTTER_HEURISTIC_REPO);
+
+    const purity = scoreBoundaryPurity(codebase, constraints);
+    const protocol = await scoreInterfaceProtocolStability({
+      root: FLUTTER_HEURISTIC_REPO,
+      codebase,
+      constraints
+    });
+    const complexity = scoreComplexityTax({
+      codebase,
+      constraints
+    });
+
+    expect(
+      purity.findings.some(
+        (finding) =>
+          finding.kind === "framework_contamination" && finding.path === "lib/features/entries/domain/entry_repository.dart"
+      )
+    ).toBe(false);
+    expect(
+      purity.findings.some(
+        (finding) =>
+          finding.kind === "framework_contamination" && finding.path === "lib/features/events/domain/event_repository.dart"
+      )
+    ).toBe(false);
+    expect(protocol.unknowns).not.toContain("契約ファイルが少なく IPS は保守的な近似です");
+    expect(protocol.findings.some((finding) => finding.path === "lib/features/events/data/supabase_event_repository.dart")).toBe(
+      false
+    );
+    expect(
+      protocol.findings.some((finding) => finding.path === "lib/features/events/presentation/event_templates_screen.dart")
+    ).toBe(false);
+    expect(complexity.components.ContractsOrSchemasPerService).toBe(0);
   });
 });

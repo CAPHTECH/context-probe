@@ -3,7 +3,8 @@ import path from "node:path";
 import ts from "typescript";
 
 import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition, ParsedSourceFile } from "../core/contracts.js";
-import { matchGlobs, readText } from "../core/io.js";
+import { readText } from "../core/io.js";
+import { classifyArchitectureLayer, collectContractFilePaths } from "./contract-files.js";
 import { getScorableDependencies } from "./code.js";
 
 export interface ContractStabilityFinding {
@@ -35,8 +36,7 @@ interface ContractFileStats {
   findings: ContractStabilityFinding[];
 }
 
-const CONTRACT_FILE_SIGNAL = /(^|\/)(contracts?|dtos?|events?|schemas?|protocols?)(\/|$)|(?:contract|dto|event|schema|protocol)s?\.[^.]+$/i;
-const INTERNAL_SIGNAL = /(internal|infra|infrastructure|implementation|impl|adapter|adapters|controller|controllers|repository|logger|gateway|gateways)/i;
+const INTERNAL_SIGNAL = /(internal|infra|infrastructure|implementation|impl|adapter|adapters|controller|controllers|logger|gateway|gateways)/i;
 const DART_CLASS_PATTERN = /^(?:(?:abstract|base|interface|final|sealed)\s+)*class\s+([A-Za-z_]\w*)\b/;
 const DART_MIXIN_CLASS_PATTERN = /^(?:(?:base|abstract)\s+)*mixin\s+class\s+([A-Za-z_]\w*)\b/;
 const DART_ENUM_PATTERN = /^enum\s+([A-Za-z_]\w*)\b/;
@@ -48,7 +48,7 @@ const DART_VALUE_PATTERN =
   /^(?:late\s+final|late|final|const|var|[A-Za-z_<>\[\]?., ]+)\s+([A-Za-z_]\w*)\s*=/;
 
 function classifyLayer(filePath: string, constraints: ArchitectureConstraints): LayerDefinition | undefined {
-  return constraints.layers.find((layer) => matchGlobs(filePath, layer.globs));
+  return classifyArchitectureLayer(filePath, constraints);
 }
 
 function clamp01(value: number): number {
@@ -60,10 +60,6 @@ function average(values: number[], fallback: number): number {
     return fallback;
   }
   return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function isContractishFile(filePath: string): boolean {
-  return CONTRACT_FILE_SIGNAL.test(filePath);
 }
 
 function isInternalishFile(filePath: string, layerName?: string): boolean {
@@ -317,7 +313,11 @@ export async function scoreInterfaceProtocolStability(options: {
   codebase: CodebaseAnalysis;
   constraints: ArchitectureConstraints;
 }): Promise<InterfaceProtocolStabilityScore> {
-  const contractPaths = options.codebase.scorableSourceFiles.filter((filePath) => isContractishFile(filePath));
+  const contractPaths = collectContractFilePaths({
+    codebase: options.codebase,
+    constraints: options.constraints,
+    allowDartDomainFallback: true
+  });
   const contractFiles = new Set(contractPaths);
   const fileMap = getParsedFileMap(options.codebase);
   const unknowns: string[] = [
