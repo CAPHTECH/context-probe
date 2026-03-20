@@ -1,0 +1,7 @@
+version: "1.0"
+patternFamily: "hexagonal"
+layeredRuntime:
+  FailureContainment: 0.9
+  DependencyIsolation: 0.84
+source: "synthetic-raw-runtime"
+note: "layered raw runtime remains strongly isolated"

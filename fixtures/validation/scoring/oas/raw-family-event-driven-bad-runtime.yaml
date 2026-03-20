@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "event-driven"
+eventDrivenRuntime:
+  DeadLetterHealth: 0.44
+  ConsumerLag: 8.8
+  ReplayRecovery: 0.46
+source: "synthetic-raw-runtime"
+note: "dead-letter health and replay recovery are degraded"

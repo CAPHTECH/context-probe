@@ -1,0 +1,6 @@
+version: "1.0"
+patternFamily: "microservices"
+serviceBasedRuntime:
+  PartialFailureContainment: 0.74
+source: "synthetic-raw-runtime"
+note: "only one raw service runtime signal is available"

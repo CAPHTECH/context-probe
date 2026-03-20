@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "microservices"
+serviceBasedRuntime:
+  PartialFailureContainment: 0.88
+  RetryAmplification: 1.3
+  SyncHopDepth: 1.4
+source: "synthetic-raw-runtime"
+note: "service failures remain localized with shallow sync depth"

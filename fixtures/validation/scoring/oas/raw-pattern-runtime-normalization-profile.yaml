@@ -1,0 +1,49 @@
+version: "1.0"
+layeredRuntime:
+  FailureContainment:
+    direction: "higher_is_better"
+    target: 0.95
+    worstAcceptable: 0.4
+  DependencyIsolation:
+    direction: "higher_is_better"
+    target: 0.9
+    worstAcceptable: 0.3
+serviceBasedRuntime:
+  PartialFailureContainment:
+    direction: "higher_is_better"
+    target: 0.9
+    worstAcceptable: 0.35
+  RetryAmplification:
+    direction: "lower_is_better"
+    target: 1.1
+    worstAcceptable: 3.5
+  SyncHopDepth:
+    direction: "lower_is_better"
+    target: 1.2
+    worstAcceptable: 4.5
+cqrsRuntime:
+  ProjectionFreshness:
+    direction: "lower_is_better"
+    target: 0.5
+    worstAcceptable: 8
+  ReplayDivergence:
+    direction: "lower_is_better"
+    target: 0
+    worstAcceptable: 0.25
+  StaleReadAcceptability:
+    direction: "higher_is_better"
+    target: 0.9
+    worstAcceptable: 0.3
+eventDrivenRuntime:
+  DeadLetterHealth:
+    direction: "higher_is_better"
+    target: 0.95
+    worstAcceptable: 0.35
+  ConsumerLag:
+    direction: "lower_is_better"
+    target: 1
+    worstAcceptable: 10
+  ReplayRecovery:
+    direction: "higher_is_better"
+    target: 0.95
+    worstAcceptable: 0.3

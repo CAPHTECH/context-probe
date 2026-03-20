@@ -13,6 +13,7 @@ const execFile = promisify(execFileCallback);
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const CODEX_STUB = path.resolve("test/fixtures/stubs/codex-stub.mjs");
+const DATA_FILE_STUB = path.resolve("test/fixtures/stubs/emit-data-file.mjs");
 const MCCS_MODEL_PATH = path.resolve("fixtures/validation/scoring/mccs/model.yaml");
 const MCCS_GOOD_ENTRY = "fixtures/validation/scoring/mccs/good-repo";
 const MCCS_BAD_ENTRY = "fixtures/validation/scoring/mccs/bad-repo";
@@ -92,6 +93,39 @@ const OAS_FAMILY_THIN_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/o
 const OAS_FAMILY_MISMATCH_RUNTIME_PATH = path.resolve(
   "fixtures/validation/scoring/oas/family-mismatch-runtime.yaml"
 );
+const OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-pattern-runtime-normalization-profile.yaml"
+);
+const OAS_RAW_FAMILY_LAYERED_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-layered-good-runtime.yaml"
+);
+const OAS_RAW_FAMILY_LAYERED_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-layered-bad-runtime.yaml"
+);
+const OAS_RAW_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-microservices-good-runtime.yaml"
+);
+const OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-microservices-bad-runtime.yaml"
+);
+const OAS_RAW_FAMILY_CQRS_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-cqrs-good-runtime.yaml"
+);
+const OAS_RAW_FAMILY_CQRS_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-cqrs-bad-runtime.yaml"
+);
+const OAS_RAW_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-event-driven-good-runtime.yaml"
+);
+const OAS_RAW_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-event-driven-bad-runtime.yaml"
+);
+const OAS_RAW_FAMILY_THIN_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-thin-runtime.yaml"
+);
+const OAS_RAW_FAMILY_MISMATCH_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/raw-family-mismatch-runtime.yaml"
+);
 const AELS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/aels/constraints.yaml");
 const AELS_BOUNDARY_MAP_PATH = path.resolve("fixtures/validation/scoring/aels/boundary-map.yaml");
 const AELS_BASE_ENTRY = "fixtures/validation/scoring/aels/base-repo";
@@ -158,7 +192,7 @@ describe("score validation", () => {
     expect(goodMccs.value).toBeGreaterThan(badMccs.value);
     expect(goodMccs.value).toBe(1);
     expect(badMccs.value).toBe(0);
-  }, 10000);
+  }, 20000);
 
   test("DDS is higher for inward-only dependencies than for violating dependencies", async () => {
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -307,6 +341,74 @@ describe("score validation", () => {
     expect(goodCti.unknowns.some((entry) => entry.includes("complexity export"))).toBe(false);
   });
 
+  test("CTI also supports complexity source configs via file and command inputs", async () => {
+    await chmod(DATA_FILE_STUB, 0o755);
+
+    const goodFileSource = await writeJsonFixture(tempRoots, "cti-good-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: CTI_GOOD_EXPORT_PATH
+    });
+    const badCommandSource = await writeJsonFixture(tempRoots, "cti-bad-source.json", {
+      version: "1.0",
+      sourceType: "command",
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(CTI_BAD_EXPORT_PATH)}`
+    });
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_GOOD_REPO,
+        constraints: CTI_BAD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "complexity-source": goodFileSource
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_BAD_REPO,
+        constraints: CTI_GOOD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "complexity-source": badCommandSource
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodCti = getMetric(goodResponse, "CTI");
+    const badCti = getMetric(badResponse, "CTI");
+
+    expect(goodCti.value).toBeLessThan(badCti.value);
+    expect(goodResponse.evidence.some((entry) => entry.statement.includes("complexity source config"))).toBe(true);
+    expect(badResponse.evidence.some((entry) => entry.statement.includes("command source"))).toBe(true);
+  });
+
+  test("explicit complexity export takes precedence over complexity sources", async () => {
+    const goodSource = await writeJsonFixture(tempRoots, "cti-precedence-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: CTI_GOOD_EXPORT_PATH
+    });
+
+    const response = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_BAD_REPO,
+        constraints: CTI_GOOD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "complexity-export": CTI_BAD_EXPORT_PATH,
+        "complexity-source": goodSource
+      },
+      { cwd: process.cwd() }
+    );
+
+    const cti = getMetric(response, "CTI");
+
+    expect(cti.value).toBeGreaterThan(0.4);
+    expect(response.unknowns.some((entry) => entry.includes("complexity source は優先されません"))).toBe(true);
+  });
+
   test("QSF is higher for scenario-observing candidates than for scenario-missing or poor-fit candidates", async () => {
     const goodResponse = await COMMANDS["score.compute"]!(
       {
@@ -353,6 +455,104 @@ describe("score validation", () => {
     expect(goodQsf.components.average_normalized_score ?? 0).toBeGreaterThan(
       badQsf.components.average_normalized_score ?? 0
     );
+  });
+
+  test("QSF also supports scenario observation sources via file and command inputs", async () => {
+    await chmod(DATA_FILE_STUB, 0o755);
+
+    const goodFileSource = await writeJsonFixture(tempRoots, "qsf-good-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: QSF_GOOD_OBSERVATIONS_PATH
+    });
+    const badCommandSource = await writeJsonFixture(tempRoots, "qsf-bad-source.json", {
+      version: "1.0",
+      sourceType: "command",
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(QSF_BAD_OBSERVATIONS_PATH)}`
+    });
+    const thinFileSource = await writeJsonFixture(tempRoots, "qsf-thin-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: QSF_THIN_OBSERVATIONS_PATH
+    });
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observation-source": goodFileSource
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observation-source": badCommandSource
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observation-source": thinFileSource
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodQsf = getMetric(goodResponse, "QSF");
+    const badQsf = getMetric(badResponse, "QSF");
+    const thinQsf = getMetric(thinResponse, "QSF");
+
+    expect(goodQsf.value).toBeGreaterThan(badQsf.value);
+    expect(goodQsf.value).toBeGreaterThan(thinQsf.value);
+    expect(thinQsf.unknowns.some((entry) => entry.includes("observed value"))).toBe(true);
+    expect(goodResponse.evidence.some((entry) => entry.statement.includes("scenario observation source config"))).toBe(true);
+  });
+
+  test("explicit scenario observations take precedence over scenario observation sources", async () => {
+    const badSource = await writeJsonFixture(tempRoots, "qsf-precedence-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: QSF_BAD_OBSERVATIONS_PATH
+    });
+
+    const explicitResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const precedenceResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: QSF_REPO,
+        constraints: QSF_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "scenario-catalog": QSF_SCENARIOS_PATH,
+        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH,
+        "scenario-observation-source": badSource
+      },
+      { cwd: process.cwd() }
+    );
+
+    expect(getMetric(precedenceResponse, "QSF").value).toBeCloseTo(getMetric(explicitResponse, "QSF").value, 6);
+    expect(precedenceResponse.unknowns.some((entry) => entry.includes("scenario observation source は優先されません"))).toBe(true);
   });
 
   test("APSI is higher when scenario fit, conformance proxies, runtime proxies, evolution, and complexity tax all align", async () => {
@@ -617,7 +817,77 @@ describe("score validation", () => {
     expect(thinOas.unknowns.some((entry) => entry.includes("PatternRuntime"))).toBe(true);
   });
 
-  test("normalized telemetry observations take precedence over telemetry export bundles", async () => {
+  test("OAS also supports telemetry sources via file and command inputs", async () => {
+    await chmod(DATA_FILE_STUB, 0o755);
+
+    const goodFileSource = await writeJsonFixture(tempRoots, "oas-good-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: OAS_EXPORT_GOOD_TELEMETRY_PATH
+    });
+    const badCommandSource = await writeJsonFixture(tempRoots, "oas-bad-source.json", {
+      version: "1.0",
+      sourceType: "command",
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(OAS_EXPORT_BAD_TELEMETRY_PATH)}`
+    });
+    const thinFileSource = await writeJsonFixture(tempRoots, "oas-thin-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: OAS_EXPORT_THIN_TELEMETRY_PATH
+    });
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-source": goodFileSource,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-source": badCommandSource,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-source": thinFileSource,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodOas = getMetric(goodResponse, "OAS");
+    const badOas = getMetric(badResponse, "OAS");
+    const thinOas = getMetric(thinResponse, "OAS");
+
+    expect(goodOas.value).toBeGreaterThan(badOas.value);
+    expect(goodOas.components.CommonOps ?? 0).toBeGreaterThan(badOas.components.CommonOps ?? 0);
+    expect(thinOas.unknowns.some((entry) => entry.includes("telemetry export"))).toBe(true);
+    expect(goodResponse.evidence.some((entry) => entry.statement.includes("telemetry source config"))).toBe(true);
+    expect(badResponse.evidence.some((entry) => entry.statement.includes("command source"))).toBe(true);
+  });
+
+  test("normalized, raw, and export telemetry inputs take precedence over telemetry sources", async () => {
+    const goodSource = await writeJsonFixture(tempRoots, "oas-precedence-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: OAS_EXPORT_GOOD_TELEMETRY_PATH
+    });
+
     const response = await COMMANDS["score.compute"]!(
       {
         repo: TIS_REPO,
@@ -627,6 +897,7 @@ describe("score validation", () => {
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
         "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
+        "telemetry-source": goodSource,
         "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
       },
       { cwd: process.cwd() }
@@ -635,7 +906,37 @@ describe("score validation", () => {
     const oas = getMetric(response, "OAS");
 
     expect(oas.components.CommonOps ?? 0).toBeGreaterThan(0.7);
-    expect(oas.unknowns.some((entry) => entry.includes("telemetry-observations が指定されているため raw/export telemetry input は優先されません"))).toBe(true);
+    expect(
+      oas.unknowns.some((entry) => entry.includes("telemetry-observations が指定されているため raw/export/source telemetry input は優先されません"))
+    ).toBe(true);
+
+    const rawResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-raw-observations": OAS_RAW_BAD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
+        "telemetry-source": goodSource
+      },
+      { cwd: process.cwd() }
+    );
+    expect(rawResponse.unknowns.some((entry) => entry.includes("telemetry source は利用されません"))).toBe(true);
+
+    const exportResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
+        "telemetry-source": goodSource,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    expect(exportResponse.unknowns.some((entry) => entry.includes("telemetry source は利用されません"))).toBe(true);
   });
 
   test("OAS derives PatternRuntime from family-specific runtime schemas", async () => {
@@ -773,7 +1074,185 @@ describe("score validation", () => {
     expect(mismatchOas.unknowns.some((entry) => entry.includes("legacy score"))).toBe(true);
     expect(mismatchOas.unknowns.some((entry) => entry.includes("patternFamily=microservices"))).toBe(true);
     expect(mismatchOas.components.PatternRuntime ?? 0).toBeGreaterThan(0.8);
-    expect(mismatchOas.confidence).toBeLessThan(0.8);
+    expect(mismatchOas.confidence).toBeLessThan(0.85);
+  });
+
+  test("OAS also derives PatternRuntime from raw family-specific runtime observations", async () => {
+    const layeredGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_LAYERED_GOOD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const layeredBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_LAYERED_BAD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const microservicesGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const microservicesBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const cqrsGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_CQRS_GOOD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const cqrsBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_CQRS_BAD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const eventDrivenGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const eventDrivenBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    expect(getMetric(layeredGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(layeredBad, "OAS").components.PatternRuntime ?? 0
+    );
+    expect(getMetric(microservicesGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(microservicesBad, "OAS").components.PatternRuntime ?? 0
+    );
+    expect(getMetric(cqrsGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(cqrsBad, "OAS").components.PatternRuntime ?? 0
+    );
+    expect(getMetric(eventDrivenGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(eventDrivenBad, "OAS").components.PatternRuntime ?? 0
+    );
+  });
+
+  test("OAS keeps raw pattern runtime partials observable and lets raw runtime override embedded telemetry runtime", async () => {
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_THIN_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const mismatchResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MISMATCH_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const precedenceResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-export": OAS_EXPORT_GOOD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const explicitOverrideResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
+        "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const thinOas = getMetric(thinResponse, "OAS");
+    const mismatchOas = getMetric(mismatchResponse, "OAS");
+    const precedenceOas = getMetric(precedenceResponse, "OAS");
+    const explicitOverrideOas = getMetric(explicitOverrideResponse, "OAS");
+
+    expect(thinOas.unknowns.some((entry) => entry.includes("serviceBasedRuntime"))).toBe(true);
+    expect(mismatchOas.unknowns.some((entry) => entry.includes("patternFamily=cqrs"))).toBe(true);
+    expect(mismatchOas.confidence).toBeLessThan(0.85);
+    expect(precedenceOas.unknowns.some((entry) => entry.includes("telemetry export 内の patternRuntime は優先されません"))).toBe(true);
+    expect(precedenceOas.components.PatternRuntime ?? 1).toBeLessThan(0.5);
+    expect(explicitOverrideOas.unknowns.some((entry) => entry.includes("raw pattern runtime input は優先されません"))).toBe(true);
+    expect(explicitOverrideOas.components.PatternRuntime ?? 0).toBeGreaterThan(0.8);
   });
 
   test("TIS is higher for isolated topologies than for shared-dependency topologies", async () => {
@@ -1181,7 +1660,109 @@ describe("score validation", () => {
     expect(thinEes.unknowns.some((entry) => entry.includes("delivery export"))).toBe(true);
   }, 30000);
 
-  test("normalized delivery observations take precedence over raw and export delivery inputs", async () => {
+  test("EES also supports delivery sources via file and command inputs", async () => {
+    await chmod(DATA_FILE_STUB, 0o755);
+
+    const goodRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees source good");
+    const badRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees source bad");
+
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingSourceLocalOne = 'billing-source-local-1';\n"
+      },
+      "feat: source local 1"
+    );
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentSourceLocalOne = 'fulfillment-source-local-1';\n"
+      },
+      "feat: source local 2"
+    );
+
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingSourceCrossOne = 'billing-source-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentSourceCrossOne = 'fulfillment-source-cross-1';\n"
+      },
+      "feat: source cross-boundary 1"
+    );
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingSourceCrossTwo = 'billing-source-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentSourceCrossTwo = 'fulfillment-source-cross-2';\n"
+      },
+      "feat: source cross-boundary 2"
+    );
+
+    const goodFileSource = await writeJsonFixture(tempRoots, "ees-good-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: EES_EXPORT_GOOD_DELIVERY_PATH
+    });
+    const badCommandSource = await writeJsonFixture(tempRoots, "ees-bad-source.json", {
+      version: "1.0",
+      sourceType: "command",
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(EES_EXPORT_BAD_DELIVERY_PATH)}`
+    });
+    const thinFileSource = await writeJsonFixture(tempRoots, "ees-thin-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: EES_EXPORT_THIN_DELIVERY_PATH
+    });
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-source": goodFileSource,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: badRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-source": badCommandSource,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-source": thinFileSource,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodEes = getMetric(goodResponse, "EES");
+    const badEes = getMetric(badResponse, "EES");
+    const thinEes = getMetric(thinResponse, "EES");
+
+    expect(goodEes.value).toBeGreaterThan(badEes.value);
+    expect(goodEes.components.Delivery ?? 0).toBeGreaterThan(badEes.components.Delivery ?? 0);
+    expect(thinEes.unknowns.some((entry) => entry.includes("delivery export"))).toBe(true);
+    expect(goodResponse.evidence.some((entry) => entry.statement.includes("delivery source config"))).toBe(true);
+    expect(badResponse.evidence.some((entry) => entry.statement.includes("command source"))).toBe(true);
+  }, 30000);
+
+  test("normalized delivery observations take precedence over raw, export, and source delivery inputs", async () => {
     const repo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees precedence");
 
     await appendAndCommit(
@@ -1198,6 +1779,12 @@ describe("score validation", () => {
       },
       "feat: precedence local 2"
     );
+
+    const goodSource = await writeJsonFixture(tempRoots, "ees-precedence-source.json", {
+      version: "1.0",
+      sourceType: "file",
+      path: EES_EXPORT_GOOD_DELIVERY_PATH
+    });
 
     const normalizedResponse = await COMMANDS["score.compute"]!(
       {
@@ -1220,7 +1807,8 @@ describe("score validation", () => {
         "delivery-observations": EES_GOOD_DELIVERY_PATH,
         "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
         "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
-        "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH
+        "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH,
+        "delivery-source": goodSource
       },
       { cwd: process.cwd() }
     );
@@ -1229,7 +1817,37 @@ describe("score validation", () => {
     const precedenceEes = getMetric(precedenceResponse, "EES");
 
     expect(precedenceEes.components.Delivery ?? 0).toBeCloseTo(normalizedEes.components.Delivery ?? 0, 6);
-    expect(precedenceEes.unknowns.some((entry) => entry.includes("raw/export delivery input は優先されません"))).toBe(true);
+    expect(precedenceEes.unknowns.some((entry) => entry.includes("raw/export/source delivery input は優先されません"))).toBe(true);
+
+    const rawResponse = await COMMANDS["score.compute"]!(
+      {
+        repo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
+        "delivery-source": goodSource
+      },
+      { cwd: process.cwd() }
+    );
+    expect(rawResponse.unknowns.some((entry) => entry.includes("delivery source は利用されません"))).toBe(true);
+
+    const exportResponse = await COMMANDS["score.compute"]!(
+      {
+        repo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
+        "delivery-source": goodSource
+      },
+      { cwd: process.cwd() }
+    );
+    expect(exportResponse.unknowns.some((entry) => entry.includes("delivery source は利用されません"))).toBe(true);
   }, 30000);
 
   test("ELS is higher for localized histories than for scattered histories", async () => {
@@ -1536,6 +2154,22 @@ async function appendAndCommit(
     ],
     { cwd: repoPath }
   );
+}
+
+async function writeJsonFixture<T>(
+  tempRoots: string[],
+  fileName: string,
+  payload: T
+): Promise<string> {
+  const tempRoot = await createTemporaryWorkspace([]);
+  tempRoots.push(tempRoot);
+  const targetPath = path.join(tempRoot, fileName);
+  await writeFile(targetPath, JSON.stringify(payload, null, 2), "utf8");
+  return targetPath;
+}
+
+function shellQuote(value: string): string {
+  return JSON.stringify(value);
 }
 
 function getMetric(

@@ -1,0 +1,7 @@
+version: "1.0"
+patternFamily: "cqrs"
+layeredRuntime:
+  FailureContainment: 0.82
+  DependencyIsolation: 0.8
+source: "synthetic-raw-runtime"
+note: "raw runtime block and declared family intentionally mismatch"
