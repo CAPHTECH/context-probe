@@ -68,7 +68,7 @@ describe("self measurement", () => {
     };
     expect(architectureResult.metrics.map((metric) => metric.metricId)).toContain("DDS");
     expect(Array.isArray(architectureResult.violations)).toBe(true);
-  });
+  }, 20000);
 
   test("degrades gracefully when git metadata is absent", async () => {
     repoPath = await createTemporaryWorkspace(PROJECT_ENTRIES);

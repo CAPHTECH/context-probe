@@ -24,6 +24,7 @@ import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from 
 import { listReviewItems } from "./review.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
+import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
 
 const USE_CASE_SIGNALS = [
@@ -605,6 +606,7 @@ export async function computeArchitectureScores(options: {
   const policy = getDomainPolicy(policyConfig, profileName, "architecture_design");
   const codebase = await parseCodebase(repoPath);
   const directionScore = scoreDependencyDirection(codebase, constraints);
+  const purityScore = scoreBoundaryPurity(codebase, constraints);
   const violations = detectDirectionViolations(codebase, constraints);
   const evidence = violations.map((violation) =>
     toEvidence(
@@ -615,6 +617,21 @@ export async function computeArchitectureScores(options: {
       },
       undefined,
       0.95
+    )
+  );
+  const purityEvidence = purityScore.findings.map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        path: finding.path,
+        ...(finding.source ? { source: finding.source } : {}),
+        ...(finding.target ? { target: finding.target } : {}),
+        ...(finding.sourceLayer ? { sourceLayer: finding.sourceLayer } : {}),
+        ...(finding.targetLayer ? { targetLayer: finding.targetLayer } : {})
+      },
+      undefined,
+      finding.confidence
     )
   );
   const scores: MetricScore[] = [];
@@ -638,6 +655,26 @@ export async function computeArchitectureScores(options: {
       )
     );
   }
+  if (policy.metrics.BPS) {
+    scores.push(
+      toMetricScore(
+        "BPS",
+        evaluateFormula(policy.metrics.BPS.formula, {
+          ALR: purityScore.ALR,
+          FCC: purityScore.FCC,
+          SICR: purityScore.SICR
+        }),
+        {
+          ALR: purityScore.ALR,
+          FCC: purityScore.FCC,
+          SICR: purityScore.SICR
+        },
+        purityEvidence.map((entry) => entry.evidenceId),
+        purityScore.confidence,
+        purityScore.unknowns
+      )
+    );
+  }
 
   return createResponse(
     {
@@ -646,7 +683,7 @@ export async function computeArchitectureScores(options: {
       violations
     },
     {
-      evidence,
+      evidence: [...evidence, ...purityEvidence],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: scores.flatMap((score) => score.unknowns),
       provenance: [toProvenance(repoPath, "architecture_design")]

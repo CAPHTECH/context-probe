@@ -1,0 +1,15 @@
+version: "1.0"
+direction: inward
+layers:
+  - name: domain
+    rank: 0
+    globs:
+      - "src/domain/**"
+  - name: application
+    rank: 1
+    globs:
+      - "src/application/**"
+  - name: infrastructure
+    rank: 2
+    globs:
+      - "src/infrastructure/**"
