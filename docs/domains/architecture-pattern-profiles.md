@@ -38,6 +38,11 @@
 - `DPR`
 - `PMR`
 
+### current runtime schema
+
+- `FailureContainmentScore`
+- `DependencyIsolationScore`
+
 ## 3. modular monolith / microservices
 
 ### 得たいもの
@@ -67,6 +72,12 @@
 - `DTNR`
 - `CSCR`
 
+### current runtime schema
+
+- `PartialFailureContainmentScore`
+- `RetryAmplificationScore`
+- `SyncHopDepthScore`
+
 ## 4. CQRS
 
 ### 得たいもの
@@ -94,6 +105,12 @@
 - `PFL95`
 - `RDR`
 - `SCR`
+
+### current runtime schema
+
+- `ProjectionFreshnessScore`
+- `ReplayDivergenceScore`
+- `StaleReadAcceptabilityScore`
 
 ## 5. event-driven
 
@@ -123,6 +140,12 @@
 - `DLR`
 - `EL95`
 - `RRSR`
+
+### current runtime schema
+
+- `DeadLetterHealthScore`
+- `ConsumerLagScore`
+- `ReplayRecoveryScore`
 
 ## 6. default weight profile の考え方
 

@@ -61,8 +61,9 @@
 ### `OAS`
 
 - 想定役割: traffic band ごとの運用健全性と pattern-specific runtime adequacy の合成
-- 実装状態: `telemetry-observations` に加えて `telemetry-raw-observations + telemetry-normalization-profile` による partial implementation を実装済み
+- 実装状態: `telemetry-observations` と `telemetry-raw-observations + telemetry-normalization-profile` に加えて、`pattern-runtime-observations` の family-specific normalized schema を使う partial implementation を実装済み
 - 制約: raw telemetry 自動取得ではなく file-based normalization から開始
+- 制約: pattern runtime の raw 正規化ではなく、family-specific normalized signal の明示入力から開始する
 - 制約: pattern runtime observation がない場合は `TIS` bridge を使う
 
 ### `AELS`
@@ -88,11 +89,11 @@
 
 ## 6. 今後の推奨実装順
 
-1. telemetry / delivery input の実測連携
-2. pattern runtime の profile 別 schema 化
+1. delivery input の raw/normalized 両対応
+2. pattern runtime の raw 正規化または profile 別 normalization
 3. pattern profile ごとの `APSI` 重み調整
 
-この順にする理由は、現在すでに `APSI` と `OAS` の初期合成はあるため、次は summary index を賢くするより、実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
+この順にする理由は、現在すでに `APSI` と `OAS` の初期合成と family-specific runtime schema はあるため、次は summary index を賢くするより、raw evidence を厚くして下位指標の質を上げる方が価値が高いからである。
 
 ## 7. 読み方
 

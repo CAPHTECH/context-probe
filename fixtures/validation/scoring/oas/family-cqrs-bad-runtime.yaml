@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "cqrs"
+cqrsRuntime:
+  ProjectionFreshnessScore: 0.26
+  ReplayDivergenceScore: 0.32
+  StaleReadAcceptabilityScore: 0.28
+source: "synthetic-runtime"
+note: "freshness lag and replay divergence make CQRS runtime behavior risky"

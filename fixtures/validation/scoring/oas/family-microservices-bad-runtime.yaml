@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "microservices"
+serviceBasedRuntime:
+  PartialFailureContainmentScore: 0.3
+  RetryAmplificationScore: 0.24
+  SyncHopDepthScore: 0.22
+source: "synthetic-runtime"
+note: "retry amplification and deep synchronous hops degrade runtime behavior"

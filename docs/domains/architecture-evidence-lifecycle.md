@@ -96,7 +96,8 @@ fitness functions は単独指標ではなく、greenfield から brownfield に
 
 1. normalized score の明示入力
 2. raw telemetry export + normalization profile
-3. 将来の telemetry backend 直結
+3. family-specific normalized PatternRuntime schema
+4. 将来の telemetry backend 直結
 
 ## 6. telemetry と history の役割分担
 

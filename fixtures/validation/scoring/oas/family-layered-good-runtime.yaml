@@ -1,0 +1,7 @@
+version: "1.0"
+patternFamily: "hexagonal"
+layeredRuntime:
+  FailureContainmentScore: 0.9
+  DependencyIsolationScore: 0.86
+source: "synthetic-runtime"
+note: "adapter failure remains contained without contaminating domain flows"

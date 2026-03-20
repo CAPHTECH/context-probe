@@ -244,8 +244,45 @@ export interface ArchitectureTelemetryNormalizationProfile {
   >;
 }
 
+export type ArchitecturePatternFamily =
+  | "layered"
+  | "clean"
+  | "hexagonal"
+  | "modular-monolith"
+  | "microservices"
+  | "cqrs"
+  | "event-driven";
+
+export interface LayeredPatternRuntimeObservationSet {
+  FailureContainmentScore?: number;
+  DependencyIsolationScore?: number;
+}
+
+export interface ServiceBasedPatternRuntimeObservationSet {
+  PartialFailureContainmentScore?: number;
+  RetryAmplificationScore?: number;
+  SyncHopDepthScore?: number;
+}
+
+export interface CqrsPatternRuntimeObservationSet {
+  ProjectionFreshnessScore?: number;
+  ReplayDivergenceScore?: number;
+  StaleReadAcceptabilityScore?: number;
+}
+
+export interface EventDrivenPatternRuntimeObservationSet {
+  DeadLetterHealthScore?: number;
+  ConsumerLagScore?: number;
+  ReplayRecoveryScore?: number;
+}
+
 export interface ArchitecturePatternRuntimeObservationSet {
   version: string;
+  patternFamily?: ArchitecturePatternFamily;
+  layeredRuntime?: LayeredPatternRuntimeObservationSet;
+  serviceBasedRuntime?: ServiceBasedPatternRuntimeObservationSet;
+  cqrsRuntime?: CqrsPatternRuntimeObservationSet;
+  eventDrivenRuntime?: EventDrivenPatternRuntimeObservationSet;
   score?: number;
   metrics?: Record<string, number>;
   source?: string;

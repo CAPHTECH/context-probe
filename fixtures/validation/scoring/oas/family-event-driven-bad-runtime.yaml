@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "event-driven"
+eventDrivenRuntime:
+  DeadLetterHealthScore: 0.22
+  ConsumerLagScore: 0.3
+  ReplayRecoveryScore: 0.26
+source: "synthetic-runtime"
+note: "DLQ pressure and lag spikes degrade event-driven runtime behavior"
