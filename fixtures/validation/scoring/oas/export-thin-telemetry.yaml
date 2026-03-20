@@ -1,0 +1,8 @@
+version: "1.0"
+sourceSystem: "synthetic-observability"
+bands:
+  - bandId: "peak"
+    trafficWeight: 1.0
+    latencyP95: 520
+    window: "5m"
+note: "export bundle with only peak latency observed"

@@ -47,6 +47,7 @@
 
 - 想定役割: deployable / pipeline / contract / sync depth などの complexity tax を独立に可視化する
 - 実装状態: static metadata と codebase-derived count による初期 proxy を実装済み
+- 実装状態: `complexity-export` bundle から operational metadata を ingest して CTI component に反映できる
 - 制約: on-call surface や run cost は metadata 依存で、未観測時は unknown 扱い
 
 ## 5. future metric の位置づけ
@@ -61,10 +62,11 @@
 ### `OAS`
 
 - 想定役割: traffic band ごとの運用健全性と pattern-specific runtime adequacy の合成
-- 実装状態: `telemetry-observations` と `telemetry-raw-observations + telemetry-normalization-profile` に加えて、`pattern-runtime-observations` の family-specific normalized schema を使う partial implementation を実装済み
+- 実装状態: `telemetry-observations` と `telemetry-raw-observations + telemetry-normalization-profile` に加えて、`telemetry-export + telemetry-normalization-profile` の ingest と `pattern-runtime-observations` の family-specific normalized schema を使う partial implementation を実装済み
 - 制約: raw telemetry 自動取得ではなく file-based normalization から開始
 - 制約: pattern runtime の raw 正規化ではなく、family-specific normalized signal の明示入力から開始する
 - 制約: pattern runtime observation がない場合は `TIS` bridge を使う
+- 制約: telemetry export は canonical ingest schema を前提とし、vendor API 直結ではない
 
 ### `AELS`
 
@@ -76,7 +78,7 @@
 ### `EES`
 
 - 想定役割: delivery performance と historical locality を合成した進化効率
-- 実装状態: `delivery-observations` に加えて `delivery-raw-observations + delivery-normalization-profile` と `AELS` を用いた partial implementation
+- 実装状態: `delivery-observations` に加えて `delivery-raw-observations + delivery-normalization-profile`、`delivery-export + delivery-normalization-profile` と `AELS` を用いた partial implementation
 - 制約: DORA raw metrics の自動収集ではなく、file-based normalization から開始
 
 ### `APSI`
@@ -93,9 +95,10 @@
 
 1. delivery / telemetry backend の直接連携
 2. pattern runtime の raw 正規化または profile 別 normalization
-3. profile preset の現場最適化
+3. CTI export の vendor adapter 拡張
+4. profile preset の現場最適化
 
-この順にする理由は、現在すでに `APSI` の profile 別重み、family-specific runtime schema、delivery raw normalization はあるため、次は summary index の微調整より backend 由来の実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
+この順にする理由は、現在すでに `APSI` の profile 別重み、family-specific runtime schema、delivery raw normalization、export ingestion はあるため、次は summary index の微調整より backend 由来の実測 evidence を厚くして下位指標の質を上げる方が価値が高いからである。
 
 ## 7. 読み方
 

@@ -56,6 +56,7 @@
 - errors
 - saturation
 - traffic bands
+- telemetry export bundle
 - telemetry export
 - normalization profile
 - consumer lag
@@ -69,6 +70,7 @@
 - recovery time
 - change fail rate
 - rework rate
+- delivery export bundle
 - delivery export
 - delivery normalization profile
 - cross-boundary co-change
@@ -82,6 +84,7 @@
 - contracts or schemas per service
 - on-call surface
 - run cost per business transaction
+- complexity export bundle
 
 ## 5. fitness functions の位置づけ
 
@@ -98,8 +101,22 @@ fitness functions は単独指標ではなく、greenfield から brownfield に
 
 1. normalized score の明示入力
 2. raw telemetry export + normalization profile
-3. family-specific normalized PatternRuntime schema
-4. 将来の telemetry backend 直結
+3. canonical telemetry export bundle ingestion
+4. family-specific normalized PatternRuntime schema
+5. 将来の telemetry backend 直結
+
+`EES` については current implementation で次の段階を持つ。
+
+1. normalized score の明示入力
+2. raw delivery export + normalization profile
+3. canonical delivery export bundle ingestion
+4. 将来の CI/CD backend 直結
+
+`CTI` については current implementation で次の段階を持つ。
+
+1. static metadata / codebase-derived count
+2. canonical complexity export bundle ingestion
+3. 将来の cost / on-call backend 直結
 
 ## 6. telemetry と history の役割分担
 

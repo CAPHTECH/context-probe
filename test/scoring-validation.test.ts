@@ -29,6 +29,8 @@ const CTI_GOOD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/cti/
 const CTI_BAD_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/cti/bad-constraints.yaml");
 const CTI_GOOD_REPO = path.resolve("fixtures/validation/scoring/cti/good-repo");
 const CTI_BAD_REPO = path.resolve("fixtures/validation/scoring/cti/bad-repo");
+const CTI_GOOD_EXPORT_PATH = path.resolve("fixtures/validation/scoring/cti/export-good-complexity.yaml");
+const CTI_BAD_EXPORT_PATH = path.resolve("fixtures/validation/scoring/cti/export-bad-complexity.yaml");
 const QSF_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/qsf/constraints.yaml");
 const QSF_REPO = path.resolve("fixtures/validation/scoring/qsf/repo");
 const QSF_SCENARIOS_PATH = path.resolve("fixtures/validation/scoring/qsf/scenarios.yaml");
@@ -57,6 +59,9 @@ const OAS_RAW_PROFILE_PATH = path.resolve("fixtures/validation/scoring/oas/raw-n
 const OAS_RAW_GOOD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-good-telemetry.yaml");
 const OAS_RAW_BAD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-bad-telemetry.yaml");
 const OAS_RAW_THIN_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-thin-telemetry.yaml");
+const OAS_EXPORT_GOOD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/export-good-telemetry.yaml");
+const OAS_EXPORT_BAD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/export-bad-telemetry.yaml");
+const OAS_EXPORT_THIN_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/export-thin-telemetry.yaml");
 const OAS_GOOD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/good-runtime.yaml");
 const OAS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/bad-runtime.yaml");
 const OAS_FAMILY_LAYERED_GOOD_RUNTIME_PATH = path.resolve(
@@ -98,6 +103,9 @@ const EES_RAW_PROFILE_PATH = path.resolve("fixtures/validation/scoring/ees/raw-n
 const EES_RAW_GOOD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/raw-good-delivery.yaml");
 const EES_RAW_BAD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/raw-bad-delivery.yaml");
 const EES_RAW_THIN_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/raw-thin-delivery.yaml");
+const EES_EXPORT_GOOD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/export-good-delivery.yaml");
+const EES_EXPORT_BAD_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/export-bad-delivery.yaml");
+const EES_EXPORT_THIN_DELIVERY_PATH = path.resolve("fixtures/validation/scoring/ees/export-thin-delivery.yaml");
 const EES_BASE_ENTRY = "fixtures/validation/scoring/ees/base-repo";
 const ELS_MODEL_PATH = path.resolve("fixtures/validation/scoring/els/model.yaml");
 const ELS_BASE_ENTRY = "fixtures/validation/scoring/els/base-repo";
@@ -267,6 +275,36 @@ describe("score validation", () => {
       goodCti.components.ContractsOrSchemasPerService ?? 0
     );
     expect(badCti.components.SyncDepthOverhead ?? 0).toBeGreaterThan(goodCti.components.SyncDepthOverhead ?? 0);
+  });
+
+  test("CTI also ingests operational export bundles and lets export data override fallback metadata", async () => {
+    const exportedGoodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_GOOD_REPO,
+        constraints: CTI_BAD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "complexity-export": CTI_GOOD_EXPORT_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const exportedBadResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: CTI_BAD_REPO,
+        constraints: CTI_GOOD_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "complexity-export": CTI_BAD_EXPORT_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodCti = getMetric(exportedGoodResponse, "CTI");
+    const badCti = getMetric(exportedBadResponse, "CTI");
+
+    expect(goodCti.value).toBeLessThan(badCti.value);
+    expect(goodCti.components.DeployablesPerTeam ?? 1).toBeLessThan(badCti.components.DeployablesPerTeam ?? 0);
+    expect(goodCti.unknowns.some((entry) => entry.includes("complexity export"))).toBe(false);
   });
 
   test("QSF is higher for scenario-observing candidates than for scenario-missing or poor-fit candidates", async () => {
@@ -532,6 +570,72 @@ describe("score validation", () => {
     expect(goodOas.value).toBeGreaterThan(badOas.value);
     expect(goodOas.components.CommonOps ?? 0).toBeGreaterThan(badOas.components.CommonOps ?? 0);
     expect(thinOas.unknowns.some((entry) => entry.includes("raw"))).toBe(true);
+  });
+
+  test("OAS also supports telemetry export bundles and embedded runtime observations", async () => {
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-export": OAS_EXPORT_GOOD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-export": OAS_EXPORT_THIN_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodOas = getMetric(goodResponse, "OAS");
+    const badOas = getMetric(badResponse, "OAS");
+    const thinOas = getMetric(thinResponse, "OAS");
+
+    expect(goodOas.value).toBeGreaterThan(badOas.value);
+    expect(goodOas.components.PatternRuntime ?? 0).toBeGreaterThan(badOas.components.PatternRuntime ?? 0);
+    expect(thinOas.unknowns.some((entry) => entry.includes("telemetry export"))).toBe(true);
+    expect(thinOas.unknowns.some((entry) => entry.includes("PatternRuntime"))).toBe(true);
+  });
+
+  test("normalized telemetry observations take precedence over telemetry export bundles", async () => {
+    const response = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
+        "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const oas = getMetric(response, "OAS");
+
+    expect(oas.components.CommonOps ?? 0).toBeGreaterThan(0.7);
+    expect(oas.unknowns.some((entry) => entry.includes("telemetry-observations が指定されているため raw/export telemetry input は優先されません"))).toBe(true);
   });
 
   test("OAS derives PatternRuntime from family-specific runtime schemas", async () => {
@@ -995,7 +1099,89 @@ describe("score validation", () => {
     expect(thinEes.unknowns.some((entry) => entry.includes("raw DeployFrequency"))).toBe(true);
   }, 30000);
 
-  test("normalized delivery observations take precedence over raw delivery inputs", async () => {
+  test("EES also supports delivery export bundles through the same normalization path", async () => {
+    const goodRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees export good");
+    const badRepo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees export bad");
+
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingExportLocalOne = 'billing-export-local-1';\n"
+      },
+      "feat: export local 1"
+    );
+    await appendAndCommit(
+      goodRepo,
+      {
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentExportLocalOne = 'fulfillment-export-local-1';\n"
+      },
+      "feat: export local 2"
+    );
+
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingExportCrossOne = 'billing-export-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentExportCrossOne = 'fulfillment-export-cross-1';\n"
+      },
+      "feat: export cross-boundary 1"
+    );
+    await appendAndCommit(
+      badRepo,
+      {
+        "src/billing/internal/billing-service.ts": "\nexport const billingExportCrossTwo = 'billing-export-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentExportCrossTwo = 'fulfillment-export-cross-2';\n"
+      },
+      "feat: export cross-boundary 2"
+    );
+
+    const goodResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-export": EES_EXPORT_GOOD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const badResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: badRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: goodRepo,
+        constraints: EES_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
+        "delivery-export": EES_EXPORT_THIN_DELIVERY_PATH,
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const goodEes = getMetric(goodResponse, "EES");
+    const badEes = getMetric(badResponse, "EES");
+    const thinEes = getMetric(thinResponse, "EES");
+
+    expect(goodEes.value).toBeGreaterThan(badEes.value);
+    expect(goodEes.components.Delivery ?? 0).toBeGreaterThan(badEes.components.Delivery ?? 0);
+    expect(thinEes.unknowns.some((entry) => entry.includes("delivery export"))).toBe(true);
+  }, 30000);
+
+  test("normalized delivery observations take precedence over raw and export delivery inputs", async () => {
     const repo = await materializeGitFixture(EES_BASE_ENTRY, tempRoots, "feat: init ees precedence");
 
     await appendAndCommit(
@@ -1033,7 +1219,8 @@ describe("score validation", () => {
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-observations": EES_GOOD_DELIVERY_PATH,
         "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
+        "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH
       },
       { cwd: process.cwd() }
     );
@@ -1042,7 +1229,7 @@ describe("score validation", () => {
     const precedenceEes = getMetric(precedenceResponse, "EES");
 
     expect(precedenceEes.components.Delivery ?? 0).toBeCloseTo(normalizedEes.components.Delivery ?? 0, 6);
-    expect(precedenceEes.unknowns.some((entry) => entry.includes("raw delivery input は優先されません"))).toBe(true);
+    expect(precedenceEes.unknowns.some((entry) => entry.includes("raw/export delivery input は優先されません"))).toBe(true);
   }, 30000);
 
   test("ELS is higher for localized histories than for scattered histories", async () => {
