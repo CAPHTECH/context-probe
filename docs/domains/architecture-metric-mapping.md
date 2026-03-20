@@ -84,6 +84,7 @@
 - 実装状態: `PCS = DDS/BPS/IPS proxy`、`OAS = OAS metric (未観測時は TIS bridge fallback)` として初期合成を実装済み
 - 制約: 下位指標の代替ではなく、意思決定の要約値としてのみ使う
 - 制約: `PCS` と `OAS` は current implementation では proxy / partial 実装を含む
+- 運用上の扱い: `report.generate` では summary section に分離し、`gate.evaluate` では supporting metric を主判定対象とする
 
 ## 6. 今後の推奨実装順
 
