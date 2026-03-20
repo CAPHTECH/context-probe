@@ -1,0 +1,34 @@
+version: "1.0"
+direction: inward
+layers:
+  - name: contracts
+    rank: 0
+    globs:
+      - "lib/contracts/**"
+  - name: application
+    rank: 1
+    globs:
+      - "lib/application/**"
+  - name: internal
+    rank: 2
+    globs:
+      - "lib/internal/**"
+  - name: infrastructure
+    rank: 3
+    globs:
+      - "lib/infrastructure/**"
+complexity:
+  teamCount: 1
+  deployableCount: 1
+  pipelineCount: 1
+  serviceCount: 1
+  serviceGroupCount: 1
+  datastoreCount: 1
+  onCallSurface: 2
+  syncDepthP95: 1
+  runCostPerBusinessTransaction: 1
+  normalization:
+    ContractsOrSchemasPerService:
+      target: 1
+      worst: 4
+

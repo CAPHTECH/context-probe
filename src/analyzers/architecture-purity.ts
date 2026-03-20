@@ -1,5 +1,6 @@
 import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition } from "../core/contracts.js";
 import { matchGlobs } from "../core/io.js";
+import { getScorableDependencies } from "./code.js";
 
 export interface PurityFinding {
   kind: "adapter_leak" | "framework_contamination" | "shared_internal_component";
@@ -57,13 +58,13 @@ export function scoreBoundaryPurity(
 ): BoundaryPurityScore {
   const unknowns: string[] = [];
   const findings: PurityFinding[] = [];
-  const classifiedFiles = codebase.sourceFiles
+  const classifiedFiles = codebase.scorableSourceFiles
     .map((filePath) => ({
       path: filePath,
       layer: classifyLayer(filePath, constraints)
     }))
     .filter((entry): entry is { path: string; layer: LayerDefinition } => Boolean(entry.layer));
-  const classifiedEdges = codebase.dependencies
+  const classifiedEdges = getScorableDependencies(codebase)
     .filter((dependency) => dependency.targetKind === "file")
     .map((dependency) => ({
       dependency,

@@ -30,6 +30,10 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 ### 2.5 analyze
 
 - 依存解析、境界違反検出、契約利用検証、履歴解析などの決定的処理を行う
+- JS / TS は AST ベースで import / export を抽出する
+- Dart は軽量 scanner で `import` `export` `part` を抽出する
+- Dart の `package:` URI は root の `pubspec.yaml` と同名 package のみ `lib/` 配下へ解決し、他 package と `dart:` は external 扱いにする
+- Dart の `part of` と `*.g.dart` などの生成ファイルは raw 解析には残すが、trace / score では scorable source から除外する
 
 ### 2.6 score
 
@@ -63,7 +67,7 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 | `doc.extract_invariants` | 不変条件を抽出する | Invariant Catalog |
 | `trace.link_terms` | 用語追跡リンクを作る | Traceability Graph |
 | `trace.link_model_to_code` | モデルとコードを紐づける | Model-Code Links |
-| `code.parse` | AST / シンボル情報を構築する | AST / Symbol Table |
+| `code.parse` | AST / シンボル情報や Dart directive graph を構築する | AST / Symbol Table |
 | `code.detect_dependencies` | 静的依存を抽出する | Dependency Graph |
 | `code.detect_contract_usage` | 契約経由性を検証する | Contract Usage Report |
 | `history.mine_cochange` | co-change を抽出する | Co-change Graph |

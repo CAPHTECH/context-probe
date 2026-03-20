@@ -83,7 +83,7 @@ function round(value: number): number {
 }
 
 function contractFileCount(codebase: CodebaseAnalysis): number {
-  return codebase.sourceFiles.filter((filePath) => CONTRACT_FILE_SIGNAL.test(filePath)).length;
+  return codebase.scorableSourceFiles.filter((filePath) => CONTRACT_FILE_SIGNAL.test(filePath)).length;
 }
 
 export function scoreComplexityTax(options: {

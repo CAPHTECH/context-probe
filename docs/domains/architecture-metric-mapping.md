@@ -42,6 +42,9 @@
 
 - 主な役割: interface / contract stability の適合
 - 上位指標上の位置づけ: `PCS` の構成要素
+- 実装状態: JS / TS では export 宣言ベース、Dart では public top-level 宣言ベースの heuristic で契約安定性 proxy を算出する
+- 実装状態: Dart の `part of` と `*.g.dart` などの生成ファイルは dependency 解決には使うが、`IPS` の契約ファイル集合からは除外する
+- 実装状態: Dart では `class` `enum` `typedef` `extension type` `mixin class` を stable export、top-level function / value と `dynamic` を risky signal として扱う
 
 ## 4. `CTI` の位置づけ
 

@@ -2,8 +2,9 @@ import path from "node:path";
 
 import ts from "typescript";
 
-import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition } from "../core/contracts.js";
+import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition, ParsedSourceFile } from "../core/contracts.js";
 import { matchGlobs, readText } from "../core/io.js";
+import { getScorableDependencies } from "./code.js";
 
 export interface ContractStabilityFinding {
   kind: "contract_backward_compatibility_risk" | "breaking_change_risk" | "schema_language_violation";
@@ -36,6 +37,15 @@ interface ContractFileStats {
 
 const CONTRACT_FILE_SIGNAL = /(^|\/)(contracts?|dtos?|events?|schemas?|protocols?)(\/|$)|(?:contract|dto|event|schema|protocol)s?\.[^.]+$/i;
 const INTERNAL_SIGNAL = /(internal|infra|infrastructure|implementation|impl|adapter|adapters|controller|controllers|repository|logger|gateway|gateways)/i;
+const DART_CLASS_PATTERN = /^(?:(?:abstract|base|interface|final|sealed)\s+)*class\s+([A-Za-z_]\w*)\b/;
+const DART_MIXIN_CLASS_PATTERN = /^(?:(?:base|abstract)\s+)*mixin\s+class\s+([A-Za-z_]\w*)\b/;
+const DART_ENUM_PATTERN = /^enum\s+([A-Za-z_]\w*)\b/;
+const DART_TYPEDEF_PATTERN = /^typedef\s+([A-Za-z_]\w*)\b/;
+const DART_EXTENSION_TYPE_PATTERN = /^extension\s+type\s+([A-Za-z_]\w*)\b/;
+const DART_FUNCTION_PATTERN =
+  /^(?:external\s+)?(?:[A-Za-z_<>\[\]?., ]+\s+)?([A-Za-z_]\w*)\s*\([^;]*\)\s*(?:=>|\{)/;
+const DART_VALUE_PATTERN =
+  /^(?:late\s+final|late|final|const|var|[A-Za-z_<>\[\]?., ]+)\s+([A-Za-z_]\w*)\s*=/;
 
 function classifyLayer(filePath: string, constraints: ArchitectureConstraints): LayerDefinition | undefined {
   return constraints.layers.find((layer) => matchGlobs(filePath, layer.globs));
@@ -76,11 +86,11 @@ function getDeclarationName(node: ts.Node): string | undefined {
   return undefined;
 }
 
-function isStableExport(node: ts.Node): boolean {
+function isStableEcmaExport(node: ts.Node): boolean {
   return ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node);
 }
 
-function isRiskyExport(node: ts.Node): boolean {
+function isRiskyEcmaExport(node: ts.Node): boolean {
   return (
     ts.isClassDeclaration(node) ||
     ts.isFunctionDeclaration(node) ||
@@ -93,18 +103,38 @@ function declarationContainsAny(node: ts.Node, sourceFile: ts.SourceFile): boole
   return /\bany\b/.test(node.getText(sourceFile));
 }
 
-async function analyzeContractFile(options: {
-  root: string;
-  path: string;
-  codebase: CodebaseAnalysis;
-  constraints: ArchitectureConstraints;
-  contractFiles: Set<string>;
-}): Promise<ContractFileStats> {
-  const sourceText = await readText(path.join(options.root, options.path));
-  const sourceFile = ts.createSourceFile(options.path, sourceText, ts.ScriptTarget.ES2022, true);
-  const dependencies = options.codebase.dependencies.filter(
-    (dependency) => dependency.source === options.path && dependency.targetKind === "file"
-  );
+function stripComments(sourceText: string): string {
+  return sourceText.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+function countBraceDelta(line: string): number {
+  const opens = line.match(/\{/g)?.length ?? 0;
+  const closes = line.match(/\}/g)?.length ?? 0;
+  return opens - closes;
+}
+
+function isPublicDartSymbol(symbol: string | undefined): symbol is string {
+  return Boolean(symbol && !symbol.startsWith("_"));
+}
+
+function collectDartTopLevelLines(sourceText: string): string[] {
+  const lines = stripComments(sourceText).split("\n");
+  const topLevelLines: string[] = [];
+  let braceDepth = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (braceDepth === 0 && trimmed.length > 0 && !trimmed.startsWith("@")) {
+      topLevelLines.push(trimmed);
+    }
+    braceDepth = Math.max(0, braceDepth + countBraceDelta(line));
+  }
+
+  return topLevelLines;
+}
+
+function analyzeEcmaContractDeclarations(pathValue: string, sourceText: string): Omit<ContractFileStats, "path" | "totalImports" | "nonContractImports" | "internalImports"> {
+  const sourceFile = ts.createSourceFile(pathValue, sourceText, ts.ScriptTarget.ES2022, true);
   const findings: ContractStabilityFinding[] = [];
   let exportCount = 0;
   let stableExports = 0;
@@ -116,17 +146,17 @@ async function analyzeContractFile(options: {
       return;
     }
     exportCount += 1;
-    if (isStableExport(node)) {
+    if (isStableEcmaExport(node)) {
       stableExports += 1;
     }
-    if (isRiskyExport(node)) {
+    if (isRiskyEcmaExport(node)) {
       riskyExports += 1;
       const symbol = getDeclarationName(node);
       findings.push({
         kind: "contract_backward_compatibility_risk",
-        path: options.path,
+        path: pathValue,
         confidence: 0.86,
-        note: `${options.path} が interface/type/enum 以外の公開契約を export しています`,
+        note: `${pathValue} が interface/type/enum 以外の公開契約を export しています`,
         ...(symbol ? { symbol } : {})
       });
     }
@@ -135,16 +165,115 @@ async function analyzeContractFile(options: {
       const symbol = getDeclarationName(node);
       findings.push({
         kind: "breaking_change_risk",
-        path: options.path,
+        path: pathValue,
         confidence: 0.88,
-        note: `${options.path} の公開契約が any を含んでいます`,
+        note: `${pathValue} の公開契約が any を含んでいます`,
         ...(symbol ? { symbol } : {})
       });
     }
   });
 
+  return {
+    exportCount,
+    stableExports,
+    riskyExports,
+    anyExports,
+    findings
+  };
+}
+
+function analyzeDartContractDeclarations(pathValue: string, sourceText: string): Omit<ContractFileStats, "path" | "totalImports" | "nonContractImports" | "internalImports"> {
+  const findings: ContractStabilityFinding[] = [];
+  const topLevelLines = collectDartTopLevelLines(sourceText);
+  let exportCount = 0;
+  let stableExports = 0;
+  let riskyExports = 0;
+  let anyExports = 0;
+
+  for (const line of topLevelLines) {
+    let symbol: string | undefined;
+    let stable = false;
+    let risky = false;
+
+    symbol =
+      DART_MIXIN_CLASS_PATTERN.exec(line)?.[1] ??
+      DART_CLASS_PATTERN.exec(line)?.[1] ??
+      DART_ENUM_PATTERN.exec(line)?.[1] ??
+      DART_TYPEDEF_PATTERN.exec(line)?.[1] ??
+      DART_EXTENSION_TYPE_PATTERN.exec(line)?.[1];
+    if (isPublicDartSymbol(symbol)) {
+      stable = true;
+    } else {
+      symbol = DART_FUNCTION_PATTERN.exec(line)?.[1] ?? DART_VALUE_PATTERN.exec(line)?.[1];
+      if (isPublicDartSymbol(symbol)) {
+        risky = true;
+      }
+    }
+
+    if (!stable && !risky) {
+      continue;
+    }
+
+    exportCount += 1;
+    if (stable) {
+      stableExports += 1;
+    }
+    if (risky) {
+      riskyExports += 1;
+      findings.push({
+        kind: "contract_backward_compatibility_risk",
+        path: pathValue,
+        confidence: 0.84,
+        note: `${pathValue} が function/value 由来の公開契約を含んでいます`,
+        ...(symbol ? { symbol } : {})
+      });
+    }
+    if (/\bdynamic\b/.test(line)) {
+      anyExports += 1;
+      findings.push({
+        kind: "breaking_change_risk",
+        path: pathValue,
+        confidence: 0.88,
+        note: `${pathValue} の公開契約が dynamic を含んでいます`,
+        ...(symbol ? { symbol } : {})
+      });
+    }
+  }
+
+  return {
+    exportCount,
+    stableExports,
+    riskyExports,
+    anyExports,
+    findings
+  };
+}
+
+function getParsedFileMap(codebase: CodebaseAnalysis): Map<string, ParsedSourceFile> {
+  return new Map(codebase.files.map((file) => [file.path, file]));
+}
+
+async function analyzeContractFile(options: {
+  root: string;
+  path: string;
+  codebase: CodebaseAnalysis;
+  constraints: ArchitectureConstraints;
+  contractFiles: Set<string>;
+  fileMap: Map<string, ParsedSourceFile>;
+}): Promise<ContractFileStats> {
+  const sourceText = await readText(path.join(options.root, options.path));
+  const parsedFile = options.fileMap.get(options.path);
+  const declarationStats =
+    parsedFile?.language === "dart"
+      ? analyzeDartContractDeclarations(options.path, sourceText)
+      : analyzeEcmaContractDeclarations(options.path, sourceText);
+  const dependencies = getScorableDependencies(options.codebase).filter(
+    (dependency) => dependency.source === options.path && dependency.targetKind === "file" && dependency.kind !== "part"
+  );
+  const findings: ContractStabilityFinding[] = [...declarationStats.findings];
   let nonContractImports = 0;
   let internalImports = 0;
+
   for (const dependency of dependencies) {
     const targetLayer = classifyLayer(dependency.target, options.constraints);
     const targetIsContract = options.contractFiles.has(dependency.target);
@@ -172,10 +301,10 @@ async function analyzeContractFile(options: {
 
   return {
     path: options.path,
-    exportCount,
-    stableExports,
-    riskyExports,
-    anyExports,
+    exportCount: declarationStats.exportCount,
+    stableExports: declarationStats.stableExports,
+    riskyExports: declarationStats.riskyExports,
+    anyExports: declarationStats.anyExports,
     totalImports: dependencies.length,
     nonContractImports,
     internalImports,
@@ -188,8 +317,9 @@ export async function scoreInterfaceProtocolStability(options: {
   codebase: CodebaseAnalysis;
   constraints: ArchitectureConstraints;
 }): Promise<InterfaceProtocolStabilityScore> {
-  const contractPaths = options.codebase.sourceFiles.filter((filePath) => isContractishFile(filePath));
+  const contractPaths = options.codebase.scorableSourceFiles.filter((filePath) => isContractishFile(filePath));
   const contractFiles = new Set(contractPaths);
+  const fileMap = getParsedFileMap(options.codebase);
   const unknowns: string[] = [
     "CBC/BCR はベースライン差分ではなく現時点の契約安定性 proxy です"
   ];
@@ -212,7 +342,8 @@ export async function scoreInterfaceProtocolStability(options: {
         path: filePath,
         codebase: options.codebase,
         constraints: options.constraints,
-        contractFiles
+        contractFiles,
+        fileMap
       })
     )
   );
