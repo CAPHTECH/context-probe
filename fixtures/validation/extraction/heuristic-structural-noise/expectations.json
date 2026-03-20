@@ -1,0 +1,17 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "glossary": {
+    "mustInclude": ["MCCS", "score.compute", "ReviewQueue"],
+    "mustExclude": [
+      "--docs-root",
+      "src/core/scoring.ts",
+      "FRG-doc-20-p-44",
+      "result.report",
+      "result.gate.failures",
+      "worst_acceptable",
+      "response_measure"
+    ]
+  }
+}
