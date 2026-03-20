@@ -2,7 +2,9 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
   ArchitectureDeliveryObservationSet,
+  ArchitecturePatternRuntimeObservationSet,
   ArchitectureScenarioCatalog,
+  ArchitectureTelemetryObservationSet,
   ArchitectureTopologyModel,
   BoundaryLeakFinding,
   CochangeAnalysis,
@@ -32,6 +34,7 @@ import { listReviewItems } from "./review.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
+import { scoreOperationalAdequacy } from "../analyzers/architecture-operations.js";
 import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
 import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
 import {
@@ -631,6 +634,8 @@ export async function computeArchitectureScores(options: {
   boundaryMap?: ArchitectureBoundaryMap;
   runtimeObservations?: TopologyRuntimeObservationSet;
   deliveryObservations?: ArchitectureDeliveryObservationSet;
+  telemetryObservations?: ArchitectureTelemetryObservationSet;
+  patternRuntimeObservations?: ArchitecturePatternRuntimeObservationSet;
 }): Promise<
   CommandResponse<{
     domainId: "architecture_design";
@@ -655,6 +660,18 @@ export async function computeArchitectureScores(options: {
   const topologyScore = scoreTopologyIsolation({
     ...(options.topologyModel ? { topology: options.topologyModel } : {}),
     ...(options.runtimeObservations ? { observations: options.runtimeObservations } : {})
+  });
+  const topologyValue = policy.metrics.TIS
+    ? evaluateFormula(policy.metrics.TIS.formula, {
+        FI: topologyScore.FI,
+        RC: topologyScore.RC,
+        SDR: topologyScore.SDR
+      })
+    : 0.40 * topologyScore.FI + 0.30 * topologyScore.RC + 0.30 * (1 - topologyScore.SDR);
+  const operationsScore = scoreOperationalAdequacy({
+    ...(options.telemetryObservations ? { telemetry: options.telemetryObservations } : {}),
+    ...(options.patternRuntimeObservations ? { patternRuntime: options.patternRuntimeObservations } : {}),
+    topologyIsolationBridge: topologyValue
   });
   const complexityScore = scoreComplexityTax({
     codebase,
@@ -749,6 +766,18 @@ export async function computeArchitectureScores(options: {
         ...(finding.nodeId ? { nodeId: finding.nodeId } : {}),
         ...(finding.source ? { source: finding.source } : {}),
         ...(finding.target ? { target: finding.target } : {})
+      },
+      undefined,
+      finding.confidence
+    )
+  );
+  const operationsEvidence = operationsScore.findings.map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        ...(finding.bandId ? { bandId: finding.bandId } : {}),
+        ...(finding.component ? { component: finding.component } : {})
       },
       undefined,
       finding.confidence
@@ -879,6 +908,26 @@ export async function computeArchitectureScores(options: {
       )
     );
   }
+  if (policy.metrics.OAS) {
+    scores.push(
+      toMetricScore(
+        "OAS",
+        evaluateFormula(policy.metrics.OAS.formula, {
+          CommonOps: operationsScore.CommonOps,
+          PatternRuntime: operationsScore.PatternRuntime
+        }),
+        {
+          CommonOps: operationsScore.CommonOps,
+          PatternRuntime: operationsScore.PatternRuntime,
+          band_count: operationsScore.bandCount,
+          weighted_band_coverage: operationsScore.weightedBandCoverage
+        },
+        operationsEvidence.map((entry) => entry.evidenceId),
+        operationsScore.confidence,
+        operationsScore.unknowns
+      )
+    );
+  }
   if (policy.metrics.CTI) {
     scores.push(
       toMetricScore(
@@ -932,6 +981,7 @@ export async function computeArchitectureScores(options: {
     const bpsMetric = scoreMap.get("BPS");
     const ipsMetric = scoreMap.get("IPS");
     const tisMetric = scoreMap.get("TIS");
+    const oasMetric = scoreMap.get("OAS");
     const eesMetric = scoreMap.get("EES");
     const ctiMetric = scoreMap.get("CTI");
     const PCS = weightedAverage(
@@ -942,7 +992,7 @@ export async function computeArchitectureScores(options: {
       ],
       0.5
     );
-    const OAS = tisMetric?.value ?? 0.5;
+    const OAS = oasMetric?.value ?? tisMetric?.value ?? 0.5;
     const apsiComponents = {
       QSF: qsfMetric?.value ?? 0.5,
       PCS,
@@ -950,18 +1000,18 @@ export async function computeArchitectureScores(options: {
       EES: eesMetric?.value ?? 0.5,
       CTI: ctiMetric?.value ?? 0.5
     };
-    const apsiUnknowns = [
-      "PCS は DDS/BPS/IPS の proxy 合成です",
-      "OAS は TIS の proxy 合成です"
-    ];
+    const apsiUnknowns = ["PCS は DDS/BPS/IPS の proxy 合成です"];
     if (!qsfMetric) {
       apsiUnknowns.push("QSF が未計算のため APSI は中立値 0.5 を使っています");
     }
     if (!ddsMetric || !bpsMetric || !ipsMetric) {
       apsiUnknowns.push("DDS/BPS/IPS の一部が未計算のため PCS は部分的な proxy です");
     }
-    if (!tisMetric) {
-      apsiUnknowns.push("TIS が未計算のため OAS は中立値 0.5 を使っています");
+    if (!oasMetric && tisMetric) {
+      apsiUnknowns.push("OAS は TIS の proxy 合成です");
+    }
+    if (!oasMetric && !tisMetric) {
+      apsiUnknowns.push("OAS と TIS が未計算のため APSI は中立値 0.5 を使っています");
     }
     if (!eesMetric) {
       apsiUnknowns.push("EES が未計算のため APSI は中立値 0.5 を使っています");
@@ -976,12 +1026,12 @@ export async function computeArchitectureScores(options: {
         apsiComponents,
         Array.from(
           new Set(
-            [qsfMetric, ddsMetric, bpsMetric, ipsMetric, tisMetric, eesMetric, ctiMetric]
+            [qsfMetric, ddsMetric, bpsMetric, ipsMetric, oasMetric, tisMetric, eesMetric, ctiMetric]
               .flatMap((metric) => metric?.evidenceRefs ?? [])
           )
         ),
         confidenceFromSignals(
-          [qsfMetric, ddsMetric, bpsMetric, ipsMetric, tisMetric, eesMetric, ctiMetric]
+          [qsfMetric, ddsMetric, bpsMetric, ipsMetric, oasMetric, tisMetric, eesMetric, ctiMetric]
             .flatMap((metric) => (metric ? [metric.confidence] : []))
         ),
         Array.from(new Set(apsiUnknowns))
@@ -1003,6 +1053,7 @@ export async function computeArchitectureScores(options: {
         ...purityEvidence,
         ...protocolEvidence,
         ...topologyEvidence,
+        ...operationsEvidence,
         ...complexityEvidence,
         ...evolutionEvidence
       ],

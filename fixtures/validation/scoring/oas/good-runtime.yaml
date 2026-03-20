@@ -1,0 +1,7 @@
+version: "1.0"
+score: 0.88
+metrics:
+  partialFailureContainment: 0.9
+  syncHopDepth: 0.82
+source: "synthetic-runtime"
+note: "runtime behavior remains stable under representative traffic"

@@ -4,8 +4,10 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
   ArchitectureDeliveryObservationSet,
+  ArchitecturePatternRuntimeObservationSet,
   ArchitectureTopologyModel,
   ArchitectureScenarioCatalog,
+  ArchitectureTelemetryObservationSet,
   CommandContext,
   CommandResponse,
   DomainModel,
@@ -142,6 +144,34 @@ async function loadDeliveryObservationsIfRequested(
     return undefined;
   }
   return readDataFile<ArchitectureDeliveryObservationSet>(deliveryPath);
+}
+
+async function loadTelemetryObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureTelemetryObservationSet | undefined> {
+  const telemetryPath =
+    typeof args["telemetry-observations"] === "string"
+      ? new URL(args["telemetry-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!telemetryPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureTelemetryObservationSet>(telemetryPath);
+}
+
+async function loadPatternRuntimeObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitecturePatternRuntimeObservationSet | undefined> {
+  const runtimePath =
+    typeof args["pattern-runtime-observations"] === "string"
+      ? new URL(args["pattern-runtime-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!runtimePath) {
+    return undefined;
+  }
+  return readDataFile<ArchitecturePatternRuntimeObservationSet>(runtimePath);
 }
 
 function getRootPath(args: Record<string, string | boolean>, context: CommandContext): string {
@@ -362,13 +392,24 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const domain = typeof args.domain === "string" ? args.domain : "domain_design";
     if (domain === "architecture_design") {
       const constraints = await requireArchitectureConstraints(args, context);
-      const [scenarioCatalog, scenarioObservations, topologyModel, boundaryMap, runtimeObservations, deliveryObservations] = await Promise.all([
+      const [
+        scenarioCatalog,
+        scenarioObservations,
+        topologyModel,
+        boundaryMap,
+        runtimeObservations,
+        deliveryObservations,
+        telemetryObservations,
+        patternRuntimeObservations
+      ] = await Promise.all([
         loadScenarioCatalogIfRequested(args, context),
         loadScenarioObservationsIfRequested(args, context),
         loadTopologyModelIfRequested(args, context),
         loadBoundaryMapIfRequested(args, context),
         loadRuntimeObservationsIfRequested(args, context),
-        loadDeliveryObservationsIfRequested(args, context)
+        loadDeliveryObservationsIfRequested(args, context),
+        loadTelemetryObservationsIfRequested(args, context),
+        loadPatternRuntimeObservationsIfRequested(args, context)
       ]);
       return computeArchitectureScores({
         repoPath: getRootPath(args, context),
@@ -380,7 +421,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
         ...(topologyModel ? { topologyModel } : {}),
         ...(boundaryMap ? { boundaryMap } : {}),
         ...(runtimeObservations ? { runtimeObservations } : {}),
-        ...(deliveryObservations ? { deliveryObservations } : {})
+        ...(deliveryObservations ? { deliveryObservations } : {}),
+        ...(telemetryObservations ? { telemetryObservations } : {}),
+        ...(patternRuntimeObservations ? { patternRuntimeObservations } : {})
       });
     }
     const model = await requireDomainModel(args, context);
