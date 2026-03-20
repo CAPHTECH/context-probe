@@ -69,6 +69,13 @@ export const DEFAULT_POLICY: PolicyConfig = {
                 warn: 0.72,
                 fail: 0.58
               }
+            },
+            IPS: {
+              formula: "0.50*CBC + 0.25*(1-BCR) + 0.25*SLA",
+              thresholds: {
+                warn: 0.72,
+                fail: 0.58
+              }
             }
           },
           review: {
