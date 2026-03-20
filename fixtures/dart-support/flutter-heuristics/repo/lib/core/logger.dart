@@ -1,0 +1,1 @@
+void logInfo(String message) {}

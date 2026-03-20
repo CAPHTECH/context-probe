@@ -1,5 +1,6 @@
 import type { ArchitectureConstraints, CodebaseAnalysis } from "../core/contracts.js";
 import { matchGlobs } from "../core/io.js";
+import { getScorableDependencies } from "./code.js";
 
 export interface DirectionViolation {
   source: string;
@@ -25,7 +26,7 @@ export function detectDirectionViolations(
   constraints: ArchitectureConstraints
 ): DirectionViolation[] {
   const violations: DirectionViolation[] = [];
-  for (const dependency of codebase.dependencies.filter((entry) => entry.targetKind === "file")) {
+  for (const dependency of getScorableDependencies(codebase).filter((entry) => entry.targetKind === "file")) {
     const sourceLayer = classifyLayer(dependency.source, constraints);
     const targetLayer = classifyLayer(dependency.target, constraints);
     if (!sourceLayer || !targetLayer) {
@@ -47,7 +48,8 @@ export function scoreDependencyDirection(
   codebase: CodebaseAnalysis,
   constraints: ArchitectureConstraints
 ): DependencyDirectionScore {
-  const classifiedEdges = codebase.dependencies.filter((entry) => {
+  const scorableDependencies = getScorableDependencies(codebase);
+  const classifiedEdges = scorableDependencies.filter((entry) => {
     if (entry.targetKind !== "file") {
       return false;
     }
@@ -57,7 +59,7 @@ export function scoreDependencyDirection(
   const applicableEdges = classifiedEdges.length;
   const illegalRatio = applicableEdges === 0 ? 0 : violations.length / applicableEdges;
   const classifiedCoverage =
-    codebase.dependencies.length === 0 ? 0 : Math.min(1, applicableEdges / codebase.dependencies.length);
+    scorableDependencies.length === 0 ? 0 : Math.min(1, applicableEdges / scorableDependencies.length);
 
   return {
     IDR: illegalRatio,

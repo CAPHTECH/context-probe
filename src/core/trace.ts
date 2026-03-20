@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type {
   DomainModel,
   GlossaryTerm,
@@ -19,16 +21,25 @@ export async function buildTermTraceLinks(options: {
   docsRoot: string;
   repoRoot?: string;
   terms: GlossaryTerm[];
+  codeFiles?: string[];
 }): Promise<TermTraceLink[]> {
   const fragments = await normalizeDocuments(options.docsRoot);
   const codeFiles = options.repoRoot
-    ? (await listFiles(options.repoRoot)).filter((filePath) => isSourceFile(filePath))
+    ? options.codeFiles ?? (await listFiles(options.repoRoot)).filter((filePath) => isSourceFile(filePath))
     : [];
 
   const codeContents = await Promise.all(
     codeFiles.map(async (filePath) => ({
-      path: relativePath(options.repoRoot ?? options.docsRoot, filePath),
-      content: await readText(filePath)
+      path:
+        options.repoRoot && path.isAbsolute(filePath)
+          ? relativePath(options.repoRoot, filePath)
+          : options.repoRoot
+            ? filePath
+            : filePath,
+      content:
+        options.repoRoot && !path.isAbsolute(filePath)
+          ? await readText(path.join(options.repoRoot, filePath))
+          : await readText(filePath)
     }))
   );
 
