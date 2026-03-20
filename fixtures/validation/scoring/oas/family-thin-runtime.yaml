@@ -1,0 +1,6 @@
+version: "1.0"
+patternFamily: "microservices"
+serviceBasedRuntime:
+  PartialFailureContainmentScore: 0.78
+source: "synthetic-runtime"
+note: "only one service-based runtime signal is available"

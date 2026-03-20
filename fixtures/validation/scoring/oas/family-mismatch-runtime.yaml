@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "microservices"
+layeredRuntime:
+  FailureContainmentScore: 0.9
+  DependencyIsolationScore: 0.84
+score: 0.15
+source: "synthetic-runtime"
+note: "family block intentionally mismatches declared patternFamily and overrides legacy score"

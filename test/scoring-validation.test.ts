@@ -52,6 +52,34 @@ const OAS_RAW_BAD_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas
 const OAS_RAW_THIN_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring/oas/raw-thin-telemetry.yaml");
 const OAS_GOOD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/good-runtime.yaml");
 const OAS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/bad-runtime.yaml");
+const OAS_FAMILY_LAYERED_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-layered-good-runtime.yaml"
+);
+const OAS_FAMILY_LAYERED_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-layered-bad-runtime.yaml"
+);
+const OAS_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-microservices-good-runtime.yaml"
+);
+const OAS_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-microservices-bad-runtime.yaml"
+);
+const OAS_FAMILY_CQRS_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-cqrs-good-runtime.yaml"
+);
+const OAS_FAMILY_CQRS_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-cqrs-bad-runtime.yaml"
+);
+const OAS_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-event-driven-good-runtime.yaml"
+);
+const OAS_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-event-driven-bad-runtime.yaml"
+);
+const OAS_FAMILY_THIN_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/family-thin-runtime.yaml");
+const OAS_FAMILY_MISMATCH_RUNTIME_PATH = path.resolve(
+  "fixtures/validation/scoring/oas/family-mismatch-runtime.yaml"
+);
 const AELS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/aels/constraints.yaml");
 const AELS_BOUNDARY_MAP_PATH = path.resolve("fixtures/validation/scoring/aels/boundary-map.yaml");
 const AELS_BASE_ENTRY = "fixtures/validation/scoring/aels/base-repo";
@@ -413,6 +441,144 @@ describe("score validation", () => {
     expect(goodOas.value).toBeGreaterThan(badOas.value);
     expect(goodOas.components.CommonOps ?? 0).toBeGreaterThan(badOas.components.CommonOps ?? 0);
     expect(thinOas.unknowns.some((entry) => entry.includes("raw"))).toBe(true);
+  });
+
+  test("OAS derives PatternRuntime from family-specific runtime schemas", async () => {
+    const layeredGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_LAYERED_GOOD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const layeredBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_LAYERED_BAD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const microservicesGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const microservicesBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const cqrsGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_CQRS_GOOD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const cqrsBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_CQRS_BAD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const eventDrivenGood = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const eventDrivenBad = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    expect(getMetric(layeredGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(layeredBad, "OAS").components.PatternRuntime ?? 0
+    );
+    expect(getMetric(microservicesGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(microservicesBad, "OAS").components.PatternRuntime ?? 0
+    );
+    expect(getMetric(cqrsGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(cqrsBad, "OAS").components.PatternRuntime ?? 0
+    );
+    expect(getMetric(eventDrivenGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
+      getMetric(eventDrivenBad, "OAS").components.PatternRuntime ?? 0
+    );
+  });
+
+  test("OAS keeps partial family runtime schemas observable and degrades confidence on mismatches", async () => {
+    const thinResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_THIN_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+    const mismatchResponse = await COMMANDS["score.compute"]!(
+      {
+        repo: TIS_REPO,
+        constraints: TIS_CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        domain: "architecture_design",
+        "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
+        "pattern-runtime-observations": OAS_FAMILY_MISMATCH_RUNTIME_PATH
+      },
+      { cwd: process.cwd() }
+    );
+
+    const thinOas = getMetric(thinResponse, "OAS");
+    const mismatchOas = getMetric(mismatchResponse, "OAS");
+
+    expect(thinOas.unknowns.some((entry) => entry.includes("serviceBasedRuntime"))).toBe(true);
+    expect(mismatchOas.unknowns.some((entry) => entry.includes("legacy score"))).toBe(true);
+    expect(mismatchOas.unknowns.some((entry) => entry.includes("patternFamily=microservices"))).toBe(true);
+    expect(mismatchOas.components.PatternRuntime ?? 0).toBeGreaterThan(0.8);
+    expect(mismatchOas.confidence).toBeLessThan(0.8);
   });
 
   test("TIS is higher for isolated topologies than for shared-dependency topologies", async () => {
@@ -956,6 +1122,7 @@ function getMetric(
       metricId: string;
       value: number;
       components: Record<string, number>;
+      confidence: number;
       unknowns: string[];
     }>;
   };

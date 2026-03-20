@@ -1,0 +1,7 @@
+version: "1.0"
+patternFamily: "layered"
+layeredRuntime:
+  FailureContainmentScore: 0.34
+  DependencyIsolationScore: 0.28
+source: "synthetic-runtime"
+note: "outer dependency failures propagate into inner-layer behavior"

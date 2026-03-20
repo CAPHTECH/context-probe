@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "microservices"
+serviceBasedRuntime:
+  PartialFailureContainmentScore: 0.88
+  RetryAmplificationScore: 0.82
+  SyncHopDepthScore: 0.79
+source: "synthetic-runtime"
+note: "failure stays local and retry cascades remain bounded"

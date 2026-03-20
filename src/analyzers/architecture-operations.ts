@@ -1,18 +1,30 @@
 import type {
+  ArchitecturePatternFamily,
   ArchitecturePatternRuntimeObservationSet,
   ArchitectureTelemetryObservationSet
 } from "../core/contracts.js";
+import { scorePatternRuntime, type PatternRuntimeSource } from "./architecture-pattern-runtime.js";
 
 export interface OperationalAdequacyFinding {
   kind:
     | "missing_band_signal"
     | "weak_common_ops"
     | "missing_pattern_runtime"
-    | "weak_pattern_runtime";
+    | "weak_pattern_runtime"
+    | "pattern_runtime_signal_missing"
+    | "pattern_runtime_family_mismatch"
+    | "pattern_runtime_multiple_blocks"
+    | "pattern_runtime_legacy_overridden"
+    | "pattern_runtime_legacy_used"
+    | "pattern_runtime_tis_bridge"
+    | "pattern_runtime_neutral";
   confidence: number;
   note: string;
   bandId?: string;
   component?: "LatencyScore" | "ErrorScore" | "SaturationScore";
+  patternFamily?: ArchitecturePatternFamily;
+  signal?: string;
+  source?: PatternRuntimeSource;
 }
 
 export interface OperationalAdequacyScore {
@@ -132,34 +144,46 @@ export function scoreOperationalAdequacy(input: {
     unknowns.push("traffic band の一部 signal が欠けており CommonOps は部分的な近似です");
   }
 
-  let patternRuntimeSourceConfidence = 0.35;
-  let PatternRuntime = 0.5;
-  if (input.patternRuntime?.score !== undefined) {
-    PatternRuntime = clamp01(input.patternRuntime.score);
-    patternRuntimeSourceConfidence = 0.86;
-  } else if (input.topologyIsolationBridge !== undefined) {
-    PatternRuntime = clamp01(input.topologyIsolationBridge);
-    patternRuntimeSourceConfidence = 0.62;
-    unknowns.push("pattern runtime observations が指定されていないため PatternRuntime は TIS bridge を使っています");
-    findings.push({
-      kind: "missing_pattern_runtime",
-      confidence: 0.68,
-      note: "pattern runtime observation が不足しているため TIS bridge を PatternRuntime に利用しています"
-    });
-  } else {
-    unknowns.push("pattern runtime observations が指定されていないため PatternRuntime は中立値 0.5 を使っています");
-    findings.push({
-      kind: "missing_pattern_runtime",
-      confidence: 0.62,
-      note: "pattern runtime observation が不足しているため PatternRuntime は未観測に近い状態です"
-    });
-  }
+  const patternRuntimeScore = scorePatternRuntime({
+    ...(input.patternRuntime ? { observations: input.patternRuntime } : {}),
+    ...(input.topologyIsolationBridge !== undefined
+      ? { topologyIsolationBridge: input.topologyIsolationBridge }
+      : {})
+  });
+  const patternRuntimeSourceConfidence = patternRuntimeScore.confidence;
+  const PatternRuntime = patternRuntimeScore.value;
+  unknowns.push(...patternRuntimeScore.unknowns);
+  findings.push(
+    ...patternRuntimeScore.findings.map((finding) => {
+      const kind: OperationalAdequacyFinding["kind"] =
+        finding.kind === "pattern_runtime_tis_bridge" || finding.kind === "pattern_runtime_neutral"
+          ? "missing_pattern_runtime"
+          : finding.kind;
+      const mapped: OperationalAdequacyFinding = {
+        kind,
+        confidence: finding.confidence,
+        note: finding.note
+      };
+      if (finding.patternFamily) {
+        mapped.patternFamily = finding.patternFamily;
+      }
+      if (finding.signal) {
+        mapped.signal = finding.signal;
+      }
+      if (finding.source) {
+        mapped.source = finding.source;
+      }
+      return mapped;
+    })
+  );
 
   if (PatternRuntime < 0.6) {
     findings.push({
       kind: "weak_pattern_runtime",
       confidence: 0.78,
-      note: `PatternRuntime score が ${PatternRuntime.toFixed(3)} と低く、pattern-specific runtime adequacy が弱い状態です`
+      note: `PatternRuntime score が ${PatternRuntime.toFixed(3)} と低く、pattern-specific runtime adequacy が弱い状態です`,
+      ...(patternRuntimeScore.patternFamily ? { patternFamily: patternRuntimeScore.patternFamily } : {}),
+      source: patternRuntimeScore.source
     });
   }
 

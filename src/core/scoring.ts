@@ -797,7 +797,10 @@ export async function computeArchitectureScores(options: {
       {
         kind: finding.kind,
         ...(finding.bandId ? { bandId: finding.bandId } : {}),
-        ...(finding.component ? { component: finding.component } : {})
+        ...(finding.component ? { component: finding.component } : {}),
+        ...(finding.patternFamily ? { patternFamily: finding.patternFamily } : {}),
+        ...(finding.signal ? { signal: finding.signal } : {}),
+        ...(finding.source ? { source: finding.source } : {})
       },
       undefined,
       finding.confidence

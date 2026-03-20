@@ -1,0 +1,8 @@
+version: "1.0"
+patternFamily: "event-driven"
+eventDrivenRuntime:
+  DeadLetterHealthScore: 0.9
+  ConsumerLagScore: 0.84
+  ReplayRecoveryScore: 0.86
+source: "synthetic-runtime"
+note: "consumer lag and replay recovery remain healthy under representative traffic"
