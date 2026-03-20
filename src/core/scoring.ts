@@ -4,7 +4,9 @@ import type {
   ArchitectureDeliveryObservationSet,
   ArchitecturePatternRuntimeObservationSet,
   ArchitectureScenarioCatalog,
+  ArchitectureTelemetryNormalizationProfile,
   ArchitectureTelemetryObservationSet,
+  ArchitectureTelemetryRawObservationSet,
   ArchitectureTopologyModel,
   BoundaryLeakFinding,
   CochangeAnalysis,
@@ -36,6 +38,7 @@ import { detectDirectionViolations, scoreDependencyDirection } from "../analyzer
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
 import { scoreOperationalAdequacy } from "../analyzers/architecture-operations.js";
 import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
+import { normalizeTelemetryObservations } from "../analyzers/architecture-telemetry-normalization.js";
 import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
 import {
   scoreArchitectureEvolutionEfficiency,
@@ -635,6 +638,8 @@ export async function computeArchitectureScores(options: {
   runtimeObservations?: TopologyRuntimeObservationSet;
   deliveryObservations?: ArchitectureDeliveryObservationSet;
   telemetryObservations?: ArchitectureTelemetryObservationSet;
+  telemetryRawObservations?: ArchitectureTelemetryRawObservationSet;
+  telemetryNormalizationProfile?: ArchitectureTelemetryNormalizationProfile;
   patternRuntimeObservations?: ArchitecturePatternRuntimeObservationSet;
 }): Promise<
   CommandResponse<{
@@ -668,8 +673,23 @@ export async function computeArchitectureScores(options: {
         SDR: topologyScore.SDR
       })
     : 0.40 * topologyScore.FI + 0.30 * topologyScore.RC + 0.30 * (1 - topologyScore.SDR);
+  const telemetryNormalizationResult =
+    options.telemetryObservations
+      ? undefined
+      : options.telemetryRawObservations || options.telemetryNormalizationProfile
+        ? normalizeTelemetryObservations({
+            ...(options.telemetryRawObservations ? { raw: options.telemetryRawObservations } : {}),
+            ...(options.telemetryNormalizationProfile
+              ? { profile: options.telemetryNormalizationProfile }
+              : {})
+          })
+        : undefined;
   const operationsScore = scoreOperationalAdequacy({
-    ...(options.telemetryObservations ? { telemetry: options.telemetryObservations } : {}),
+    ...(options.telemetryObservations
+      ? { telemetry: options.telemetryObservations }
+      : telemetryNormalizationResult
+        ? { telemetry: telemetryNormalizationResult.telemetry }
+        : {}),
     ...(options.patternRuntimeObservations ? { patternRuntime: options.patternRuntimeObservations } : {}),
     topologyIsolationBridge: topologyValue
   });
@@ -778,6 +798,20 @@ export async function computeArchitectureScores(options: {
         kind: finding.kind,
         ...(finding.bandId ? { bandId: finding.bandId } : {}),
         ...(finding.component ? { component: finding.component } : {})
+      },
+      undefined,
+      finding.confidence
+    )
+  );
+  const telemetryNormalizationEvidence = (telemetryNormalizationResult?.findings ?? []).map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        bandId: finding.bandId,
+        component: finding.component,
+        ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
+        ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {})
       },
       undefined,
       finding.confidence
@@ -909,6 +943,11 @@ export async function computeArchitectureScores(options: {
     );
   }
   if (policy.metrics.OAS) {
+    const oasEvidenceRefs = [...telemetryNormalizationEvidence, ...operationsEvidence].map((entry) => entry.evidenceId);
+    const oasUnknowns = [
+      ...(telemetryNormalizationResult?.unknowns ?? []),
+      ...operationsScore.unknowns
+    ];
     scores.push(
       toMetricScore(
         "OAS",
@@ -922,9 +961,14 @@ export async function computeArchitectureScores(options: {
           band_count: operationsScore.bandCount,
           weighted_band_coverage: operationsScore.weightedBandCoverage
         },
-        operationsEvidence.map((entry) => entry.evidenceId),
-        operationsScore.confidence,
-        operationsScore.unknowns
+        oasEvidenceRefs,
+        confidenceFromSignals(
+          [
+            operationsScore.confidence,
+            ...(telemetryNormalizationResult ? [telemetryNormalizationResult.confidence] : [0.85])
+          ]
+        ),
+        Array.from(new Set(oasUnknowns))
       )
     );
   }
@@ -1053,6 +1097,7 @@ export async function computeArchitectureScores(options: {
         ...purityEvidence,
         ...protocolEvidence,
         ...topologyEvidence,
+        ...telemetryNormalizationEvidence,
         ...operationsEvidence,
         ...complexityEvidence,
         ...evolutionEvidence

@@ -1,0 +1,14 @@
+version: "1.0"
+signals:
+  LatencyScore:
+    direction: lower_is_better
+    target: 250
+    worstAcceptable: 900
+  ErrorScore:
+    direction: lower_is_better
+    target: 0.01
+    worstAcceptable: 0.08
+  SaturationScore:
+    direction: lower_is_better
+    target: 0.55
+    worstAcceptable: 0.95
