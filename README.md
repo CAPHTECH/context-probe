@@ -5,18 +5,21 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 ## 読み始め
 
 1. [docs/overview/platform-vision.md](docs/overview/platform-vision.md)
-2. [docs/platform/measurement-model.md](docs/platform/measurement-model.md)
-3. [docs/domains/domain-design.md](docs/domains/domain-design.md)
-4. [docs/domains/architecture-design.md](docs/domains/architecture-design.md)
-5. [docs/domains/architecture-scenario-model.md](docs/domains/architecture-scenario-model.md)
-6. [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md)
+2. [docs/guides/user-guide.md](docs/guides/user-guide.md)
+3. [docs/platform/measurement-model.md](docs/platform/measurement-model.md)
+4. [docs/domains/domain-design.md](docs/domains/domain-design.md)
+5. [docs/domains/architecture-design.md](docs/domains/architecture-design.md)
+6. [docs/domains/architecture-scenario-model.md](docs/domains/architecture-scenario-model.md)
+7. [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md)
 
 ## 文書構成
 
 - [docs/README.md](docs/README.md): 文書全体の索引
+- [docs/guides/user-guide.md](docs/guides/user-guide.md): 初回利用者向けの最短ガイド
 - [docs/overview/platform-vision.md](docs/overview/platform-vision.md): プラットフォーム全体のVisionと対象範囲
 - [docs/platform/measurement-model.md](docs/platform/measurement-model.md): 共通計測モデルと評価領域拡張の前提
 - [docs/platform/runtime-and-commands.md](docs/platform/runtime-and-commands.md): 実行パイプラインとコマンド体系
+- [docs/platform/analysis-mechanism.md](docs/platform/analysis-mechanism.md): current implementation の解析経路と metric 反映の追跡ガイド
 - [docs/platform/data-model.md](docs/platform/data-model.md): 標準データモデルと出力契約
 - [docs/domains/domain-design.md](docs/domains/domain-design.md): ドメイン設計評価の詳細仕様
 - [docs/domains/architecture-design.md](docs/domains/architecture-design.md): APSI を中核にしたアーキテクチャ設計評価の本体仕様
@@ -44,6 +47,8 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 - 将来拡張向けに `domain_design` と `architecture_design` の pack 境界を追加済み
 
 ## クイックスタート
+
+最初に CLI の使い方を追いたい場合は、[docs/guides/user-guide.md](docs/guides/user-guide.md) を先に読むと、セットアップから代表コマンドまでをまとめて確認できます。
 
 ```bash
 npm install
