@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "sourceSystem": "synthetic-golden-signals",
+  "trafficBands": [
+    { "id": "low", "weight": 0.2, "latencyP95Ms": 210, "errorRate": 0.008, "saturationRatio": 0.48, "window": "5m" },
+    { "id": "median", "weight": 0.5, "latencyP95Ms": 310, "errorRate": 0.015, "saturationRatio": 0.62, "window": "5m" },
+    { "id": "peak", "weight": 0.3, "latencyP95Ms": 430, "errorRate": 0.024, "saturationRatio": 0.73, "window": "5m" }
+  ],
+  "patternRuntime": {
+    "version": "1.0",
+    "family": "microservices",
+    "serviceBased": {
+      "partialFailureContainmentScore": 0.9,
+      "retryAmplificationScore": 0.82,
+      "syncHopDepthScore": 0.78
+    },
+    "source": "synthetic-runtime"
+  }
+}

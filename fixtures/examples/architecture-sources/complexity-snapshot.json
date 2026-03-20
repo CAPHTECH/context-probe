@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "sourceSystem": "example-ops-snapshot",
+  "team": {
+    "count": 2
+  },
+  "platform": {
+    "deployableCount": 3,
+    "pipelinesPerDeployable": 1,
+    "datastoreCount": 1,
+    "onCallSurface": 3,
+    "syncDepthP95": 1.2
+  },
+  "architecture": {
+    "contractOrSchemaCount": 4,
+    "serviceCount": 3,
+    "serviceGroupCount": 1
+  },
+  "finance": {
+    "runCostPerBusinessTransaction": 0.12
+  },
+  "note": "example complexity collector input"
+}

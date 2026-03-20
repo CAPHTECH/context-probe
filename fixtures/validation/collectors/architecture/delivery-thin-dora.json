@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "sourceSystem": "synthetic-dora",
+  "dora": {
+    "leadTime": 7,
+    "recoveryTime": 3
+  }
+}

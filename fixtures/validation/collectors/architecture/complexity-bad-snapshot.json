@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "sourceSystem": "synthetic-ops",
+  "team": { "count": 2 },
+  "platform": {
+    "deployableCount": 8,
+    "pipelinesPerDeployable": 3,
+    "datastoreCount": 4,
+    "onCallSurface": 18,
+    "syncDepthP95": 5
+  },
+  "architecture": {
+    "contractOrSchemaCount": 20,
+    "serviceCount": 8,
+    "serviceGroupCount": 2
+  },
+  "finance": {
+    "runCostPerBusinessTransaction": 7
+  }
+}

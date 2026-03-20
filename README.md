@@ -25,6 +25,7 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 - [docs/domains/architecture-evidence-lifecycle.md](docs/domains/architecture-evidence-lifecycle.md): greenfield / brownfield の evidence 切替
 - [docs/domains/architecture-metric-mapping.md](docs/domains/architecture-metric-mapping.md): APSI モデルと current implementation の対応表
 - [docs/operations/policy-and-ci.md](docs/operations/policy-and-ci.md): ポリシー設定、CI、レビュー運用
+- [docs/operations/architecture-source-collectors.md](docs/operations/architecture-source-collectors.md): source config と reference collector の接続例
 - [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md): 段階的導入計画
 
 ## 中核原則
@@ -69,6 +70,24 @@ node dist/src/cli.js score.compute \
   --constraints fixtures/architecture/constraints.yaml \
   --policy fixtures/policies/default.yaml
 ```
+
+### source config を使った brownfield evidence の取り込み例
+
+```bash
+node dist/src/cli.js score.compute \
+  --domain architecture_design \
+  --repo fixtures/validation/scoring/qsf/repo \
+  --constraints fixtures/validation/scoring/qsf/constraints.yaml \
+  --policy fixtures/policies/default.yaml \
+  --scenario-catalog fixtures/validation/scoring/qsf/scenarios.yaml \
+  --scenario-observation-source fixtures/examples/architecture-sources/scenario-observation-source.command.yaml \
+  --telemetry-source fixtures/examples/architecture-sources/telemetry-source.command.yaml \
+  --telemetry-normalization-profile fixtures/validation/scoring/oas/raw-normalization-profile.yaml \
+  --complexity-source fixtures/examples/architecture-sources/complexity-source.command.yaml \
+  --profile layered
+```
+
+collector と source config の詳細は [docs/operations/architecture-source-collectors.md](docs/operations/architecture-source-collectors.md) にまとめています。
 
 ### Codex CLI を使った用語抽出例
 

@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "sourceSystem": "example-dora",
+  "dora": {
+    "leadTime": 4,
+    "deployFrequency": 15,
+    "recoveryTime": 2,
+    "changeFailRate": 0.09,
+    "reworkRate": 0.05
+  },
+  "note": "example delivery collector input"
+}

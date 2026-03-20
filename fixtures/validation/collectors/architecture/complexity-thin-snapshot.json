@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "sourceSystem": "synthetic-ops",
+  "team": { "count": 3 },
+  "platform": {
+    "deployableCount": 3
+  }
+}

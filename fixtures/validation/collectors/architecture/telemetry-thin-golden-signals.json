@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "sourceSystem": "synthetic-golden-signals",
+  "trafficBands": [
+    { "id": "low", "weight": 0.4, "latencyP95Ms": 260, "window": "5m" },
+    { "id": "peak", "weight": 0.6, "errorRate": 0.08, "window": "5m" }
+  ]
+}

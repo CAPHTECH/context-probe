@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "sourceSystem": "example-incident-review",
+  "incidentReviewSummary": {
+    "observations": [
+      {
+        "scenarioId": "S-001",
+        "observed": 640,
+        "note": "incident latency review"
+      },
+      {
+        "scenarioId": "S-002",
+        "observed": 0.4,
+        "note": "deploy independence review"
+      }
+    ]
+  },
+  "note": "example incident actualization input"
+}
