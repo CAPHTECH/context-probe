@@ -21,6 +21,13 @@ export const DEFAULT_POLICY: PolicyConfig = {
                 fail: 0.55
               }
             },
+            BFS: {
+              formula: "0.50*A + 0.50*R",
+              thresholds: {
+                warn: 0.7,
+                fail: 0.55
+              }
+            },
             MCCS: {
               formula: "0.50*MRP + 0.25*(1-BLR) + 0.25*CLA",
               thresholds: {
