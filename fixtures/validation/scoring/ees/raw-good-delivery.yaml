@@ -1,0 +1,9 @@
+version: "1.0"
+values:
+  LeadTime: 3
+  DeployFrequency: 18
+  RecoveryTime: 1.5
+  ChangeFailRate: 0.08
+  ReworkRate: 0.06
+source: "synthetic-delivery"
+note: "delivery signals remain healthy under normalized target thresholds"

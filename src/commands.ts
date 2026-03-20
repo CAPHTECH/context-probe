@@ -3,7 +3,9 @@ import { promises as fs } from "node:fs";
 import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
+  ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
+  ArchitectureDeliveryRawObservationSet,
   ArchitecturePatternRuntimeObservationSet,
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTopologyModel,
@@ -146,6 +148,34 @@ async function loadDeliveryObservationsIfRequested(
     return undefined;
   }
   return readDataFile<ArchitectureDeliveryObservationSet>(deliveryPath);
+}
+
+async function loadDeliveryRawObservationsIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureDeliveryRawObservationSet | undefined> {
+  const deliveryPath =
+    typeof args["delivery-raw-observations"] === "string"
+      ? new URL(args["delivery-raw-observations"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!deliveryPath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureDeliveryRawObservationSet>(deliveryPath);
+}
+
+async function loadDeliveryNormalizationProfileIfRequested(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<ArchitectureDeliveryNormalizationProfile | undefined> {
+  const profilePath =
+    typeof args["delivery-normalization-profile"] === "string"
+      ? new URL(args["delivery-normalization-profile"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!profilePath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureDeliveryNormalizationProfile>(profilePath);
 }
 
 async function loadTelemetryObservationsIfRequested(
@@ -429,6 +459,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         boundaryMap,
         runtimeObservations,
         deliveryObservations,
+        deliveryRawObservations,
+        deliveryNormalizationProfile,
         telemetryObservations,
         telemetryRawObservations,
         telemetryNormalizationProfile,
@@ -440,6 +472,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         loadBoundaryMapIfRequested(args, context),
         loadRuntimeObservationsIfRequested(args, context),
         loadDeliveryObservationsIfRequested(args, context),
+        loadDeliveryRawObservationsIfRequested(args, context),
+        loadDeliveryNormalizationProfileIfRequested(args, context),
         loadTelemetryObservationsIfRequested(args, context),
         loadTelemetryRawObservationsIfRequested(args, context),
         loadTelemetryNormalizationProfileIfRequested(args, context),
@@ -456,6 +490,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         ...(boundaryMap ? { boundaryMap } : {}),
         ...(runtimeObservations ? { runtimeObservations } : {}),
         ...(deliveryObservations ? { deliveryObservations } : {}),
+        ...(deliveryRawObservations ? { deliveryRawObservations } : {}),
+        ...(deliveryNormalizationProfile ? { deliveryNormalizationProfile } : {}),
         ...(telemetryObservations ? { telemetryObservations } : {}),
         ...(telemetryRawObservations ? { telemetryRawObservations } : {}),
         ...(telemetryNormalizationProfile ? { telemetryNormalizationProfile } : {}),

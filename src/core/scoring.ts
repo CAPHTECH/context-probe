@@ -1,7 +1,9 @@
 import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
+  ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
+  ArchitectureDeliveryRawObservationSet,
   ArchitecturePatternRuntimeObservationSet,
   ArchitectureScenarioCatalog,
   ArchitectureTelemetryNormalizationProfile,
@@ -37,6 +39,7 @@ import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
 import { scoreOperationalAdequacy } from "../analyzers/architecture-operations.js";
+import { normalizeDeliveryObservations } from "../analyzers/architecture-delivery-normalization.js";
 import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
 import { normalizeTelemetryObservations } from "../analyzers/architecture-telemetry-normalization.js";
 import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
@@ -637,6 +640,8 @@ export async function computeArchitectureScores(options: {
   boundaryMap?: ArchitectureBoundaryMap;
   runtimeObservations?: TopologyRuntimeObservationSet;
   deliveryObservations?: ArchitectureDeliveryObservationSet;
+  deliveryRawObservations?: ArchitectureDeliveryRawObservationSet;
+  deliveryNormalizationProfile?: ArchitectureDeliveryNormalizationProfile;
   telemetryObservations?: ArchitectureTelemetryObservationSet;
   telemetryRawObservations?: ArchitectureTelemetryRawObservationSet;
   telemetryNormalizationProfile?: ArchitectureTelemetryNormalizationProfile;
@@ -693,6 +698,17 @@ export async function computeArchitectureScores(options: {
     ...(options.patternRuntimeObservations ? { patternRuntime: options.patternRuntimeObservations } : {}),
     topologyIsolationBridge: topologyValue
   });
+  const deliveryNormalizationResult =
+    options.deliveryObservations
+      ? undefined
+      : options.deliveryRawObservations || options.deliveryNormalizationProfile
+        ? normalizeDeliveryObservations({
+            ...(options.deliveryRawObservations ? { raw: options.deliveryRawObservations } : {}),
+            ...(options.deliveryNormalizationProfile
+              ? { profile: options.deliveryNormalizationProfile }
+              : {})
+          })
+        : undefined;
   const complexityScore = scoreComplexityTax({
     codebase,
     constraints
@@ -721,7 +737,11 @@ export async function computeArchitectureScores(options: {
         0.30 * (1 - evolutionLocalityScore.WeightedPropagationCost) +
         0.30 * (1 - evolutionLocalityScore.WeightedClusteringCost);
   const evolutionEfficiencyScore = scoreArchitectureEvolutionEfficiency({
-    ...(options.deliveryObservations ? { deliveryObservations: options.deliveryObservations } : {}),
+    ...(options.deliveryObservations
+      ? { deliveryObservations: options.deliveryObservations }
+      : deliveryNormalizationResult
+        ? { deliveryObservations: deliveryNormalizationResult.deliveryObservations }
+        : {}),
     locality: localityValue,
     localityConfidence: evolutionLocalityScore.confidence,
     localityUnknowns: evolutionLocalityScore.unknowns
@@ -820,6 +840,21 @@ export async function computeArchitectureScores(options: {
       finding.confidence
     )
   );
+  const deliveryNormalizationEvidence = (deliveryNormalizationResult?.findings ?? []).map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        component: finding.component,
+        scoreComponent: finding.scoreComponent,
+        ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
+        ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
+        source: "raw_normalized"
+      },
+      undefined,
+      finding.confidence
+    )
+  );
   const complexityEvidence = complexityScore.findings.map((finding) =>
     toEvidence(
       finding.note,
@@ -845,6 +880,29 @@ export async function computeArchitectureScores(options: {
       finding.confidence
     )
   );
+  const deliveryInputEvidence = options.deliveryObservations
+    ? [
+        toEvidence(
+          "delivery observations の normalized score をそのまま利用しています",
+          {
+            source: "normalized_input"
+          },
+          undefined,
+          0.84
+        )
+      ]
+    : deliveryNormalizationResult
+      ? [
+          toEvidence(
+            "raw delivery observations を normalization profile で score 化して利用しています",
+            {
+              source: "raw_normalized"
+            },
+            undefined,
+            0.82
+          )
+        ]
+      : [];
   const scores: MetricScore[] = [];
   if (policy.metrics.QSF) {
     scores.push(
@@ -1004,6 +1062,14 @@ export async function computeArchitectureScores(options: {
     );
   }
   if (policy.metrics.EES) {
+    const eesUnknowns = [
+      ...(deliveryNormalizationResult?.unknowns ?? []),
+      ...evolutionEfficiencyScore.unknowns,
+      ...(options.deliveryObservations &&
+      (options.deliveryRawObservations || options.deliveryNormalizationProfile)
+        ? ["delivery-observations が指定されているため raw delivery input は優先されません"]
+        : [])
+    ];
     scores.push(
       toMetricScore(
         "EES",
@@ -1015,9 +1081,14 @@ export async function computeArchitectureScores(options: {
           Delivery: evolutionEfficiencyScore.Delivery,
           Locality: evolutionEfficiencyScore.Locality
         },
-        evolutionEvidence.map((entry) => entry.evidenceId),
-        evolutionEfficiencyScore.confidence,
-        evolutionEfficiencyScore.unknowns
+        [...deliveryInputEvidence, ...deliveryNormalizationEvidence, ...evolutionEvidence].map((entry) => entry.evidenceId),
+        confidenceFromSignals(
+          [
+            evolutionEfficiencyScore.confidence,
+            ...(deliveryNormalizationResult ? [deliveryNormalizationResult.confidence] : [0.85])
+          ]
+        ),
+        Array.from(new Set(eesUnknowns))
       )
     );
   }
@@ -1102,6 +1173,8 @@ export async function computeArchitectureScores(options: {
         ...topologyEvidence,
         ...telemetryNormalizationEvidence,
         ...operationsEvidence,
+        ...deliveryInputEvidence,
+        ...deliveryNormalizationEvidence,
         ...complexityEvidence,
         ...evolutionEvidence
       ],

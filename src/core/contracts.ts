@@ -202,6 +202,29 @@ export interface ArchitectureDeliveryObservationSet {
   };
 }
 
+export interface ArchitectureDeliveryRawObservationSet {
+  version: string;
+  values: {
+    LeadTime?: number;
+    DeployFrequency?: number;
+    RecoveryTime?: number;
+    ChangeFailRate?: number;
+    ReworkRate?: number;
+  };
+  source?: string;
+  note?: string;
+}
+
+export interface ArchitectureDeliveryNormalizationProfile {
+  version: string;
+  signals: Partial<
+    Record<
+      "LeadTime" | "DeployFrequency" | "RecoveryTime" | "ChangeFailRate" | "ReworkRate",
+      TelemetryNormalizationRule
+    >
+  >;
+}
+
 export interface ArchitectureTelemetryBandObservation {
   bandId: string;
   trafficWeight: number;
