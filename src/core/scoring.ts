@@ -25,6 +25,7 @@ import { listReviewItems } from "./review.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
 import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
+import { scoreComplexityTax } from "../analyzers/cti.js";
 import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
 
@@ -613,6 +614,10 @@ export async function computeArchitectureScores(options: {
     codebase,
     constraints
   });
+  const complexityScore = scoreComplexityTax({
+    codebase,
+    constraints
+  });
   const violations = detectDirectionViolations(codebase, constraints);
   const evidence = violations.map((violation) =>
     toEvidence(
@@ -647,6 +652,19 @@ export async function computeArchitectureScores(options: {
         kind: finding.kind,
         path: finding.path,
         ...(finding.symbol ? { symbol: finding.symbol } : {})
+      },
+      undefined,
+      finding.confidence
+    )
+  );
+  const complexityEvidence = complexityScore.findings.map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        component: finding.component,
+        observed: finding.observed,
+        normalized: finding.normalized,
+        source: finding.source
       },
       undefined,
       finding.confidence
@@ -713,6 +731,18 @@ export async function computeArchitectureScores(options: {
       )
     );
   }
+  if (policy.metrics.CTI) {
+    scores.push(
+      toMetricScore(
+        "CTI",
+        evaluateFormula(policy.metrics.CTI.formula, complexityScore.components),
+        complexityScore.components,
+        complexityEvidence.map((entry) => entry.evidenceId),
+        complexityScore.confidence,
+        complexityScore.unknowns
+      )
+    );
+  }
 
   return createResponse(
     {
@@ -721,7 +751,7 @@ export async function computeArchitectureScores(options: {
       violations
     },
     {
-      evidence: [...evidence, ...purityEvidence, ...protocolEvidence],
+      evidence: [...evidence, ...purityEvidence, ...protocolEvidence, ...complexityEvidence],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: scores.flatMap((score) => score.unknowns),
       provenance: [toProvenance(repoPath, "architecture_design")]

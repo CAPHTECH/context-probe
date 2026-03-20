@@ -16,7 +16,7 @@
 | `PCS` | pattern rule conformance | `DDS`, `BPS`, `IPS` | 実装済み |
 | `OAS` | runtime adequacy | `TIS` の一部が候補 | 未実装 |
 | `EES` | delivery + locality | `AELS` が locality 側候補 | 部分未実装 |
-| `CTI` | complexity tax | なし | 未実装 |
+| `CTI` | complexity tax | `CTI` | 部分実装 |
 | `APSI` | summary index | なし | 未実装 |
 
 ## 3. current metric の意味
@@ -36,7 +36,15 @@
 - 主な役割: interface / contract stability の適合
 - 上位指標上の位置づけ: `PCS` の構成要素
 
-## 4. future metric の位置づけ
+## 4. `CTI` の位置づけ
+
+### `CTI`
+
+- 想定役割: deployable / pipeline / contract / sync depth などの complexity tax を独立に可視化する
+- 実装状態: static metadata と codebase-derived count による初期 proxy を実装済み
+- 制約: on-call surface や run cost は metadata 依存で、未観測時は unknown 扱い
+
+## 5. future metric の位置づけ
 
 ### `TIS`
 
@@ -48,17 +56,16 @@
 - 想定役割: architecture evolution locality
 - 上位指標上の位置づけ: `EES` の locality 側候補
 
-## 5. 今後の推奨実装順
+## 6. 今後の推奨実装順
 
-1. `CTI`
-2. `QSF`
-3. `APSI`
-4. `OAS` / `TIS`
-5. `EES` / `AELS` の拡張
+1. `QSF`
+2. `APSI`
+3. `OAS` / `TIS`
+4. `EES` / `AELS` の拡張
 
-この順にする理由は、現在すでに `PCS` の土台がある一方で、pattern suitability を成立させるには `QSF` と `CTI` が欠けているためである。
+この順にする理由は、現在すでに `PCS` と初期 `CTI` の土台がある一方で、pattern suitability を成立させるには `QSF` がなお欠けているためである。
 
-## 6. 読み方
+## 7. 読み方
 
 - 概念を知りたい場合は [architecture-design.md](architecture-design.md) を先に読む
 - scenario 入力を定義したい場合は [architecture-scenario-model.md](architecture-scenario-model.md) を読む

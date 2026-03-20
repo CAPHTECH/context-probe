@@ -1,0 +1,26 @@
+version: "1.0"
+direction: inward
+complexity:
+  teamCount: 2
+  deployableCount: 2
+  pipelineCount: 2
+  contractOrSchemaCount: 4
+  serviceCount: 2
+  serviceGroupCount: 1
+  datastoreCount: 1
+  onCallSurface: 2
+  syncDepthP95: 1
+  runCostPerBusinessTransaction: 1
+layers:
+  - name: domain
+    rank: 0
+    globs:
+      - "src/domain/**"
+  - name: application
+    rank: 1
+    globs:
+      - "src/application/**"
+  - name: infrastructure
+    rank: 2
+    globs:
+      - "src/infrastructure/**"
