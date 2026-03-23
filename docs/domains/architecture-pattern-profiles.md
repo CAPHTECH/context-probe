@@ -1,195 +1,92 @@
-# アーキテクチャパターンプロファイル
+# Architecture Pattern Profiles
 
-- 文書版数: v0.1
-- 目的: pattern family ごとに、何を得て何を失うか、どの指標群を厚く見るべきかを整理する
+## Purpose
 
-## 1. 位置づけ
+This document explains how different pattern families should shift emphasis when interpreting architecture scores.
 
-`PCS` の rule set、`OAS` の runtime metrics、`CTI` の重点項目は pattern family ごとに異なる。
-本書は、それを default profile として表現する。
+The formulas for supporting metrics remain stable, but summary weighting and interpretation differ by pattern family.
 
-ここでの profile は固定ルールではなく、候補比較を始めるときの初期値である。
+## Shared Rule
 
-## 2. layered / clean / hexagonal
+All profiles still use the same top-level idea:
 
-### 得たいもの
+- reward scenario fit
+- reward real conformance
+- reward runtime adequacy
+- reward evolution efficiency
+- subtract complexity tax
 
-- dependency direction の規律
-- domain isolation
-- framework 依存の局所化
-- testability
+## Layered / Clean / Hexagonal
 
-### 払う税
-
-- abstraction 増加による理解コスト
-- 過剰な indirection
-- port / adapter の維持コスト
-
-### 厚く見る指標
+Primary focus:
 
 - `QSF`
 - `PCS`
 
-### 代表的な下位指標
+Why:
 
-- `DDVR`
-- `LBR`
-- `CPR`
-- `DPR`
-- `PMR`
+- the main gain comes from dependency discipline and domain isolation
+- runtime complexity is usually not the main differentiator
 
-### current runtime schema
+Suggested summary bias:
 
-- `FailureContainmentScore`
-- `DependencyIsolationScore`
-- current input path:
-  - normalized `layeredRuntime`
-  - または raw runtime + normalization profile
+```text
+0.35*QSF + 0.30*PCS + 0.15*OAS + 0.10*EES + 0.10*(1-CTI)
+```
 
-## 3. modular monolith / microservices
+## Service-Based / Microservices
 
-### 得たいもの
-
-- independent deployment
-- change locality
-- fault isolation
-- team autonomy
-
-### 払う税
-
-- distributed coordination cost
-- schema / contract management
-- observability cost
-- on-call surface の増大
-
-### 厚く見る指標
+Primary focus:
 
 - `EES`
 - `CTI`
 
-### 代表的な下位指標
+Why:
 
-- `IDR`
-- `SDVR`
-- `SCD95`
-- `DTNR`
-- `CSCR`
+- the core question is whether you truly gained change locality and deploy independence
+- distributed-systems tax must stay visible
 
-### current runtime schema
+Suggested summary bias:
 
-- `PartialFailureContainmentScore`
-- `RetryAmplificationScore`
-- `SyncHopDepthScore`
-- current input path:
-  - normalized `serviceBasedRuntime`
-  - または raw runtime + normalization profile
+```text
+0.20*QSF + 0.20*PCS + 0.15*OAS + 0.25*EES + 0.20*(1-CTI)
+```
 
-## 4. CQRS
+## CQRS
 
-### 得たいもの
-
-- write-side の整合性明確化
-- read path の最適化
-- read / write concern の分離
-
-### 払う税
-
-- projection lag
-- replay / backfill の運用負荷
-- read freshness の説明責任
-
-### 厚く見る指標
+Primary focus:
 
 - `QSF`
 - `OAS`
 - `CTI`
 
-### 代表的な下位指標
+Why:
 
-- `RWSC`
-- `ICR`
-- `PFL95`
-- `RDR`
-- `SCR`
+- the trade-off lives in invariant handling, freshness, replay, and operational complexity
 
-### current runtime schema
+Suggested summary bias:
 
-- `ProjectionFreshnessScore`
-- `ReplayDivergenceScore`
-- `StaleReadAcceptabilityScore`
-- current input path:
-  - normalized `cqrsRuntime`
-  - または raw runtime + normalization profile
+```text
+0.30*QSF + 0.15*PCS + 0.25*OAS + 0.10*EES + 0.20*(1-CTI)
+```
 
-## 5. event-driven
+## Event-Driven
 
-### 得たいもの
-
-- boundary 間の疎結合
-- async 処理による吸収
-- replayable integration
-
-### 払う税
-
-- schema evolution cost
-- idempotency 実装コスト
-- dead-letter / replay 運用
-- end-to-end 可観測性の難しさ
-
-### 厚く見る指標
+Primary focus:
 
 - `OAS`
 - `CTI`
 
-### 代表的な下位指標
+Why:
 
-- `ABR`
-- `SCPR`
-- `ICC`
-- `DLR`
-- `EL95`
-- `RRSR`
+- success depends heavily on schema compatibility, lag, replay, idempotency, and operational burden
 
-### current runtime schema
+Suggested summary bias:
 
-- `DeadLetterHealthScore`
-- `ConsumerLagScore`
-- `ReplayRecoveryScore`
-- current input path:
-  - normalized `eventDrivenRuntime`
-  - または raw runtime + normalization profile
+```text
+0.20*QSF + 0.15*PCS + 0.30*OAS + 0.10*EES + 0.25*(1-CTI)
+```
 
-## 6. default weight profile の考え方
+## Practical Rule
 
-`APSI` 自体の式は共通でも、候補比較で重視する観点は profile ごとに変えてよい。
-
-### layered / clean / hexagonal
-
-- `QSF` と `PCS` を厚くする
-- current policy preset: `--profile layered`
-- current preset formula: `0.35*QSF + 0.30*PCS + 0.15*OAS + 0.10*EES + 0.10*(1-CTI)`
-
-### microservices / service-based
-
-- `EES` と `CTI` を厚くする
-- current policy preset: `--profile service_based`
-- current preset formula: `0.20*QSF + 0.20*PCS + 0.15*OAS + 0.25*EES + 0.20*(1-CTI)`
-
-### CQRS / event-driven
-
-- `OAS` と `CTI` を厚くする
-- current policy preset:
-  - `CQRS`: `--profile cqrs`
-  - `event-driven`: `--profile event_driven`
-- current preset formula:
-  - `cqrs`: `0.30*QSF + 0.15*PCS + 0.25*OAS + 0.10*EES + 0.20*(1-CTI)`
-  - `event_driven`: `0.20*QSF + 0.15*PCS + 0.30*OAS + 0.10*EES + 0.25*(1-CTI)`
-
-重みは組織やプロダクトに応じて policy として調整し、コードへ埋め込まない。
-current implementation では preset を policy に持ち、`score.compute --profile ...` で切り替える。
-
-## 7. 注意点
-
-- pattern family は良し悪しのラベルではない
-- profile は比較開始点であり、現場の quality scenario を上書きしてはならない
-- 複雑性税を hidden cost にしない
+Use profiles to compare candidates under the same system constraints. Do not use them to claim one architecture style is universally better than another.

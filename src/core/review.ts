@@ -42,7 +42,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
       reviewItems.push({
         reviewItemId: `RV-LOW-${index + 1}`,
         reason: "low_confidence",
-        summary: `${summary} の confidence が低い`,
+        summary: `${summary} has low confidence`,
         confidence: entity.confidence,
         evidenceRefs,
         targetEntityId
@@ -62,7 +62,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
       reviewItems.push({
         reviewItemId: `RV-COLL-${index + 1}`,
         reason: "collision",
-        summary: `${entity.canonicalTerm} に collision の可能性があります`,
+        summary: `${entity.canonicalTerm} may have a collision`,
         confidence: entity.confidence,
         evidenceRefs,
         targetEntityId
@@ -105,7 +105,7 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
         reviewItems.push({
           reviewItemId: `RV-METRIC-${index + 1}`,
           reason: "low_confidence",
-          summary: `${metric.metricId} の confidence が低い`,
+          summary: `${metric.metricId} has low confidence`,
           confidence: metric.confidence,
           evidenceRefs
         });

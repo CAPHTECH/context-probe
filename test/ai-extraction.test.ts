@@ -57,7 +57,7 @@ describe("AI-backed extraction", () => {
       metadata: { provider?: string };
     };
     expect(result.metadata.provider).toBe("claude");
-    expect(result.rules[0]?.statement).toContain("注文確定後");
+    expect(result.rules[0]?.statement).toContain("After order confirmation");
   });
 
   test("applies review log to extracted glossary terms", async () => {

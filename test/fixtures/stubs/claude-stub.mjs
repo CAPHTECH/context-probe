@@ -23,11 +23,11 @@ if (prompt.includes("canonical domain terms")) {
     items: [
       {
         type: "business_rule",
-        statement: "注文確定後は決済総額と明細合計が常に一致していなければならない",
+        statement: "After order confirmation, the payment total and line-item total must always match.",
         confidence: 0.74,
         unknowns: [],
         fragmentIds: [],
-        relatedTerms: ["注文", "決済", "明細"]
+        relatedTerms: ["Order", "Payment", "LineItem"]
       }
     ],
     confidence: 0.74,

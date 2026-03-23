@@ -235,7 +235,7 @@ describe("dart support", () => {
           finding.kind === "framework_contamination" && finding.path === "lib/features/events/domain/event_repository.dart"
       )
     ).toBe(false);
-    expect(protocol.unknowns).not.toContain("契約ファイルが少なく IPS は保守的な近似です");
+    expect(protocol.unknowns).not.toContain("There are too few contract files, so IPS is conservative.");
     expect(protocol.findings.some((finding) => finding.path === "lib/features/events/data/supabase_event_repository.dart")).toBe(
       false
     );

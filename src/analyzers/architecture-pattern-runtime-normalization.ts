@@ -71,7 +71,7 @@ export function normalizePatternRuntimeObservations(input: {
         version: "1.0"
       },
       confidence: 0.25,
-      unknowns: ["pattern runtime raw observations が指定されていないため raw normalization は未観測です"],
+      unknowns: ["No pattern-runtime raw observations were provided, so raw normalization is unobserved."],
       findings
     };
   }
@@ -85,7 +85,7 @@ export function normalizePatternRuntimeObservations(input: {
         ...(raw.note ? { note: raw.note } : {})
       },
       confidence: 0.3,
-      unknowns: ["pattern runtime normalization profile が指定されていないため raw runtime を score 化できません"],
+      unknowns: ["No pattern-runtime normalization profile was provided, so raw runtime cannot be scored."],
       findings
     };
   }
@@ -154,26 +154,26 @@ export function normalizePatternRuntimeObservations(input: {
       const observed = rawBlock[mapping.rawSignal];
 
       if (!rule) {
-        unknowns.push(`${blockSpec.blockName} の ${mapping.rawSignal} 用 normalization rule が不足しています`);
+        unknowns.push(`${blockSpec.blockName} is missing a normalization rule for ${mapping.rawSignal}.`);
         findings.push({
           kind: "missing_normalization_rule",
           block: blockSpec.blockName,
           rawSignal: mapping.rawSignal,
           scoreSignal: mapping.scoreSignal,
           confidence: 0.58,
-          note: `${blockSpec.blockName} の ${mapping.rawSignal} を正規化する rule がありません`
+          note: `${blockSpec.blockName} has no rule to normalize ${mapping.rawSignal}.`
         });
         continue;
       }
       if (observed === undefined) {
-        unknowns.push(`${blockSpec.blockName} の raw ${mapping.rawSignal} signal が不足しています`);
+        unknowns.push(`${blockSpec.blockName} is missing the raw ${mapping.rawSignal} signal.`);
         findings.push({
           kind: "missing_raw_signal",
           block: blockSpec.blockName,
           rawSignal: mapping.rawSignal,
           scoreSignal: mapping.scoreSignal,
           confidence: 0.62,
-          note: `${blockSpec.blockName} の raw ${mapping.rawSignal} signal が不足しています`
+          note: `${blockSpec.blockName} is missing the raw ${mapping.rawSignal} signal.`
         });
         continue;
       }
@@ -194,7 +194,7 @@ export function normalizePatternRuntimeObservations(input: {
         observed,
         normalized: normalizedValue,
         confidence: 0.86,
-        note: `${blockSpec.blockName} の ${mapping.rawSignal} を raw runtime から ${normalizedValue.toFixed(3)} に正規化しました`
+        note: `${blockSpec.blockName} normalized ${mapping.rawSignal} from raw runtime to ${normalizedValue.toFixed(3)}.`
       });
     }
 

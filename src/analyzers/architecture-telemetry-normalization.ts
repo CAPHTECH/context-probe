@@ -66,7 +66,7 @@ export function normalizeTelemetryObservations(input: {
         bands: []
       },
       confidence: 0.25,
-      unknowns: ["telemetry raw observations が指定されていないため raw normalization は未観測です"],
+      unknowns: ["No telemetry raw observations were provided, so raw normalization is unobserved."],
       findings
     };
   }
@@ -81,7 +81,7 @@ export function normalizeTelemetryObservations(input: {
         }))
       },
       confidence: 0.3,
-      unknowns: ["telemetry normalization profile が指定されていないため raw telemetry を score 化できません"],
+      unknowns: ["No telemetry normalization profile was provided, so raw telemetry cannot be scored."],
       findings
     };
   }
@@ -112,24 +112,24 @@ export function normalizeTelemetryObservations(input: {
 
     for (const mapping of mappings) {
       if (!mapping.rule) {
-        unknowns.push(`${band.bandId} の ${mapping.component} 用 normalization rule が不足しています`);
+        unknowns.push(`${band.bandId} is missing a normalization rule for ${mapping.component}.`);
         findings.push({
           kind: "missing_normalization_rule",
           bandId: band.bandId,
           component: mapping.component,
           confidence: 0.58,
-          note: `${band.bandId} の ${mapping.component} を正規化する rule がありません`
+          note: `${band.bandId} has no rule to normalize ${mapping.component}.`
         });
         continue;
       }
       if (mapping.observed === undefined) {
-        unknowns.push(`${band.bandId} の raw ${mapping.component} signal が不足しています`);
+        unknowns.push(`${band.bandId} is missing the raw ${mapping.component} signal.`);
         findings.push({
           kind: "missing_raw_signal",
           bandId: band.bandId,
           component: mapping.component,
           confidence: 0.62,
-          note: `${band.bandId} の raw ${mapping.component} signal が不足しています`
+          note: `${band.bandId} is missing the raw ${mapping.component} signal.`
         });
         continue;
       }
@@ -149,7 +149,7 @@ export function normalizeTelemetryObservations(input: {
         observed: mapping.observed,
         normalized,
         confidence: 0.86,
-        note: `${band.bandId} の ${mapping.component} を raw telemetry から ${normalized.toFixed(3)} に正規化しました`
+        note: `${band.bandId} normalized ${mapping.component} from raw telemetry to ${normalized.toFixed(3)}.`
       });
     }
 

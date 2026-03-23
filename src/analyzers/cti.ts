@@ -142,8 +142,8 @@ export function scoreComplexityTax(options: {
         ? deployableCount / teamCount
         : undefined,
     source: "constraints",
-    note: "deployables per team を complexity tax として評価しています",
-    missingUnknown: "teamCount または deployableCount が不足しており DeployablesPerTeam は近似できません"
+    note: "Evaluating deployables per team as a complexity-tax component.",
+    missingUnknown: "DeployablesPerTeam cannot be approximated because teamCount or deployableCount is missing."
   });
 
   recordObservedComponent({
@@ -154,8 +154,8 @@ export function scoreComplexityTax(options: {
         ? metadata.pipelineCount / deployableCount
         : undefined,
     source: "constraints",
-    note: "pipelines per deployable を complexity tax として評価しています",
-    missingUnknown: "pipelineCount または deployableCount が不足しており PipelinesPerDeployable は近似できません"
+    note: "Evaluating pipelines per deployable as a complexity-tax component.",
+    missingUnknown: "PipelinesPerDeployable cannot be approximated because pipelineCount or deployableCount is missing."
   });
 
   const observedContractCount =
@@ -171,12 +171,12 @@ export function scoreComplexityTax(options: {
     kind: "contracts_or_schemas_per_service",
     observed: serviceCount !== undefined && serviceCount > 0 ? observedContractCount / serviceCount : undefined,
     source: metadata?.contractOrSchemaCount !== undefined ? "constraints" : "codebase",
-    note: "contracts or schemas per service を complexity tax として評価しています",
+    note: "Evaluating contracts or schemas per service as a complexity-tax component.",
     missingUnknown:
-      "serviceCount または deployableCount が不足しており ContractsOrSchemasPerService は近似できません"
+      "ContractsOrSchemasPerService cannot be approximated because serviceCount or deployableCount is missing."
   });
   if (metadata?.contractOrSchemaCount === undefined && observedContractCount === 0) {
-    unknowns.push("contract/schema の観測が少なく ContractsOrSchemasPerService は保守的な近似です");
+    unknowns.push("Contract/schema observations are sparse, so ContractsOrSchemasPerService is conservative.");
   }
 
   recordObservedComponent({
@@ -189,9 +189,9 @@ export function scoreComplexityTax(options: {
         ? metadata.datastoreCount / metadata.serviceGroupCount
         : undefined,
     source: "constraints",
-    note: "datastores per service group を complexity tax として評価しています",
+    note: "Evaluating datastores per service group as a complexity-tax component.",
     missingUnknown:
-      "datastoreCount または serviceGroupCount が不足しており DatastoresPerServiceGroup は近似できません"
+      "DatastoresPerServiceGroup cannot be approximated because datastoreCount or serviceGroupCount is missing."
   });
 
   recordObservedComponent({
@@ -202,8 +202,8 @@ export function scoreComplexityTax(options: {
         ? metadata.onCallSurface / teamCount
         : undefined,
     source: "constraints",
-    note: "on-call surface per team を complexity tax として評価しています",
-    missingUnknown: "onCallSurface または teamCount が不足しており OnCallSurface は近似できません"
+    note: "Evaluating on-call surface per team as a complexity-tax component.",
+    missingUnknown: "OnCallSurface cannot be approximated because onCallSurface or teamCount is missing."
   });
 
   recordObservedComponent({
@@ -211,8 +211,8 @@ export function scoreComplexityTax(options: {
     kind: "sync_depth_overhead",
     observed: metadata?.syncDepthP95,
     source: "constraints",
-    note: "p95 synchronous hop depth を complexity tax として評価しています",
-    missingUnknown: "syncDepthP95 が不足しており SyncDepthOverhead は近似できません"
+    note: "Evaluating p95 synchronous hop depth as a complexity-tax component.",
+    missingUnknown: "SyncDepthOverhead cannot be approximated because syncDepthP95 is missing."
   });
 
   recordObservedComponent({
@@ -220,16 +220,16 @@ export function scoreComplexityTax(options: {
     kind: "run_cost_per_business_transaction",
     observed: metadata?.runCostPerBusinessTransaction,
     source: "constraints",
-    note: "run cost per business transaction を complexity tax として評価しています",
+    note: "Evaluating run cost per business transaction as a complexity-tax component.",
     missingUnknown:
-      "runCostPerBusinessTransaction が不足しており RunCostPerBusinessTransaction は近似できません"
+      "RunCostPerBusinessTransaction cannot be approximated because runCostPerBusinessTransaction is missing."
   });
 
   if (!metadata) {
-    unknowns.push("constraints に complexity metadata がなく CTI は部分的にしか観測できません");
+    unknowns.push("Constraints do not include complexity metadata, so CTI is only partially observed.");
   }
   if (recorded.size < 4) {
-    unknowns.push("観測できた complexity tax component が少なく CTI の信頼度は限定的です");
+    unknowns.push("Too few complexity-tax components were observed, so CTI confidence is limited.");
   }
 
   return {

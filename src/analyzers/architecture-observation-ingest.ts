@@ -74,11 +74,11 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
 
     for (const mapping of mappings) {
       if (mapping.observed === undefined) {
-        unknowns.push(`${band.bandId} の telemetry export で ${mapping.component} が不足しています`);
+        unknowns.push(`The telemetry export for ${band.bandId} is missing ${mapping.component}.`);
         findings.push({
           kind: "telemetry_export_missing_signal",
           confidence: 0.62,
-          note: `${band.bandId} の telemetry export で ${mapping.component} が不足しています`,
+          note: `The telemetry export for ${band.bandId} is missing ${mapping.component}.`,
           bandId: band.bandId,
           component: mapping.component,
           ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {}),
@@ -90,7 +90,7 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
       findings.push({
         kind: "telemetry_export_band_mapped",
         confidence: 0.84,
-        note: `${band.bandId} の ${mapping.component} を telemetry export から raw telemetry input へ取り込みました`,
+        note: `Imported ${mapping.component} for ${band.bandId} from the telemetry export into raw telemetry input.`,
         bandId: band.bandId,
         component: mapping.component,
         observed: mapping.observed,
@@ -104,7 +104,7 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
   });
 
   if (bands.length === 0) {
-    unknowns.push("telemetry export bundle に traffic band がなく OAS の CommonOps は未観測に近い状態です");
+    unknowns.push("The telemetry export bundle has no traffic bands, so CommonOps for OAS is close to unobserved.");
     confidenceSignals.push(0.3);
   }
 
@@ -112,7 +112,7 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
     findings.push({
       kind: "telemetry_export_pattern_runtime_embedded",
       confidence: 0.8,
-      note: "telemetry export bundle に含まれる pattern runtime observations を利用できます",
+      note: "Pattern runtime observations included in the telemetry export bundle are available.",
       ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {})
     });
     confidenceSignals.push(0.8);
@@ -154,11 +154,11 @@ export function ingestDeliveryExportBundle(bundle: ArchitectureDeliveryExportBun
 
   for (const mapping of mappings) {
     if (mapping.observed === undefined) {
-      unknowns.push(`delivery export で ${mapping.component} が不足しています`);
+      unknowns.push(`The delivery export is missing ${mapping.component}.`);
       findings.push({
         kind: "delivery_export_missing_signal",
         confidence: 0.62,
-        note: `delivery export で ${mapping.component} が不足しています`,
+        note: `The delivery export is missing ${mapping.component}.`,
         component: mapping.component,
         ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {})
       });
@@ -168,7 +168,7 @@ export function ingestDeliveryExportBundle(bundle: ArchitectureDeliveryExportBun
     findings.push({
       kind: "delivery_export_signal_mapped",
       confidence: 0.84,
-      note: `${mapping.component} を delivery export から raw delivery input へ取り込みました`,
+      note: `Imported ${mapping.component} from the delivery export into raw delivery input.`,
       component: mapping.component,
       observed: mapping.observed,
       ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {})

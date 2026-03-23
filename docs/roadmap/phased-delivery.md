@@ -1,124 +1,74 @@
-# 段階的導入ロードマップ
+# Phased Delivery Roadmap
 
-## 1. 方針
+## Purpose
 
-最初から全領域を一気に実装しない。再現性が高く、価値が見えやすい機能から導入し、後から評価領域を増やす。
+This roadmap explains how the repository grows from the initial domain-design implementation toward broader design-measurement coverage.
 
-## 2. フェーズ
+## Phase 1: Domain-Design MVP
 
-### Phase 0: 文書基盤整備
+Focus:
 
-目的:
-- プラットフォーム全体のVisionと文書構造を固める
-- 共通データモデル、コマンド体系、ポリシー方針を定義する
-
-成果物:
-- `overview/`
-- `platform/`
-- `domains/`
-- `operations/`
-- `roadmap/`
-
-### Phase 1: ドメイン設計のMVP
-
-目的:
-- 実務で効果が見えやすい部分から始める
-
-実装対象:
-- 構造解析
-- 境界漏れ検出
-- 進化局所性解析
-- スコア計算
-- レポート
-- CI / PR連携
-
-主指標:
 - `MCCS`
 - `BLR`
 - `ELS`
-- `ULI` の一部
+- initial `ULI`
 
-### Phase 2: 文書主導のドメイン評価強化
+Outcome:
 
-目的:
-- 設計成果物を計測に本格的に組み込む
+- evidence-backed domain-design scoring works end-to-end
 
-実装対象:
-- 用語抽出・正規化
-- ルール・不変条件抽出
-- 追跡リンク生成
-- 境界適合評価
+## Phase 2: Domain-Design Expansion
 
-主指標:
-- `ULI`
+Focus:
+
+- stronger `ULI`
 - `BFS`
-- `DRF` の一部
+- partial `DRF`
 
-### Phase 3: Aggregate とレビュー運用の強化
+Outcome:
 
-目的:
-- 境界の見た目だけでなく整合性コストも評価する
+- better document-driven boundary and language measurement
 
-実装対象:
-- Aggregate適合評価
-- 人手レビュー支援の高度化
-- 再計測反映ループ
+## Phase 3: Domain-Design Completion
 
-主指標:
+Focus:
+
 - `AFS`
-- `DRF` の完整化
+- fuller `DRF`
+- richer review support
 
-### Phase 4: アーキテクチャ設計評価パック追加
+Outcome:
 
-目的:
-- ドメイン設計評価で作った共通基盤の拡張性を検証する
+- stronger design-time and implementation-time domain evaluation
 
-実装対象:
-- アーキテクチャモデル読込
-- 依存方向解析
-- 境界純度解析
-- 契約安定性解析
-- アーキテクチャ向けCIゲート
+## Phase 4: Architecture-Design Baseline
 
-主指標:
+Focus:
+
 - `DDS`
 - `BPS`
 - `IPS`
-
-### Phase 5: ランタイムと相関分析
-
-目的:
-- 設計計測が開発能力や運用安定性とどう関係するかを見る
-
-実装対象:
-- トポロジ分離度
-- インシデントやSLOとの相関分析
-- 複数評価領域の横断レポート
-
-主指標:
 - `TIS`
+
+Outcome:
+
+- first architecture-design scoring path
+
+## Phase 5: Architecture Evidence Expansion
+
+Focus:
+
+- `QSF`
+- `OAS`
+- `CTI`
 - `AELS`
-- 相関分析レポート
+- `EES`
+- `APSI`
 
-## 3. 優先順位の考え方
+Outcome:
 
-各フェーズの優先順位は次で決める。
+- scenario, runtime, delivery, and complexity evidence all feed architecture comparison
 
-1. 再現性が高いか
-2. 証拠の追跡性を確保しやすいか
-3. CIやレビューで日常運用しやすいか
-4. 次の評価領域に再利用できるか
+## Guiding Principle
 
-## 4. 完了判定
-
-各フェーズは、次の条件を満たしたら完了とする。
-
-- 指標が evidence 付きで返る
-- `confidence` と `unknowns` が欠落しない
-- ベースライン比較ができる
-- 差分スキャンが実用になる
-- 誤検知時のレビュー手段がある
-
-## 5. 将来像
-
-最終的には、設計計測を単一ドメインの専用ツールではなく、複数評価領域を載せ替え可能なプラットフォームとして成立させる。
+Build supporting metrics before trusting summary indices. Strong evidence beats early total-score polish.

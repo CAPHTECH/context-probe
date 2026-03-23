@@ -59,11 +59,11 @@ export function ingestComplexityExportBundle(input: {
   for (const component of mappings) {
     const observed = metrics[component];
     if (observed === undefined) {
-      unknowns.push(`complexity export で ${component} が不足しています`);
+      unknowns.push(`The complexity export is missing ${component}.`);
       findings.push({
         kind: "complexity_export_metric_missing",
         confidence: 0.62,
-        note: `complexity export で ${component} が不足しています`,
+        note: `The complexity export is missing ${component}.`,
         component,
         ...(input.bundle.sourceSystem ? { sourceSystem: input.bundle.sourceSystem } : {})
       });
@@ -73,7 +73,7 @@ export function ingestComplexityExportBundle(input: {
     findings.push({
       kind: "complexity_export_metric_mapped",
       confidence: 0.84,
-      note: `${component} を complexity export から CTI metadata へ取り込みました`,
+      note: `Imported ${component} from the complexity export into CTI metadata.`,
       component,
       observed,
       ...(input.bundle.sourceSystem ? { sourceSystem: input.bundle.sourceSystem } : {})

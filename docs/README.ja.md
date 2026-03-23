@@ -1,10 +1,8 @@
-# Documentation Index
+# 文書索引
 
-This repository separates shared platform documentation from domain-specific evaluation packs. The current implementation focuses first on domain design, while keeping room for architecture-design and future packs.
+このリポジトリの文書は、共通基盤と評価領域を分けて整理しています。最初の対象はドメイン設計ですが、後からアーキテクチャ設計などを追加しても構造が崩れないことを重視しています。
 
-Japanese counterparts are preserved with the `.ja.md` suffix.
-
-## Recommended Reading Order
+## 推奨読順
 
 1. [overview/platform-vision.md](overview/platform-vision.md)
 2. [guides/user-guide.md](guides/user-guide.md)
@@ -23,54 +21,54 @@ Japanese counterparts are preserved with the `.ja.md` suffix.
 15. [operations/architecture-source-collectors.md](operations/architecture-source-collectors.md)
 16. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
 
-## Directory Guide
+## ディレクトリ構成
 
 ### `guides/`
 
 - [user-guide.md](guides/user-guide.md)
-  - Quick-start guidance for first-time CLI users.
+  - 初回利用者向けのクイックスタートです。CLI の起動、代表コマンド、結果の読み方、次に読む文書を案内します。
 - [metric-reference.md](guides/metric-reference.md)
-  - Human-readable reference for every major metric, including interpretation and next actions.
+  - 各種指標の意味、式、読み方、current implementation での扱いを人間向けにまとめた参照文書です。
 
 ### `overview/`
 
 - [platform-vision.md](overview/platform-vision.md)
-  - Product vision, core principles, scope, and target users for the platform.
+  - プラットフォームの背景、Vision、対象ユーザー、ゴール、対象範囲を定義します。
 
 ### `platform/`
 
 - [measurement-model.md](platform/measurement-model.md)
-  - Shared measurement model used across all evaluation packs.
+  - 評価領域を増やしても崩れない共通計測モデルを定義します。
 - [runtime-and-commands.md](platform/runtime-and-commands.md)
-  - Runtime pipeline, command system, and the split between AI extraction and deterministic analyzers.
+  - AI処理と決定的解析を分離した実行パイプライン、コマンド体系を定義します。
 - [analysis-mechanism.md](platform/analysis-mechanism.md)
-  - How the current implementation turns inputs into metrics, evidence, confidence, and unknowns.
+  - current implementation で、どの入力がどの解析器を通って各 metric や `unknowns` に反映されるかを整理します。
 - [data-model.md](platform/data-model.md)
-  - Standard data structures such as Artifact, Evidence, and MetricScore.
+  - Artifact、Evidence、MetricScore などの標準データ構造を定義します。
 
 ### `domains/`
 
 - [domain-design.md](domains/domain-design.md)
-  - Full specification for domain-design evaluation.
+  - ドメイン設計評価の詳細仕様です。最初に実装対象とする評価領域です。
 - [architecture-design.md](domains/architecture-design.md)
-  - Full specification for architecture-design evaluation centered on APSI.
+  - APSI を中核にしたアーキテクチャ設計評価の本体仕様です。
 - [architecture-scenario-model.md](domains/architecture-scenario-model.md)
-  - Input model for quality scenarios used by architecture scoring.
+  - QAW / ATAM ベースの quality scenario を計算可能な形に正規化する入力仕様です。
 - [architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
-  - Pattern-family-specific weighting, gains, and complexity-tax guidance.
+  - pattern family ごとの重点指標、利得、複雑性税の見方を整理します。
 - [architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
-  - How evidence sources change across greenfield and brownfield phases.
+  - greenfield / brownfield で evidence source をどう切り替えるかを定義します。
 - [architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
-  - Mapping between the conceptual architecture model and the current implementation.
+  - APSI モデルと current implementation の対応表です。
 
 ### `operations/`
 
 - [policy-and-ci.md](operations/policy-and-ci.md)
-  - Thresholds, review conditions, and CI operation guidance.
+  - 閾値設定、レビュー条件、CI運用、監査方針を定義します。
 - [architecture-source-collectors.md](operations/architecture-source-collectors.md)
-  - Reference collectors and canonical source-config patterns for architecture evidence.
+  - canonical source config を brownfield evidence へ接続する reference collector と example config をまとめます。
 
 ### `roadmap/`
 
 - [phased-delivery.md](roadmap/phased-delivery.md)
-  - Delivery phases from MVP through future expansion.
+  - 実装フェーズ、導入順序、MVPから将来拡張までの道筋を定義します。
