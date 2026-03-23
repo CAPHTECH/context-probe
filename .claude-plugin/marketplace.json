@@ -1,0 +1,29 @@
+{
+  "name": "context-probe-marketplace",
+  "owner": {
+    "name": "CAPH TECH Inc.",
+    "email": "info@caph.tech"
+  },
+  "metadata": {
+    "description": "Official marketplace for the context-probe Claude Code plugin"
+  },
+  "plugins": [
+    {
+      "name": "context-probe-plugin",
+      "source": "./plugins/context-probe-plugin",
+      "description": "Guided context-probe workflows for setup, scoring, extraction, review, result interpretation, and disposition",
+      "version": "1.0.0",
+      "author": {
+        "name": "CAPH TECH Inc."
+      },
+      "keywords": [
+        "context-probe",
+        "measurement",
+        "architecture",
+        "domain-design",
+        "review"
+      ],
+      "category": "development"
+    }
+  ]
+}
