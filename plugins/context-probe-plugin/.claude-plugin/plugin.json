@@ -1,0 +1,9 @@
+{
+  "name": "context-probe-plugin",
+  "description": "English workflow guidance for using context-probe from setup through scoring, extraction, review, interpretation, and issue-ready disposition",
+  "version": "1.0.0",
+  "author": {
+    "name": "CAPH TECH Inc."
+  },
+  "skills": "./skills/"
+}
