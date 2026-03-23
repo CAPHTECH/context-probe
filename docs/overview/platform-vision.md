@@ -1,194 +1,135 @@
-# AI支援設計計測プラットフォーム
-## Vision / 機能仕様書（プラットフォーム全体）
+# AI-Assisted Design Measurement Platform
 
-- 文書版数: v0.2
-- 文書目的: 設計評価プラットフォーム全体のVision、基本原則、対象範囲を定義する
-- 現在の主対象: ドメイン設計評価
-- 将来の拡張対象: アーキテクチャ設計、運用設計、セキュリティ設計、データ設計
+- Version: v0.2
+- Purpose: define the platform vision, principles, and scope
 
-## 1. 背景
+## Background
 
-設計レビューは、ドメイン設計に限らず次の問題を抱えやすい。
+Design review tends to suffer from the same problems across domains.
 
-1. 評価が主観に寄りやすい
-   - 「この境界は自然だ」「この責務分割はまずい」といった議論が印象ベースになり、再現性が低い。
-2. コードメトリクスだけでは本質を捉えきれない
-   - 結合度や循環依存の検出は有用だが、意味論的な境界、用語整合、不変条件の閉包、契約の妥当性までは測りきれない。
-3. 設計知識が分断されやすい
-   - PRD、ADR、用語集、EventStorming、コード、Issue、履歴が別々に存在し、相互追跡が難しい。
-4. 改善前後の比較がしにくい
-   - リファクタリングや再設計をしても、何がどの程度改善したかを定量的に説明しづらい。
-5. アーキテクチャ評価も同様に属人化しやすい
-   - レイヤ違反、境界純度、契約安定性、トポロジ分離度などを、明示的な証拠なしに議論しがちである。
+1. Evaluation becomes overly subjective.
+2. Code metrics alone cannot capture semantic boundaries, language integrity, invariant closure, or contract validity.
+3. Design knowledge is fragmented across PRDs, ADRs, glossaries, code, issues, and history.
+4. It is hard to explain what improved after refactoring.
+5. Architecture review also becomes person-dependent when evidence is weak.
 
-必要なのは、AIに自由採点させることではない。必要なのは、AIに証拠を抽出・整理させ、その証拠に対して固定のスコア関数と決定的解析を適用することである。
+The platform does not ask AI to invent scores. It asks AI to extract evidence and then lets fixed formulas and deterministic analyzers evaluate that evidence.
 
-## 2. Vision
+## Vision
 
-### 2.1 北極星
+Move design discussion away from impression-driven debate and toward reproducible, evidence-backed measurement.
 
-設計の議論を、印象評価から、証拠に裏づけられた再現可能な計測へ移行する。
+## Value
 
-### 2.2 提供価値
+The platform does not compress design quality into one score. It decomposes quality into domains such as:
 
-本プラットフォームは、設計の良否を単一の総合点に押し込まず、評価領域ごとに分解して可視化する。
+- domain design: language, boundaries, invariants, aggregates, evolution locality
+- architecture design: dependency direction, boundary purity, contract stability, topology isolation
 
-- ドメイン設計: 用語、境界、不変条件、Aggregate、進化局所性
-- アーキテクチャ設計: 依存方向、境界純度、契約安定性、トポロジ分離度
-- 将来領域: 運用設計、セキュリティ設計、データ設計
+Users should be able to answer:
 
-利用者は「良いか悪いか」だけでなく、「どこが、なぜ、どの証拠に基づいて問題か」を追跡できる。
+- what is weak
+- why it is weak
+- what evidence supports that conclusion
 
-### 2.3 基本原則
+## Principles
 
-1. AIは裁定者ではなく、証拠抽出器である
-   - AIは用語抽出、ルール候補抽出、曖昧性検出、候補生成を行う。
-   - スコア計算は固定式と決定的解析に委ねる。
-2. 同じ入力に対して同じ結果を返す
-   - 同じ設定、同じバージョン、同じ入力で再現可能であることを重視する。
-3. 数値には必ず根拠を付ける
-   - すべての指標に `evidence` `confidence` `unknowns` `provenance` を添付する。
-4. コードだけで設計妥当性を断定しない
-   - ドメイン妥当性やアーキテクチャ意図の評価には、設計成果物や履歴も必要である。
-5. 絶対評価より比較評価を重視する
-   - 組織横断ランキングではなく、同一組織内の候補比較、改善前後比較、時系列観測を重視する。
-6. 評価領域は拡張可能である
-   - ドメイン設計だけに閉じず、共通基盤の上に領域別の評価パックを追加できる。
+1. AI is an evidence extractor, not the final judge.
+2. The same input should produce the same result.
+3. Every score must come with evidence, confidence, unknowns, and provenance.
+4. Code alone is not enough to judge design intent.
+5. Relative comparison matters more than absolute ranking.
+6. Evaluation packs must remain extensible.
 
-## 3. 対象ユーザー
+## Target Users
 
-| ユーザー | 主な課題 | 期待する価値 |
+| User | Main Problem | Value |
 |---|---|---|
-| アーキテクト | 境界設計や分割案の妥当性を説明しにくい | 候補比較、根拠付きの分解評価 |
-| テックリード | レビュー基準が属人化する | 証拠ベースのレビュー支援 |
-| ドメインエキスパート | モデルが業務を正しく表しているか判断しづらい | 用語、ルール、不変条件の追跡 |
-| 開発チーム | 設計劣化が日々混入する | CIでの継続監視、PR単位の差分評価 |
-| 技術顧問・監査担当 | 改善施策の効果を定量で示したい | ベースライン比較、トレンド可視化 |
+| Architect | hard to justify boundary choices | evidence-backed candidate comparison |
+| Tech Lead | review criteria drift between people | reusable measurement-based review |
+| Domain Expert | hard to tell whether the model reflects reality | traceability across terms, rules, and invariants |
+| Delivery Team | design erosion slips in over time | CI monitoring and PR-level comparison |
+| Advisor / Auditor | hard to quantify improvement | baselines and trend views |
 
-## 4. 目標と非目標
+## Goals
 
-### 4.1 目標
+- decompose design quality into multiple measurable dimensions
+- extract evidence from documents, code, history, and operations
+- compute scores through declarative policy and fixed formulas
+- preserve evidence traceability
+- support both greenfield and brownfield work
+- support candidate comparison, diff comparison, and time-series comparison
+- make it easy to add new evaluation packs
 
-- 設計評価を複数指標に分解して計測できること
-- 設計成果物、コード、履歴から証拠を抽出できること
-- スコア計算が宣言的設定と固定関数で行われること
-- 計測結果に追跡可能な根拠が付与されること
-- Greenfield と Brownfield の両方で利用できること
-- 候補比較、差分比較、時系列比較ができること
-- 将来の評価領域を共通基盤の上に追加できること
+## Non-Goals
 
-### 4.2 非目標
+- letting AI fully decide the "right" design
+- judging design with one total score only
+- inferring complete design validity from code alone
+- forcing one weight profile on every organization
+- reusing design scores directly for people evaluation
 
-- AIが完全自律で設計の正解を決めること
-- 単一スコアだけで設計の良否を断定すること
-- コードだけを読んで設計妥当性を完全に判断すること
-- すべての組織に同じ重みや閾値を押しつけること
-- 計測結果をそのまま人やチームの査定に使うこと
+## Scope
 
-## 5. スコープ
+### Current Scope
 
-### 5.1 現在スコープ
+- shared ingestion, normalization, traceability, and evidence handling
+- domain design evaluation
+- shared scoring, reporting, and CI integration
 
-- 共通的な成果物取り込み、正規化、追跡、証拠管理
-- ドメイン設計評価
-  - 用語整合
-  - ルール・不変条件
-  - Bounded Context / Aggregate 妥当性
-  - 実装準拠
-  - 進化局所性
-- 共通スコア計算、比較レポート、CI連携
+### Next Scope
 
-### 5.2 次期スコープ
+- architecture design evaluation
+- dependency direction
+- boundary purity
+- contract stability
+- runtime topology isolation
+- architecture evolution locality
 
-- アーキテクチャ設計評価
-  - 依存方向
-  - 境界純度
-  - 契約安定性
-  - 実行トポロジ分離度
-  - アーキテクチャ進化局所性
+### Future Scope
 
-### 5.3 将来スコープ
+- operability design
+- security design
+- data design
+- correlation analysis with delivery outcomes
 
-- 運用設計評価
-- セキュリティ設計評価
-- データ設計評価
-- 設計指標と開発能力指標の相関分析
+## Evaluation-Pack Model
 
-## 6. 評価領域モデル
+Each evaluation area sits on top of the shared platform as an evaluation pack.
 
-各評価領域は、共通基盤の上に載る「評価パック」として扱う。
-
-| 領域ID | 名称 | 役割 | 状態 |
+| Domain ID | Area | Role | Status |
 |---|---|---|---|
-| `domain_design` | ドメイン設計評価 | 最初の詳細実装対象 | 詳細仕様あり |
-| `architecture_design` | アーキテクチャ設計評価 | 次期拡張対象 | 仕様ドラフトあり |
-| `operability_design` | 運用設計評価 | 将来対象 | 構想段階 |
-| `security_design` | セキュリティ設計評価 | 将来対象 | 構想段階 |
+| `domain_design` | Domain Design | first detailed implementation target | specified |
+| `architecture_design` | Architecture Design | next target | specified |
+| `operability_design` | Operability Design | future | conceptual |
+| `security_design` | Security Design | future | conceptual |
 
-各評価パックは最低限次を持つ。
+Each pack needs at least:
 
-- 対象成果物定義
-- AI抽出器
-- 決定的解析器
-- 指標定義
-- レビュー必須条件
-- レポート表示ルール
+- target artifact definition
+- AI extractors
+- deterministic analyzers
+- metric definitions
+- mandatory review rules
+- reporting rules
 
-## 7. システムコンセプト
+## Conceptual Flow
 
 ```text
-[設計成果物 / コード / 履歴 / Issue / 運用情報]
-                    ↓
-           収集・正規化・構造化
-                    ↓
-     AIによる抽出・候補生成・曖昧性検出
-                    ↓
- 決定的解析器による依存解析・履歴解析・規則検証
-                    ↓
-       固定のスコア関数による算出
-                    ↓
-  証拠付きレポート / 差分比較 / CI判定 / レビューキュー
+Design artifacts / code / history / issues / operational data
+  -> collection, normalization, structuring
+  -> AI extraction, candidate generation, ambiguity detection
+  -> deterministic dependency, history, and rule analysis
+  -> fixed score functions
+  -> evidence-backed reports, diffs, CI decisions, review queue
 ```
 
-この構成により、AIの強みである曖昧な文書解釈と、解析器の強みである再現可能な検証を分離する。
+## Success Conditions
 
-## 8. 対象成果物
+The platform is successful if:
 
-### 8.1 設計成果物
-
-- Vision / PRD
-- ユースケース、ユーザーストーリー
-- 用語集、Glossary
-- 業務ルール、不変条件
-- Context Map、Aggregate図
-- ADR
-- API仕様、イベント仕様、契約DTO定義
-- アーキテクチャ図、レイヤ規約、トポロジ図
-- Ownership、Team境界、セキュリティゾーン情報
-
-### 8.2 実装成果物
-
-- アプリケーションコード
-- テストコード
-- モジュール定義、ビルド定義
-- 設定ファイル
-- スキーマ定義
-- IaC、デプロイ定義、ランタイム構成
-
-### 8.3 履歴・運用周辺
-
-- Git履歴
-- PR情報
-- Issue / Ticket
-- リリース情報
-- Incident、SLO、監査記録
-
-## 9. 成功条件
-
-本プラットフォームが成立したと見なす条件は次の通り。
-
-1. 同一入力で再実行したとき、結果が安定する
-2. スコアから元の証拠へ辿れる
-3. AIが曖昧な部分を隠さず、レビュー対象として明示する
-4. PRや時系列比較で、設計劣化を差分として検知できる
-5. 新しい評価領域を、共通基盤を壊さず追加できる
+1. reruns on the same input are stable
+2. every score can be traced back to evidence
+3. ambiguity is surfaced rather than hidden
+4. design regression is visible through diffs and trends
+5. new evaluation packs can be added without breaking the shared platform

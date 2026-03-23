@@ -87,7 +87,7 @@ export function scoreBoundaryPurity(
   const adapterLeaks = adapterCandidates.filter(({ sourceLayer, targetLayer }) => sourceLayer.rank < targetLayer.rank);
   const ALR = adapterCandidates.length === 0 ? 0 : adapterLeaks.length / adapterCandidates.length;
   if (adapterCandidates.length === 0) {
-    unknowns.push("adapter/framework 相当への依存が少なく ALR の判定根拠が限定的です");
+    unknowns.push("There are too few adapter/framework-like dependencies, so ALR evidence is limited.");
   }
   findings.push(
     ...adapterLeaks.map(({ dependency, sourceLayer, targetLayer }) => ({
@@ -98,7 +98,7 @@ export function scoreBoundaryPurity(
       sourceLayer: sourceLayer.name,
       targetLayer: targetLayer.name,
       confidence: 0.92,
-      note: `${sourceLayer.name} から ${targetLayer.name} の framework/adapter 相当へ直接依存しています`
+      note: `${sourceLayer.name} depends directly on a framework/adapter-like target in ${targetLayer.name}.`
     }))
   );
 
@@ -107,7 +107,7 @@ export function scoreBoundaryPurity(
   const FCC =
     frameworkishFiles.length === 0 ? 0.6 : 1 - frameworkContaminations.length / Math.max(1, frameworkishFiles.length);
   if (frameworkishFiles.length === 0) {
-    unknowns.push("framework/adapter 相当のファイルが少なく FCC は保守的な近似です");
+    unknowns.push("There are too few framework/adapter-like files, so FCC is conservative.");
   }
   findings.push(
     ...frameworkContaminations.map(({ path, layer }) => ({
@@ -115,7 +115,7 @@ export function scoreBoundaryPurity(
       path,
       sourceLayer: layer.name,
       confidence: 0.86,
-      note: `${layer.name} に framework/adapter 相当の実装が混入しています`
+      note: `${layer.name} contains framework/adapter-like implementation details.`
     }))
   );
 
@@ -143,7 +143,7 @@ export function scoreBoundaryPurity(
   const SICR =
     internalTargets.length === 0 ? 0 : sharedInternalTargets.length / Math.max(1, internalTargets.length);
   if (internalTargets.length === 0) {
-    unknowns.push("共有判定できる internal component が少なく SICR の根拠が限定的です");
+    unknowns.push("There are too few internal components to judge sharing, so SICR evidence is limited.");
   }
   findings.push(
     ...sharedInternalTargets.map(([path, entry]) => ({
@@ -152,7 +152,7 @@ export function scoreBoundaryPurity(
       target: path,
       targetLayer: entry.targetLayer,
       confidence: 0.88,
-      note: `${path} が複数 layer (${Array.from(entry.sourceLayers).join(", ")}) から共有されています`
+      note: `${path} is shared by multiple layers (${Array.from(entry.sourceLayers).join(", ")}).`
     }))
   );
 

@@ -58,7 +58,7 @@ export function scoreQualityScenarioFit(input: {
       weightedCoverage: 0,
       averageNormalizedScore: 0,
       confidence: 0.2,
-      unknowns: ["scenario catalog が指定されていないため QSF は未観測です"],
+      unknowns: ["No scenario catalog was provided, so QSF is unobserved."],
       findings: []
     };
   }
@@ -76,23 +76,23 @@ export function scoreQualityScenarioFit(input: {
   for (const scenario of input.catalog.scenarios) {
     totalPriority += scenario.priority;
     if (scenario.priority <= 0) {
-      unknowns.push(`${scenario.scenarioId} の priority が 0 以下で QSF 集計に寄与しません`);
+      unknowns.push(`${scenario.scenarioId} has priority <= 0, so it does not contribute to QSF.`);
       findings.push({
         scenarioId: scenario.scenarioId,
         confidence: 0.5,
         source: "catalog",
-        note: `${scenario.scenarioId} は priority が 0 以下です`
+        note: `${scenario.scenarioId} has priority <= 0.`
       });
       continue;
     }
     const observation = observationById.get(scenario.scenarioId);
     if (!observation) {
-      unknowns.push(`${scenario.scenarioId} の observed value が不足しています`);
+      unknowns.push(`${scenario.scenarioId} is missing an observed value.`);
       findings.push({
         scenarioId: scenario.scenarioId,
         confidence: 0.45,
         source: "catalog",
-        note: `${scenario.scenarioId} は observed value がないため QSF に十分反映できません`
+        note: `${scenario.scenarioId} cannot be fully reflected in QSF because no observed value was provided.`
       });
       continue;
     }
@@ -112,12 +112,12 @@ export function scoreQualityScenarioFit(input: {
       normalized,
       observed: observation.observed,
       source: "observation",
-      note: `${scenario.scenarioId} の normalized score は ${normalized.toFixed(3)} です`
+      note: `${scenario.scenarioId} has a normalized score of ${normalized.toFixed(3)}.`
     });
   }
 
   if (!input.observations || input.observations.observations.length === 0) {
-    unknowns.push("scenario observations が指定されていないため QSF は保守的な近似です");
+    unknowns.push("No scenario observations were provided, so QSF is a conservative approximation.");
   }
 
   const weightedCoverage = totalPriority === 0 ? 0 : observedPriority / totalPriority;

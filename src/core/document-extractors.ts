@@ -105,8 +105,8 @@ const INVARIANT_PREDICATE_PATTERNS = [
   /閉じ(?:ている|る)[。.]?$/u,
   /\balways\b.+\b(is|are|returns?|holds?)\b/i
 ];
-const RULE_INVARIANT_AMBIGUITY = "rule と invariant の境界が曖昧です";
-const INVARIANT_ACCEPTANCE_AMBIGUITY = "invariant と受け入れ条件の境界が曖昧です";
+const RULE_INVARIANT_AMBIGUITY = "The boundary between a rule and an invariant is ambiguous.";
+const INVARIANT_ACCEPTANCE_AMBIGUITY = "The boundary between an invariant and an acceptance condition is ambiguous.";
 const INVARIANT_REVIEW_SIGNALS = [
   /返(?:る|される)/u,
   /表示(?:される|されている)/u,
@@ -653,7 +653,7 @@ export async function extractGlossary(options: ExtractionOptions) {
         terms: applyGlossaryReview(terms, options),
         metadata,
         confidence: 0.55,
-        unknowns: ["CLI extractor に失敗したため heuristic fallback を使用しました"],
+        unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
         diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"]
       };
     }
@@ -699,7 +699,7 @@ export async function extractRules(options: ExtractionOptions) {
         fragments,
         metadata,
         confidence: 0.55,
-        unknowns: ["CLI extractor に失敗したため heuristic fallback を使用しました"],
+        unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
         diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"]
       };
     }
@@ -745,7 +745,7 @@ export async function extractInvariants(options: ExtractionOptions) {
         fragments,
         metadata,
         confidence: 0.55,
-        unknowns: ["CLI extractor に失敗したため heuristic fallback を使用しました"],
+        unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
         diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"]
       };
     }

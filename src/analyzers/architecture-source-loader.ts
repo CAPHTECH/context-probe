@@ -54,7 +54,7 @@ async function resolveSourceConfig<T>(input: {
 
   if (config.sourceType === "file") {
     if (!config.path) {
-      throw new Error(`${input.label} source config は sourceType=file のとき path が必要です`);
+      throw new Error(`${input.label} source config requires 'path' when sourceType=file.`);
     }
     const resolvedPath = resolveFromBase(baseDir, config.path);
     const data = await readDataFile<T>(resolvedPath);
@@ -70,7 +70,7 @@ async function resolveSourceConfig<T>(input: {
         {
           kind: "source_file_loaded",
           confidence: 0.86,
-          note: `${input.label} source config の file source から canonical input を読み込みました`,
+          note: `Loaded canonical input from the file source in ${input.label} source config.`,
           sourceType: "file",
           sourcePath: resolvedPath
         }
@@ -80,7 +80,7 @@ async function resolveSourceConfig<T>(input: {
 
   if (config.sourceType === "command") {
     if (!config.command) {
-      throw new Error(`${input.label} source config は sourceType=command のとき command が必要です`);
+      throw new Error(`${input.label} source config requires 'command' when sourceType=command.`);
     }
     const resolvedCwd = config.cwd ? resolveFromBase(baseDir, config.cwd) : baseDir;
     const { stdout } = await exec(config.command, {
@@ -89,14 +89,14 @@ async function resolveSourceConfig<T>(input: {
     });
     const trimmed = stdout.trim();
     if (!trimmed) {
-      throw new Error(`${input.label} command source が空の stdout を返しました`);
+      throw new Error(`${input.label} command source returned empty stdout.`);
     }
     let data: T;
     try {
       data = JSON.parse(trimmed) as T;
     } catch (error) {
       throw new Error(
-        `${input.label} command source は JSON stdout を返す必要があります: ${
+        `${input.label} command source must return JSON on stdout: ${
           error instanceof Error ? error.message : "parse error"
         }`
       );
@@ -114,7 +114,7 @@ async function resolveSourceConfig<T>(input: {
         {
           kind: "source_command_loaded",
           confidence: 0.8,
-          note: `${input.label} source config の command source から canonical input を読み込みました`,
+          note: `Loaded canonical input from the command source in ${input.label} source config.`,
           sourceType: "command",
           command: config.command,
           cwd: resolvedCwd
@@ -123,7 +123,7 @@ async function resolveSourceConfig<T>(input: {
     };
   }
 
-  throw new Error(`${input.label} sourceType=${String(config.sourceType)} は未対応です`);
+  throw new Error(`${input.label} sourceType=${String(config.sourceType)} is not supported.`);
 }
 
 export async function resolveTelemetrySourceConfig(input: {

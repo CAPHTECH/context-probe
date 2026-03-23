@@ -406,7 +406,7 @@ describe("score validation", () => {
     const cti = getMetric(response, "CTI");
 
     expect(cti.value).toBeGreaterThan(0.4);
-    expect(response.unknowns.some((entry) => entry.includes("complexity source は優先されません"))).toBe(true);
+    expect(response.unknowns.some((entry) => entry.includes("complexity source was not used"))).toBe(true);
   });
 
   test("QSF is higher for scenario-observing candidates than for scenario-missing or poor-fit candidates", async () => {
@@ -552,7 +552,7 @@ describe("score validation", () => {
     );
 
     expect(getMetric(precedenceResponse, "QSF").value).toBeCloseTo(getMetric(explicitResponse, "QSF").value, 6);
-    expect(precedenceResponse.unknowns.some((entry) => entry.includes("scenario observation source は優先されません"))).toBe(true);
+    expect(precedenceResponse.unknowns.some((entry) => entry.includes("scenario observation source was not used"))).toBe(true);
   });
 
   test("APSI is higher when scenario fit, conformance proxies, runtime proxies, evolution, and complexity tax all align", async () => {
@@ -597,8 +597,8 @@ describe("score validation", () => {
     expect(goodApsi.components.OAS ?? 0).toBeGreaterThan(badApsi.components.OAS ?? 0);
     expect(goodApsi.components.EES ?? 0).toBeGreaterThan(badApsi.components.EES ?? 0);
     expect(goodApsi.components.CTI ?? 0).toBeLessThan(badApsi.components.CTI ?? 0);
-    expect(goodApsi.unknowns.some((entry) => entry.includes("PCS は DDS/BPS/IPS"))).toBe(true);
-    expect(goodApsi.unknowns.some((entry) => entry.includes("OAS は TIS"))).toBe(false);
+    expect(goodApsi.unknowns.some((entry) => entry.includes("PCS is a proxy composite of DDS, BPS, and IPS."))).toBe(true);
+    expect(goodApsi.unknowns.some((entry) => entry.includes("OAS is bridged from TIS"))).toBe(false);
   });
 
   test("APSI follows the selected policy profile weights without changing supporting metrics", async () => {
@@ -907,7 +907,7 @@ describe("score validation", () => {
 
     expect(oas.components.CommonOps ?? 0).toBeGreaterThan(0.7);
     expect(
-      oas.unknowns.some((entry) => entry.includes("telemetry-observations が指定されているため raw/export/source telemetry input は優先されません"))
+      oas.unknowns.some((entry) => entry.includes("A higher-priority telemetry input was present"))
     ).toBe(true);
 
     const rawResponse = await COMMANDS["score.compute"]!(
@@ -922,7 +922,7 @@ describe("score validation", () => {
       },
       { cwd: process.cwd() }
     );
-    expect(rawResponse.unknowns.some((entry) => entry.includes("telemetry source は利用されません"))).toBe(true);
+    expect(rawResponse.unknowns.some((entry) => entry.includes("telemetry source was not used"))).toBe(true);
 
     const exportResponse = await COMMANDS["score.compute"]!(
       {
@@ -936,7 +936,7 @@ describe("score validation", () => {
       },
       { cwd: process.cwd() }
     );
-    expect(exportResponse.unknowns.some((entry) => entry.includes("telemetry source は利用されません"))).toBe(true);
+    expect(exportResponse.unknowns.some((entry) => entry.includes("telemetry source was not used"))).toBe(true);
   });
 
   test("OAS derives PatternRuntime from family-specific runtime schemas", async () => {
@@ -1249,9 +1249,9 @@ describe("score validation", () => {
     expect(thinOas.unknowns.some((entry) => entry.includes("serviceBasedRuntime"))).toBe(true);
     expect(mismatchOas.unknowns.some((entry) => entry.includes("patternFamily=cqrs"))).toBe(true);
     expect(mismatchOas.confidence).toBeLessThan(0.85);
-    expect(precedenceOas.unknowns.some((entry) => entry.includes("telemetry export 内の patternRuntime は優先されません"))).toBe(true);
+    expect(precedenceOas.unknowns.some((entry) => entry.includes("pattern runtime data inside the telemetry export was not used"))).toBe(true);
     expect(precedenceOas.components.PatternRuntime ?? 1).toBeLessThan(0.5);
-    expect(explicitOverrideOas.unknowns.some((entry) => entry.includes("raw pattern runtime input は優先されません"))).toBe(true);
+    expect(explicitOverrideOas.unknowns.some((entry) => entry.includes("raw pattern runtime input was not used"))).toBe(true);
     expect(explicitOverrideOas.components.PatternRuntime ?? 0).toBeGreaterThan(0.8);
   });
 
@@ -1297,7 +1297,7 @@ describe("score validation", () => {
     expect(goodTis.components.FI ?? 0).toBeGreaterThan(badTis.components.FI ?? 0);
     expect(goodTis.components.RC ?? 0).toBeGreaterThan(badTis.components.RC ?? 0);
     expect(badTis.components.SDR ?? 0).toBeGreaterThan(goodTis.components.SDR ?? 0);
-    expect(thinTis.unknowns.some((entry) => entry.includes("runtime observation"))).toBe(true);
+    expect(thinTis.unknowns.some((entry) => entry.includes("static proxy"))).toBe(true);
   });
 
   test("AELS is higher for architecture histories that stay within boundaries", async () => {
@@ -1817,7 +1817,7 @@ describe("score validation", () => {
     const precedenceEes = getMetric(precedenceResponse, "EES");
 
     expect(precedenceEes.components.Delivery ?? 0).toBeCloseTo(normalizedEes.components.Delivery ?? 0, 6);
-    expect(precedenceEes.unknowns.some((entry) => entry.includes("raw/export/source delivery input は優先されません"))).toBe(true);
+    expect(precedenceEes.unknowns.some((entry) => entry.includes("A higher-priority delivery input was present"))).toBe(true);
 
     const rawResponse = await COMMANDS["score.compute"]!(
       {
@@ -1832,7 +1832,7 @@ describe("score validation", () => {
       },
       { cwd: process.cwd() }
     );
-    expect(rawResponse.unknowns.some((entry) => entry.includes("delivery source は利用されません"))).toBe(true);
+    expect(rawResponse.unknowns.some((entry) => entry.includes("delivery source was not used"))).toBe(true);
 
     const exportResponse = await COMMANDS["score.compute"]!(
       {
@@ -1847,7 +1847,7 @@ describe("score validation", () => {
       },
       { cwd: process.cwd() }
     );
-    expect(exportResponse.unknowns.some((entry) => entry.includes("delivery source は利用されません"))).toBe(true);
+    expect(exportResponse.unknowns.some((entry) => entry.includes("delivery source was not used"))).toBe(true);
   }, 30000);
 
   test("ELS is higher for localized histories than for scattered histories", async () => {
@@ -2028,7 +2028,7 @@ describe("score validation", () => {
     expect(goodDrf.value).toBeGreaterThan(badDrf.value);
     expect(goodDrf.components.RC ?? 0).toBeGreaterThan(badDrf.components.RC ?? 0);
     expect(goodDrf.components.RA ?? 0).toBeGreaterThan(badDrf.components.RA ?? 0);
-    expect(badDrf.unknowns).toContain("SC は use case signal ベースの近似です");
+    expect(badDrf.unknowns).toContain("SC is an approximation based on use-case signals.");
   }, 15000);
 
   test("BFS is higher for context-localized documents than for misaligned shared-boundary documents", async () => {
@@ -2113,7 +2113,7 @@ describe("score validation", () => {
     expect(goodAfs.value).toBeGreaterThan(badAfs.value);
     expect(goodAfs.components.SIC ?? 0).toBeGreaterThan(badAfs.components.SIC ?? 0);
     expect(badAfs.components.XTC ?? 0).toBeGreaterThan(goodAfs.components.XTC ?? 0);
-    expect(goodAfs.unknowns).toContain("Aggregate 定義がないため context を aggregate proxy として扱っています");
+    expect(goodAfs.unknowns).toContain("No aggregate definitions were found, so context is being used as an aggregate proxy.");
   }, 15000);
 });
 

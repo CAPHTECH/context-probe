@@ -45,7 +45,7 @@ export function scoreTopologyIsolation(input: {
       RC: 0.4,
       SDR: 0.6,
       confidence: 0.25,
-      unknowns: ["topology model が指定されていないため TIS は未観測に近い状態です"],
+      unknowns: ["No topology model was provided, so TIS is close to unobserved."],
       findings: []
     };
   }
@@ -64,7 +64,7 @@ export function scoreTopologyIsolation(input: {
 
   const SDR = topology.edges.length === 0 ? 0 : sharedEdges.length / topology.edges.length;
   if (sharedEdges.length === 0) {
-    unknowns.push("shared resource が観測されず SDR の根拠は限定的です");
+    unknowns.push("No shared resources were observed, so SDR evidence is limited.");
   }
   findings.push(
     ...sharedEdges.map((edge) => ({
@@ -72,7 +72,7 @@ export function scoreTopologyIsolation(input: {
       source: edge.source,
       target: edge.target,
       confidence: 0.86,
-      note: `${edge.source} と ${edge.target} の間に shared dependency があります`
+      note: `There is a shared dependency between ${edge.source} and ${edge.target}.`
     }))
   );
 
@@ -83,7 +83,7 @@ export function scoreTopologyIsolation(input: {
   const FI =
     runtimeFiSignals.length > 0 ? average(runtimeFiSignals.map((value) => clamp01(value)), staticFi) : staticFi;
   if (runtimeFiSignals.length === 0) {
-    unknowns.push("failure containment の runtime observation が不足しており FI は static proxy を使っています");
+    unknowns.push("Runtime observations for failure containment are missing, so FI is using a static proxy.");
   }
   findings.push(
     ...crossBoundarySyncEdges.map((edge) => ({
@@ -91,7 +91,7 @@ export function scoreTopologyIsolation(input: {
       source: edge.source,
       target: edge.target,
       confidence: 0.8,
-      note: `${edge.source} から ${edge.target} への同期依存が isolation boundary をまたいでいます`
+      note: `The synchronous dependency from ${edge.source} to ${edge.target} crosses an isolation boundary.`
     }))
   );
 
@@ -111,7 +111,7 @@ export function scoreTopologyIsolation(input: {
   const RC =
     runtimeRcSignals.length > 0 ? average(runtimeRcSignals.map((value) => clamp01(value)), staticRc) : staticRc;
   if (runtimeRcSignals.length === 0) {
-    unknowns.push("runtime containment observation が不足しており RC は static proxy を使っています");
+    unknowns.push("Runtime containment observations are missing, so RC is using a static proxy.");
   }
   for (const [boundary, count] of boundaryNodeCounts.entries()) {
     if (count <= Math.ceil(topology.nodes.length / 2)) {
@@ -121,12 +121,12 @@ export function scoreTopologyIsolation(input: {
       kind: "weak_runtime_containment",
       nodeId: boundary,
       confidence: 0.72,
-      note: `${boundary} に node が集中しており runtime containment が弱い可能性があります`
+      note: `Nodes are concentrated in ${boundary}, so runtime containment may be weak.`
     });
   }
 
   if (topology.nodes.every((node) => !node.isolationBoundary)) {
-    unknowns.push("isolationBoundary がほとんど定義されておらず FI/RC の根拠が限定的です");
+    unknowns.push("Very few isolation boundaries are defined, so FI/RC evidence is limited.");
   }
 
   return {

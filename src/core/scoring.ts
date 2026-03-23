@@ -362,7 +362,7 @@ export async function computeDomainDesignScores(options: {
   const mccsConfidence = contractUsage.applicableReferences > 0 ? 0.9 : 0.55;
 
   if (contractUsage.applicableReferences === 0) {
-    unknowns.push("定義したコンテキスト間の参照が見つからず MCCS の判定根拠が限定的です");
+    unknowns.push("No applicable cross-context references were found, so MCCS evidence is limited.");
   }
 
   let history: CochangeAnalysis | null = null;
@@ -389,17 +389,17 @@ export async function computeDomainDesignScores(options: {
       historyConfidence = 0.9;
     }
     if (history.commits.length === 0) {
-      unknowns.push("Git履歴から評価可能なコミットが見つかりませんでした");
+      unknowns.push("No Git commits suitable for evaluation were found.");
     } else if (history.commits.length < 3) {
-      unknowns.push("Git履歴がまだ少ないため ELS は暫定値です");
+      unknowns.push("Git history is still thin, so ELS is provisional.");
     }
   } catch (error) {
     history = null;
     historyConfidence = 0.2;
     diagnostics.push(
-      error instanceof Error ? `履歴解析をスキップしました: ${error.message}` : "履歴解析をスキップしました"
+      error instanceof Error ? `Skipped history analysis: ${error.message}` : "Skipped history analysis"
     );
-    unknowns.push("履歴解析に必要なGit情報が不足しています");
+    unknowns.push("Git information required for history analysis is missing.");
   }
 
   const mccsComponents = {
@@ -411,7 +411,7 @@ export async function computeDomainDesignScores(options: {
   const scores: MetricScore[] = [];
   if (policy.metrics.DRF) {
     if (!options.docsRoot) {
-      unknowns.push("`--docs-root` が指定されていないため DRF をスキップしました");
+      unknowns.push("Skipped DRF because `--docs-root` was not provided.");
     } else {
       const [rulesResult, invariantsResult] = await Promise.all([getRulesResult(), getInvariantsResult()]);
       const reviewItems = [
@@ -432,15 +432,15 @@ export async function computeDomainDesignScores(options: {
       const drfUnknowns = [
         ...rulesResult.unknowns,
         ...invariantsResult.unknowns,
-        "SC は use case signal ベースの近似です",
-        "IV は review burden ベースの近似です"
+        "SC is an approximation based on use-case signals.",
+        "IV is an approximation based on review burden."
       ];
 
       if (drfComponents.totalCandidates === 0) {
-        drfUnknowns.push("rule/invariant が抽出されず DRF の判定根拠が不足しています");
+        drfUnknowns.push("No rules or invariants were extracted, so DRF evidence is insufficient.");
       }
       if (drfComponents.useCaseFragments === 0) {
-        drfUnknowns.push("ユースケース相当の記述が少なく SC の判定根拠が限定的です");
+        drfUnknowns.push("Too little use-case-like text was found, so SC evidence is limited.");
       }
 
       const drfEvidence = dedupeEvidence([
@@ -473,7 +473,7 @@ export async function computeDomainDesignScores(options: {
   }
   if (policy.metrics.ULI) {
     if (!options.docsRoot) {
-      unknowns.push("`--docs-root` が指定されていないため ULI をスキップしました");
+      unknowns.push("Skipped ULI because `--docs-root` was not provided.");
     } else {
       const [glossary, links] = await Promise.all([getGlossaryResult(), getTermTraceLinks()]);
       const uliComponents = computeUliComponents(glossary.terms, links);
@@ -482,10 +482,10 @@ export async function computeDomainDesignScores(options: {
       const uliUnknowns = [...glossary.unknowns];
 
       if (glossary.terms.length === 0) {
-        uliUnknowns.push("glossary term が抽出されず ULI の判定根拠が不足しています");
+        uliUnknowns.push("No glossary terms were extracted, so ULI evidence is insufficient.");
       }
       if (glossary.terms.every((term) => term.aliases.length === 0)) {
-        uliUnknowns.push("Alias Entropy は alias 数ベースの近似です");
+        uliUnknowns.push("Alias Entropy is approximated from alias counts.");
       }
 
       const termEvidence = glossary.terms.flatMap((term) => term.evidence);
@@ -520,7 +520,7 @@ export async function computeDomainDesignScores(options: {
   }
   if (policy.metrics.BFS) {
     if (!options.docsRoot) {
-      unknowns.push("`--docs-root` が指定されていないため BFS をスキップしました");
+      unknowns.push("Skipped BFS because `--docs-root` was not provided.");
     } else {
       const [glossary, rulesResult, invariantsResult, links] = await Promise.all([
         getGlossaryResult(),
@@ -562,7 +562,7 @@ export async function computeDomainDesignScores(options: {
   }
   if (policy.metrics.AFS) {
     if (!options.docsRoot) {
-      unknowns.push("`--docs-root` が指定されていないため AFS をスキップしました");
+      unknowns.push("Skipped AFS because `--docs-root` was not provided.");
     } else {
       const [glossary, invariantsResult, links] = await Promise.all([
         getGlossaryResult(),
@@ -607,7 +607,7 @@ export async function computeDomainDesignScores(options: {
         confidenceFromSignals([0.9, mccsConfidence, 0.9]),
         contractUsage.applicableReferences > 0
           ? []
-          : ["コンテキスト間参照が観測されていないため MCCS の解釈に注意が必要です"]
+          : ["No cross-context references were observed, so MCCS should be interpreted carefully."]
       )
     );
   }
@@ -619,7 +619,7 @@ export async function computeDomainDesignScores(options: {
         elsComponents,
         [],
         historyConfidence,
-        history ? [] : ["履歴解析が完了していないため ELS の信頼度が低い状態です"]
+        history ? [] : ["History analysis did not complete, so ELS confidence is low."]
       )
     );
   }
@@ -803,7 +803,7 @@ export async function computeArchitectureScores(options: {
     architectureCommits = await normalizeHistory(repoPath, policyConfig, profileName);
   } catch (error) {
     architectureHistoryDiagnostics = [
-      error instanceof Error ? `architecture 履歴解析をスキップしました: ${error.message}` : "architecture 履歴解析をスキップしました"
+      error instanceof Error ? `Skipped architecture history analysis: ${error.message}` : "Skipped architecture history analysis"
     ];
   }
   const evolutionLocalityScore = scoreArchitectureEvolutionLocality({
@@ -1087,7 +1087,7 @@ export async function computeArchitectureScores(options: {
   const deliveryInputEvidence = options.deliveryObservations
     ? [
         toEvidence(
-          "delivery observations の normalized score をそのまま利用しています",
+          "Using the normalized scores from delivery observations as-is.",
           {
             source: "normalized_input"
           },
@@ -1098,7 +1098,7 @@ export async function computeArchitectureScores(options: {
     : options.deliveryRawObservations
       ? [
           toEvidence(
-            "raw delivery observations を normalization profile で score 化して利用しています",
+            "Using raw delivery observations after scoring them through the normalization profile.",
             {
               source: "raw_normalized"
             },
@@ -1109,7 +1109,7 @@ export async function computeArchitectureScores(options: {
       : options.deliveryExport
       ? [
           toEvidence(
-            "delivery export を EES の delivery input として取り込みました",
+            "Ingested the delivery export as the delivery input for EES.",
             {
               source: "delivery_export"
             },
@@ -1120,7 +1120,7 @@ export async function computeArchitectureScores(options: {
       : options.deliverySource
         ? [
             toEvidence(
-              `delivery source (${options.deliverySource.sourceType}) から canonical export を取り込みました`,
+              `Ingested a canonical export from delivery source (${options.deliverySource.sourceType}).`,
               {
                 source: "delivery_source",
                 sourceType: options.deliverySource.sourceType,
@@ -1134,7 +1134,7 @@ export async function computeArchitectureScores(options: {
         : deliveryNormalizationResult
         ? [
             toEvidence(
-              "raw delivery observations を normalization profile で score 化して利用しています",
+              "Using raw delivery observations after scoring them through the normalization profile.",
               {
                 source: "raw_normalized"
               },
@@ -1146,7 +1146,7 @@ export async function computeArchitectureScores(options: {
   const telemetryInputEvidence = options.telemetryObservations
     ? [
         toEvidence(
-          "telemetry observations の normalized score をそのまま利用しています",
+          "Using the normalized scores from telemetry observations as-is.",
           {
             source: "normalized_input"
           },
@@ -1157,7 +1157,7 @@ export async function computeArchitectureScores(options: {
       : options.telemetryRawObservations
         ? [
             toEvidence(
-              "raw telemetry observations を normalization profile で score 化して利用しています",
+              "Using raw telemetry observations after scoring them through the normalization profile.",
               {
                 source: "raw_normalized"
               },
@@ -1168,7 +1168,7 @@ export async function computeArchitectureScores(options: {
         : options.telemetryExport
       ? [
           toEvidence(
-            "telemetry export を OAS の CommonOps input として取り込みました",
+            "Ingested the telemetry export as the CommonOps input for OAS.",
             {
               source: "telemetry_export"
             },
@@ -1179,7 +1179,7 @@ export async function computeArchitectureScores(options: {
         : options.telemetrySource
           ? [
               toEvidence(
-                `telemetry source (${options.telemetrySource.sourceType}) から canonical export を取り込みました`,
+                `Ingested a canonical export from telemetry source (${options.telemetrySource.sourceType}).`,
                 {
                   source: "telemetry_source",
                   sourceType: options.telemetrySource.sourceType,
@@ -1193,7 +1193,7 @@ export async function computeArchitectureScores(options: {
         : telemetryNormalizationResult
           ? [
               toEvidence(
-                "raw telemetry observations を normalization profile で score 化して利用しています",
+                "Using raw telemetry observations after scoring them through the normalization profile.",
                 {
                   source: "raw_normalized"
                 },
@@ -1208,7 +1208,7 @@ export async function computeArchitectureScores(options: {
       ...scenarioScore.unknowns,
       ...(options.scenarioObservationSource?.unknowns ?? []),
       ...(options.scenarioObservations && options.scenarioObservationSourceRequested
-        ? ["scenario-observations が指定されているため scenario observation source は優先されません"]
+        ? ["Scenario observations were provided explicitly, so the scenario observation source was not used."]
         : [])
     ];
     scores.push(
@@ -1249,7 +1249,7 @@ export async function computeArchitectureScores(options: {
         },
         evidence.map((entry) => entry.evidenceId),
         directionScore.applicableEdges > 0 ? 0.9 : 0.55,
-        directionScore.applicableEdges > 0 ? [] : ["層に分類できる依存が不足しています"]
+        directionScore.applicableEdges > 0 ? [] : ["There are too few dependencies that can be classified into layers."]
       )
     );
   }
@@ -1333,27 +1333,27 @@ export async function computeArchitectureScores(options: {
         options.telemetryNormalizationProfile ||
         options.telemetryExport ||
         options.telemetrySourceRequested)
-        ? ["telemetry-observations が指定されているため raw/export/source telemetry input は優先されません"]
+        ? ["Telemetry observations were provided explicitly, so raw/export/source telemetry inputs were not used."]
         : []),
       ...(options.telemetryRawObservations && options.telemetryExport
-        ? ["telemetry-raw-observations が指定されているため telemetry export は優先されません"]
+        ? ["Raw telemetry observations were provided explicitly, so the telemetry export was not used."]
         : []),
       ...(options.telemetrySourceRequested &&
       (options.telemetryObservations ||
         (options.telemetryRawObservations && options.telemetryNormalizationProfile) ||
         options.telemetryExport)
-        ? ["高優先度の telemetry input があるため telemetry source は利用されません"]
+        ? ["A higher-priority telemetry input was present, so the telemetry source was not used."]
         : []),
       ...(options.patternRuntimeObservations && telemetryExportIngestResult?.patternRuntimeObservations
-        ? ["pattern-runtime-observations が指定されているため telemetry export 内の patternRuntime は優先されません"]
+        ? ["Pattern runtime observations were provided explicitly, so pattern runtime data inside the telemetry export was not used."]
         : []),
       ...(options.patternRuntimeObservations &&
       options.patternRuntimeRawRequested &&
       options.patternRuntimeNormalizationProfileRequested
-        ? ["pattern-runtime-observations が指定されているため raw pattern runtime input は優先されません"]
+        ? ["Pattern runtime observations were provided explicitly, so raw pattern runtime input was not used."]
         : []),
       ...(usablePatternRuntimeRaw && telemetryExportIngestResult?.patternRuntimeObservations
-        ? ["raw pattern runtime input が指定されているため telemetry export 内の patternRuntime は優先されません"]
+        ? ["Raw pattern runtime input was provided explicitly, so pattern runtime data inside the telemetry export was not used."]
         : [])
     ];
     scores.push(
@@ -1409,7 +1409,7 @@ export async function computeArchitectureScores(options: {
             ...(complexityExportIngestResult?.unknowns ?? []),
             ...complexityScore.unknowns,
             ...(options.complexityExport && options.complexitySourceRequested
-              ? ["complexity-export が指定されているため complexity source は優先されません"]
+              ? ["A complexity export was provided explicitly, so the complexity source was not used."]
               : [])
           ])
         )
@@ -1443,16 +1443,16 @@ export async function computeArchitectureScores(options: {
         options.deliveryNormalizationProfile ||
         options.deliveryExport ||
         options.deliverySourceRequested)
-        ? ["delivery-observations が指定されているため raw/export/source delivery input は優先されません"]
+        ? ["Delivery observations were provided explicitly, so raw/export/source delivery inputs were not used."]
         : []),
       ...(options.deliveryRawObservations && options.deliveryExport
-        ? ["delivery-raw-observations が指定されているため delivery export は優先されません"]
+        ? ["Raw delivery observations were provided explicitly, so the delivery export was not used."]
         : []),
       ...(options.deliverySourceRequested &&
       (options.deliveryObservations ||
         (options.deliveryRawObservations && options.deliveryNormalizationProfile) ||
         options.deliveryExport)
-        ? ["高優先度の delivery input があるため delivery source は利用されません"]
+        ? ["A higher-priority delivery input was present, so the delivery source was not used."]
         : [])
     ];
     scores.push(
@@ -1515,27 +1515,27 @@ export async function computeArchitectureScores(options: {
       EES: eesMetric?.value ?? 0.5,
       CTI: ctiMetric?.value ?? 0.5
     };
-    const apsiUnknowns = ["PCS は DDS/BPS/IPS の proxy 合成です"];
+    const apsiUnknowns = ["PCS is a proxy composite of DDS, BPS, and IPS."];
     if (!qsfMetric) {
-      apsiUnknowns.push("QSF が未計算のため APSI は中立値 0.5 を使っています");
+      apsiUnknowns.push("QSF was not computed, so APSI is using the neutral fallback value 0.5.");
     }
     if (!ddsMetric || !bpsMetric || !ipsMetric) {
-      apsiUnknowns.push("DDS/BPS/IPS の一部が未計算のため PCS は部分的な proxy です");
+      apsiUnknowns.push("Some of DDS/BPS/IPS were not computed, so PCS is only a partial proxy.");
     }
     if (!oasMetric && tisMetric) {
-      apsiUnknowns.push("OAS は TIS の proxy 合成です");
+      apsiUnknowns.push("OAS is being approximated through the TIS proxy.");
     }
     if (!oasMetric && !tisMetric) {
-      apsiUnknowns.push("OAS と TIS が未計算のため APSI は中立値 0.5 を使っています");
+      apsiUnknowns.push("Neither OAS nor TIS was computed, so APSI is using the neutral fallback value 0.5.");
     }
     if (!eesMetric) {
-      apsiUnknowns.push("EES が未計算のため APSI は中立値 0.5 を使っています");
+      apsiUnknowns.push("EES was not computed, so APSI is using the neutral fallback value 0.5.");
     }
     if (!ctiMetric) {
-      apsiUnknowns.push("CTI が未計算のため APSI は中立値 0.5 を使っています");
+      apsiUnknowns.push("CTI was not computed, so APSI is using the neutral fallback value 0.5.");
     }
     if (profileName !== "default") {
-      apsiUnknowns.push(`APSI は ${profileName} policy profile の比較重みを使っています`);
+      apsiUnknowns.push(`APSI is using the comparison weights from the ${profileName} policy profile.`);
     }
     scores.push(
       toMetricScore(

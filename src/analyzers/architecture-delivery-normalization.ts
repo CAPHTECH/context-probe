@@ -71,7 +71,7 @@ export function normalizeDeliveryObservations(input: {
         scores: {}
       },
       confidence: 0.25,
-      unknowns: ["delivery raw observations が指定されていないため raw normalization は未観測です"],
+      unknowns: ["No delivery raw observations were provided, so raw normalization is unobserved."],
       findings
     };
   }
@@ -83,7 +83,7 @@ export function normalizeDeliveryObservations(input: {
         scores: {}
       },
       confidence: 0.3,
-      unknowns: ["delivery normalization profile が指定されていないため raw delivery を score 化できません"],
+      unknowns: ["No delivery normalization profile was provided, so raw delivery cannot be scored."],
       findings
     };
   }
@@ -130,24 +130,24 @@ export function normalizeDeliveryObservations(input: {
 
   for (const mapping of mappings) {
     if (!mapping.rule) {
-      unknowns.push(`${mapping.component} 用 normalization rule が不足しています`);
+      unknowns.push(`A normalization rule for ${mapping.component} is missing.`);
       findings.push({
         kind: "missing_normalization_rule",
         component: mapping.component,
         scoreComponent: mapping.scoreComponent,
         confidence: 0.58,
-        note: `${mapping.component} を正規化する rule がありません`
+        note: `There is no rule to normalize ${mapping.component}.`
       });
       continue;
     }
     if (mapping.observed === undefined) {
-      unknowns.push(`raw ${mapping.component} signal が不足しています`);
+      unknowns.push(`The raw ${mapping.component} signal is missing.`);
       findings.push({
         kind: "missing_raw_signal",
         component: mapping.component,
         scoreComponent: mapping.scoreComponent,
         confidence: 0.62,
-        note: `raw ${mapping.component} signal が不足しています`
+        note: `The raw ${mapping.component} signal is missing.`
       });
       continue;
     }
@@ -168,7 +168,7 @@ export function normalizeDeliveryObservations(input: {
       observed: mapping.observed,
       normalized: storedScore,
       confidence: 0.86,
-      note: `${mapping.component} を raw delivery から ${storedScore.toFixed(3)} に正規化しました`
+      note: `${mapping.component} was normalized from raw delivery input to ${storedScore.toFixed(3)}.`
     });
   }
 

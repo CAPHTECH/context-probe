@@ -152,7 +152,7 @@ function analyzeEcmaContractDeclarations(pathValue: string, sourceText: string):
         kind: "contract_backward_compatibility_risk",
         path: pathValue,
         confidence: 0.86,
-        note: `${pathValue} が interface/type/enum 以外の公開契約を export しています`,
+        note: `${pathValue} exports a public contract outside interface/type/enum declarations.`,
         ...(symbol ? { symbol } : {})
       });
     }
@@ -163,7 +163,7 @@ function analyzeEcmaContractDeclarations(pathValue: string, sourceText: string):
         kind: "breaking_change_risk",
         path: pathValue,
         confidence: 0.88,
-        note: `${pathValue} の公開契約が any を含んでいます`,
+        note: `${pathValue} contains 'any' in a public contract.`,
         ...(symbol ? { symbol } : {})
       });
     }
@@ -220,7 +220,7 @@ function analyzeDartContractDeclarations(pathValue: string, sourceText: string):
         kind: "contract_backward_compatibility_risk",
         path: pathValue,
         confidence: 0.84,
-        note: `${pathValue} が function/value 由来の公開契約を含んでいます`,
+        note: `${pathValue} contains a public contract derived from a function or value.`,
         ...(symbol ? { symbol } : {})
       });
     }
@@ -230,7 +230,7 @@ function analyzeDartContractDeclarations(pathValue: string, sourceText: string):
         kind: "breaking_change_risk",
         path: pathValue,
         confidence: 0.88,
-        note: `${pathValue} の公開契約が dynamic を含んでいます`,
+        note: `${pathValue} contains 'dynamic' in a public contract.`,
         ...(symbol ? { symbol } : {})
       });
     }
@@ -280,7 +280,7 @@ async function analyzeContractFile(options: {
         path: options.path,
         symbol: dependency.specifier,
         confidence: 0.9,
-        note: `${options.path} が非契約ファイル ${dependency.target} を参照しています`
+        note: `${options.path} references a non-contract file: ${dependency.target}.`
       });
     }
     if (isInternalishFile(dependency.target, targetLayer?.name)) {
@@ -290,7 +290,7 @@ async function analyzeContractFile(options: {
         path: options.path,
         symbol: dependency.specifier,
         confidence: 0.92,
-        note: `${options.path} が internal/framework 相当の ${dependency.target} を参照しています`
+        note: `${options.path} references an internal/framework-like file: ${dependency.target}.`
       });
     }
   }
@@ -321,7 +321,7 @@ export async function scoreInterfaceProtocolStability(options: {
   const contractFiles = new Set(contractPaths);
   const fileMap = getParsedFileMap(options.codebase);
   const unknowns: string[] = [
-    "CBC/BCR はベースライン差分ではなく現時点の契約安定性 proxy です"
+    "CBC/BCR are current-state contract-stability proxies, not baseline deltas."
   ];
 
   if (contractPaths.length === 0) {
@@ -330,7 +330,7 @@ export async function scoreInterfaceProtocolStability(options: {
       BCR: 0.5,
       SLA: 0.5,
       confidence: 0.45,
-      unknowns: [...unknowns, "契約ファイルが少なく IPS は保守的な近似です"],
+      unknowns: [...unknowns, "There are too few contract files, so IPS is conservative."],
       findings: []
     };
   }
@@ -372,10 +372,10 @@ export async function scoreInterfaceProtocolStability(options: {
   const SLA = clamp01(0.6 * importAdherence + 0.4 * cleanContractFileRatio);
 
   if (totalImports === 0) {
-    unknowns.push("契約 import が少なく SLA の根拠が限定的です");
+    unknowns.push("There are too few contract imports, so SLA evidence is limited.");
   }
   if (totalExports === 0) {
-    unknowns.push("公開契約 export が少なく CBC の根拠が限定的です");
+    unknowns.push("There are too few public contract exports, so CBC evidence is limited.");
   }
 
   return {

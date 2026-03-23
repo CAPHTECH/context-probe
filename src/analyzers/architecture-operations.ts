@@ -115,13 +115,13 @@ export function scoreOperationalAdequacy(input: {
       if (entry.value !== undefined) {
         continue;
       }
-      unknowns.push(`${band.bandId} の ${entry.component} が不足しており CommonOps は部分的な近似です`);
+      unknowns.push(`${band.bandId} is missing ${entry.component}, so CommonOps is only a partial approximation.`);
       findings.push({
         kind: "missing_band_signal",
         bandId: band.bandId,
         component: entry.component,
         confidence: 0.66,
-        note: `${band.bandId} の ${entry.component} が不足しています`
+        note: `${band.bandId} is missing ${entry.component}.`
       });
     }
 
@@ -130,7 +130,7 @@ export function scoreOperationalAdequacy(input: {
         kind: "weak_common_ops",
         bandId: band.bandId,
         confidence: 0.8,
-        note: `${band.bandId} の common operations score が ${bandScore.toFixed(3)} と低く、運用時挙動が不安定です`
+        note: `${band.bandId} has a low common-operations score (${bandScore.toFixed(3)}), so runtime behavior is unstable.`
       });
     }
   }
@@ -139,9 +139,9 @@ export function scoreOperationalAdequacy(input: {
   const weightedBandCoverage = totalTrafficWeight > 0 ? clamp01(weightedCoverage / totalTrafficWeight) : 0;
 
   if (bands.length === 0) {
-    unknowns.push("telemetry observations が指定されていないため CommonOps は中立値 0.5 を使っています");
+    unknowns.push("No telemetry observations were provided, so CommonOps is using the neutral value 0.5.");
   } else if (weightedBandCoverage < 1) {
-    unknowns.push("traffic band の一部 signal が欠けており CommonOps は部分的な近似です");
+    unknowns.push("Some traffic-band signals are missing, so CommonOps is only a partial approximation.");
   }
 
   const patternRuntimeScore = scorePatternRuntime({
@@ -181,7 +181,7 @@ export function scoreOperationalAdequacy(input: {
     findings.push({
       kind: "weak_pattern_runtime",
       confidence: 0.78,
-      note: `PatternRuntime score が ${PatternRuntime.toFixed(3)} と低く、pattern-specific runtime adequacy が弱い状態です`,
+      note: `PatternRuntime is low at ${PatternRuntime.toFixed(3)}, so pattern-specific runtime adequacy is weak.`,
       ...(patternRuntimeScore.patternFamily ? { patternFamily: patternRuntimeScore.patternFamily } : {}),
       source: patternRuntimeScore.source
     });

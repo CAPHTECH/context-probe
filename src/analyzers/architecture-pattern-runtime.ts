@@ -182,11 +182,13 @@ function resolveSelectedSpec(input: {
   }
 
   if (providedBlocks.length > 1) {
-    unknowns.push("複数の pattern runtime block が指定されているため PatternRuntime は優先 block を使って近似します");
+    unknowns.push(
+      "Multiple pattern runtime blocks were provided, so PatternRuntime is approximated from the highest-priority block."
+    );
     const finding: PatternRuntimeFinding = {
       kind: "pattern_runtime_multiple_blocks",
       confidence: 0.66,
-      note: "複数の pattern runtime block が指定されているため優先 block を選択しました",
+      note: "Multiple pattern runtime blocks were provided, so the highest-priority block was selected.",
       source: "family"
     };
     if (declaredFamily) {
@@ -216,12 +218,12 @@ function resolveSelectedSpec(input: {
   const selectedSpec = FAMILY_SPECS.find((entry) => entry.blockName === selected.blockName);
   if (declaredFamily && selectedSpec && !selectedSpec.families.includes(declaredFamily)) {
     unknowns.push(
-      `patternFamily=${declaredFamily} ですが ${selected.blockName} を使って PatternRuntime を推定しています`
+      `patternFamily=${declaredFamily}, but PatternRuntime is being estimated from ${selected.blockName}.`
     );
     findings.push({
       kind: "pattern_runtime_family_mismatch",
       confidence: 0.58,
-      note: `patternFamily=${declaredFamily} と ${selected.blockName} の組み合わせが不整合です`,
+      note: `patternFamily=${declaredFamily} is inconsistent with ${selected.blockName}.`,
       patternFamily: declaredFamily,
       source: "family"
     });
@@ -252,11 +254,13 @@ export function scorePatternRuntime(input: {
   if (selected.spec && selected.block) {
     const weighted = weightedObservedAverage(selected.block, selected.spec.weights);
     for (const signal of weighted.missingSignals) {
-      unknowns.push(`${selected.spec.blockName} の ${signal} が不足しており PatternRuntime は部分的な近似です`);
+      unknowns.push(
+        `${selected.spec.blockName} is missing ${signal}, so PatternRuntime is only a partial approximation.`
+      );
       const finding: PatternRuntimeFinding = {
         kind: "pattern_runtime_signal_missing",
         confidence: 0.68,
-        note: `${selected.spec.blockName} の ${signal} が不足しています`,
+        note: `${selected.spec.blockName} is missing ${signal}.`,
         signal,
         source: "family"
       };
@@ -266,11 +270,11 @@ export function scorePatternRuntime(input: {
       findings.push(finding);
     }
     if (observations?.score !== undefined) {
-      unknowns.push("family-specific pattern runtime が legacy score より優先されました");
+      unknowns.push("Family-specific pattern runtime data took precedence over the legacy score.");
       const finding: PatternRuntimeFinding = {
         kind: "pattern_runtime_legacy_overridden",
         confidence: 0.74,
-        note: "family-specific pattern runtime block を優先し、legacy score は補助情報として扱いました",
+        note: "The family-specific pattern runtime block was prioritized and the legacy score was treated as supplemental.",
         source: "family"
       };
       if (selected.family) {
@@ -306,7 +310,7 @@ export function scorePatternRuntime(input: {
     const finding: PatternRuntimeFinding = {
       kind: "pattern_runtime_legacy_used",
       confidence: 0.76,
-      note: "legacy pattern runtime score をそのまま利用しています",
+      note: "The legacy pattern runtime score is being used as-is.",
       source: "legacy"
     };
     if (observations.patternFamily) {
@@ -329,11 +333,11 @@ export function scorePatternRuntime(input: {
   }
 
   if (input.topologyIsolationBridge !== undefined) {
-    unknowns.push("pattern runtime observations が指定されていないため PatternRuntime は TIS bridge を使っています");
+    unknowns.push("No pattern runtime observations were provided, so PatternRuntime is using the TIS bridge.");
     const finding: PatternRuntimeFinding = {
       kind: "pattern_runtime_tis_bridge",
       confidence: 0.68,
-      note: "pattern runtime observation が不足しているため TIS bridge を PatternRuntime に利用しています",
+      note: "Pattern runtime observations are missing, so the TIS bridge is being used for PatternRuntime.",
       source: "tis_bridge"
     };
     if (observations?.patternFamily) {
@@ -355,11 +359,11 @@ export function scorePatternRuntime(input: {
     return result;
   }
 
-  unknowns.push("pattern runtime observations が指定されていないため PatternRuntime は中立値 0.5 を使っています");
+  unknowns.push("No pattern runtime observations were provided, so PatternRuntime is using the neutral value 0.5.");
   const finding: PatternRuntimeFinding = {
     kind: "pattern_runtime_neutral",
     confidence: 0.62,
-    note: "pattern runtime observation が不足しているため PatternRuntime は未観測に近い状態です",
+    note: "Pattern runtime observations are missing, so PatternRuntime is close to unobserved.",
     source: "neutral"
   };
   if (observations?.patternFamily) {

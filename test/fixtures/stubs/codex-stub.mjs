@@ -19,12 +19,12 @@ if (prompt.includes("canonical domain terms")) {
         aliases: [],
         collision: true,
         confidence: 0.61,
-        unknowns: ["Billing と Fulfillment の意味差が未確定"],
+        unknowns: ["The meaning difference between Billing and Fulfillment is not yet resolved."],
         fragmentIds: []
       }
     ],
     confidence: 0.61,
-    unknowns: ["用語の意味差レビューが必要"],
+    unknowns: ["A review is needed to resolve the meaning difference between terms."],
     diagnostics: []
   };
 } else if (prompt.includes("business rules")) {
@@ -32,11 +32,11 @@ if (prompt.includes("canonical domain terms")) {
     items: [
       {
         type: "business_rule",
-        statement: "注文確定後は決済総額と明細合計が常に一致していなければならない",
+        statement: "After order confirmation, the payment total and line-item total must always match.",
         confidence: 0.72,
         unknowns: [],
         fragmentIds: [],
-        relatedTerms: ["注文", "決済", "明細"]
+        relatedTerms: ["Order", "Payment", "LineItem"]
       }
     ],
     confidence: 0.72,
@@ -48,11 +48,11 @@ if (prompt.includes("canonical domain terms")) {
     items: [
       {
         type: "strong_invariant",
-        statement: "注文確定後は決済総額と明細合計が常に一致していなければならない",
+        statement: "After order confirmation, the payment total and line-item total must always match.",
         confidence: 0.69,
         unknowns: [],
         fragmentIds: [],
-        relatedTerms: ["注文", "決済", "明細"]
+        relatedTerms: ["Order", "Payment", "LineItem"]
       }
     ],
     confidence: 0.69,

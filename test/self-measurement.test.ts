@@ -49,7 +49,7 @@ describe("self measurement", () => {
     );
     expect(domainResult.crossContextReferences).toBeGreaterThan(0);
     expect(domainResult.history).not.toBeNull();
-    expect(domainResponse.unknowns).toContain("Git履歴がまだ少ないため ELS は暫定値です");
+    expect(domainResponse.unknowns).toContain("Git history is still thin, so ELS is provisional.");
 
     const architectureResponse = await COMMANDS["score.compute"]!(
       {
@@ -70,20 +70,20 @@ describe("self measurement", () => {
       expect.arrayContaining(["QSF", "DDS", "BPS", "IPS", "TIS", "OAS", "CTI", "AELS", "EES", "APSI"])
     );
     expect(Array.isArray(architectureResult.violations)).toBe(true);
-    expect(architectureResponse.unknowns).toContain("scenario catalog が指定されていないため QSF は未観測です");
+    expect(architectureResponse.unknowns).toContain("No scenario catalog was provided, so QSF is unobserved.");
     expect(architectureResponse.unknowns).toContain(
-      "topology model が指定されていないため TIS は未観測に近い状態です"
+      "No topology model was provided, so TIS is close to unobserved."
     );
     expect(architectureResponse.unknowns).toContain(
-      "telemetry observations が指定されていないため CommonOps は中立値 0.5 を使っています"
+      "No telemetry observations were provided, so CommonOps is using the neutral value 0.5."
     );
     expect(architectureResponse.unknowns).toContain(
-      "pattern runtime observations が指定されていないため PatternRuntime は TIS bridge を使っています"
+      "No pattern runtime observations were provided, so PatternRuntime is using the TIS bridge."
     );
     expect(architectureResponse.unknowns).toContain(
-      "delivery observations が指定されていないため Delivery は中立値 0.5 を使っています"
+      "No delivery observations were provided, so Delivery is using the neutral value 0.5."
     );
-    expect(architectureResponse.unknowns).toContain("PCS は DDS/BPS/IPS の proxy 合成です");
+    expect(architectureResponse.unknowns).toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
   }, 20000);
 
   test("degrades gracefully when git metadata is absent", async () => {
@@ -100,7 +100,7 @@ describe("self measurement", () => {
     );
 
     expect(response.status).toBe("warning");
-    expect(response.diagnostics.some((entry) => entry.includes("履歴解析をスキップしました"))).toBe(true);
-    expect(response.unknowns).toContain("履歴解析に必要なGit情報が不足しています");
+    expect(response.diagnostics.some((entry) => entry.includes("Skipped history analysis"))).toBe(true);
+    expect(response.unknowns).toContain("Git information required for history analysis is missing.");
   });
 });

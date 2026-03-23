@@ -331,7 +331,7 @@ export function computeBoundaryFitness(input: {
         );
 
   if (attractionSignals.length === 0) {
-    unknowns.push("context に紐づく用語・ルール・不変条件が十分に観測できず A(P) は暫定値です");
+    unknowns.push("Terms, rules, and invariants tied to contexts are too weakly observed, so A(P) is provisional.");
   }
 
   const separationFragments = input.fragments.filter((fragment) => {
@@ -340,7 +340,7 @@ export function computeBoundaryFitness(input: {
   });
   const explicitSeparationScore = separationFragments.length > 0 ? 1 : 0.5;
   if (separationFragments.length === 0) {
-    unknowns.push("ownership/security などの明示的な分離根拠が少なく R(P) の一部は近似です");
+    unknowns.push("Explicit separation evidence such as ownership or security is limited, so part of R(P) is approximate.");
   }
 
   const modelCoverageScore = average(input.modelCodeLinks.map((link) => link.coverage), 0.55);
@@ -353,7 +353,7 @@ export function computeBoundaryFitness(input: {
       ? clamp01((input.contractUsage.adherence + (1 - leakRatio)) / 2)
       : clamp01(0.55 + modelCoverageScore * 0.25);
   if (input.contractUsage.applicableReferences === 0) {
-    unknowns.push("cross-context 参照が少なくコード上の分離根拠は限定的です");
+    unknowns.push("There are too few cross-context references to derive strong code-level separation evidence.");
   }
 
   const documentSeparationScore =
@@ -415,10 +415,10 @@ export function computeBoundaryFitness(input: {
   ];
 
   if (input.model.contexts.length < 2) {
-    unknowns.push("context が 2 つ未満のため BFS の解釈に注意が必要です");
+    unknowns.push("Fewer than two contexts were defined, so BFS should be interpreted carefully.");
   }
   if (input.modelCodeLinks.some((link) => link.coverage === 0)) {
-    diagnostics.push("一部の context に対応するコードが見つからず model coverage が低下しています");
+    diagnostics.push("Some contexts could not be linked to code, which lowers model coverage.");
   }
 
   return {

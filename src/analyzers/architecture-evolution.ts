@@ -91,13 +91,13 @@ export function scoreArchitectureEvolutionLocality(options: {
       WeightedPropagationCost: 0.5,
       WeightedClusteringCost: 0.5,
       confidence: 0.25,
-      unknowns: ["architecture boundary が不足しており AELS は未観測に近い状態です"],
+      unknowns: ["There are too few architecture boundaries, so AELS is close to unobserved."],
       findings
     };
   }
 
   if (!options.boundaryMap) {
-    unknowns.push("boundary map が指定されていないため AELS は constraints layers を境界 proxy として使っています");
+    unknowns.push("No boundary map was provided, so AELS is using constraint layers as a boundary proxy.");
   }
 
   const relevant = options.commits
@@ -122,7 +122,7 @@ export function scoreArchitectureEvolutionLocality(options: {
       confidence: 0.3,
       unknowns: uniqueUnknowns([
         ...unknowns,
-        "architecture boundary と対応づく履歴がなく AELS は未観測に近い状態です"
+        "No history could be mapped to architecture boundaries, so AELS is close to unobserved."
       ]),
       findings
     };
@@ -153,7 +153,7 @@ export function scoreArchitectureEvolutionLocality(options: {
       kind: "cross_boundary_cochange",
       commitHash: commit.hash,
       confidence: 0.82,
-      note: `commit ${commit.hash.slice(0, 7)} が複数 boundary を同時変更しています: ${boundaryNames.join(", ")}`
+      note: `Commit ${commit.hash.slice(0, 7)} changed multiple boundaries at once: ${boundaryNames.join(", ")}`
     });
   }
 
@@ -166,24 +166,24 @@ export function scoreArchitectureEvolutionLocality(options: {
     crossBoundaryCommits.length === 0 ? 0 : clamp01(0.75 * pairTouchDensity + 0.15 * pairSpread + 0.10 * boundarySpread);
 
   if (relevant.length < 3) {
-    unknowns.push("architecture locality を評価する履歴がまだ少ないため AELS は暫定値です");
+    unknowns.push("History is still thin for architecture-locality evaluation, so AELS is provisional.");
   }
   if (crossBoundaryCommits.length === 0) {
-    unknowns.push("cross-boundary co-change が観測されず WPC/WCC の根拠は限定的です");
+    unknowns.push("No cross-boundary co-change was observed, so WPC/WCC evidence is limited.");
   }
 
   if (WeightedPropagationCost > 0.5) {
     findings.push({
       kind: "high_propagation_cost",
       confidence: 0.76,
-      note: `WeightedPropagationCost が ${WeightedPropagationCost.toFixed(3)} と高く、変更伝播が広がりやすい状態です`
+      note: `WeightedPropagationCost is high at ${WeightedPropagationCost.toFixed(3)}, so changes are likely to spread.`
     });
   }
   if (WeightedClusteringCost > 0.5) {
     findings.push({
       kind: "high_clustering_cost",
       confidence: 0.74,
-      note: `WeightedClusteringCost が ${WeightedClusteringCost.toFixed(3)} と高く、boundary 間の change coupling が広く観測されています`
+      note: `WeightedClusteringCost is high at ${WeightedClusteringCost.toFixed(3)}, so change coupling is spread across boundaries.`
     });
   }
 
@@ -220,33 +220,33 @@ export function scoreArchitectureEvolutionEfficiency(options: {
       component: "LeadTimeScore" as const,
       weight: 0.25,
       value: scores?.LeadTimeScore,
-      note: "lead time score を delivery efficiency に反映しています"
+      note: "Applying lead time score to delivery efficiency."
     },
     {
       component: "DeployFreqScore" as const,
       weight: 0.2,
       value: scores?.DeployFreqScore,
-      note: "deployment frequency score を delivery efficiency に反映しています"
+      note: "Applying deployment frequency score to delivery efficiency."
     },
     {
       component: "RecoveryScore" as const,
       weight: 0.2,
       value: scores?.RecoveryScore,
-      note: "recovery score を delivery efficiency に反映しています"
+      note: "Applying recovery score to delivery efficiency."
     },
     {
       component: "ChangeFailScore" as const,
       weight: 0.2,
       value: scores?.ChangeFailScore,
       invert: true,
-      note: "change fail score を反転して delivery efficiency に反映しています"
+      note: "Applying the inverted change-fail score to delivery efficiency."
     },
     {
       component: "ReworkScore" as const,
       weight: 0.15,
       value: scores?.ReworkScore,
       invert: true,
-      note: "deployment rework score を反転して delivery efficiency に反映しています"
+      note: "Applying the inverted deployment-rework score to delivery efficiency."
     }
   ];
 
@@ -254,12 +254,12 @@ export function scoreArchitectureEvolutionEfficiency(options: {
   let weightedSum = 0;
   for (const entry of weightedComponents) {
     if (entry.value === undefined) {
-      unknowns.push(`${entry.component} が不足しており Delivery は部分的な近似です`);
+      unknowns.push(`${entry.component} is missing, so Delivery is only a partial approximation.`);
       findings.push({
         kind: "missing_delivery_observation",
         component: entry.component,
         confidence: 0.45,
-        note: `${entry.component} が指定されていません`
+        note: `${entry.component} was not provided.`
       });
       continue;
     }
@@ -278,7 +278,7 @@ export function scoreArchitectureEvolutionEfficiency(options: {
 
   const Delivery = observedWeight > 0 ? weightedSum / observedWeight : 0.5;
   if (!scores) {
-    unknowns.push("delivery observations が指定されていないため Delivery は中立値 0.5 を使っています");
+    unknowns.push("No delivery observations were provided, so Delivery is using the neutral value 0.5.");
   }
 
   return {

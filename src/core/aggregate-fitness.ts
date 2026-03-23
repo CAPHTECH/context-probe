@@ -78,7 +78,7 @@ export function computeAggregateFitness(input: {
   links: TermTraceLink[];
   invariants: InvariantCandidate[];
 }): AggregateFitnessResult {
-  const unknowns: string[] = ["Aggregate 定義がないため context を aggregate proxy として扱っています"];
+  const unknowns: string[] = ["No aggregate definitions were found, so context is being used as an aggregate proxy."];
   const diagnostics: string[] = [];
   const fragmentContextMentions = buildFragmentContextMentions(input.fragments, input.model);
   const linkByTermId = new Map(input.links.map((link) => [link.termId, link]));
@@ -115,9 +115,9 @@ export function computeAggregateFitness(input: {
       : clamp01(sicSignals.reduce((sum, value) => sum + value, 0) / Math.max(0.0001, sicWeights.reduce((sum, value) => sum + value, 0)));
 
   if (mappedInvariantCount === 0) {
-    unknowns.push("invariant の責務割当が観測できず SIC は暫定値です");
+    unknowns.push("Invariant responsibility assignment could not be observed, so SIC is provisional.");
   } else if (mappedInvariantCount < input.invariants.length) {
-    unknowns.push("一部の invariant は context へ割り当てられず SIC は近似です");
+    unknowns.push("Some invariants could not be mapped to contexts, so SIC is approximate.");
   }
 
   const strongConsistencyInvariants = mappedInvariants.filter((entry) =>
@@ -125,7 +125,7 @@ export function computeAggregateFitness(input: {
   );
   let XTC = 0.25;
   if (strongConsistencyInvariants.length === 0) {
-    unknowns.push("強整合 invariant が少なく XTC の判定根拠が限定的です");
+    unknowns.push("There are too few strong-consistency invariants to support a strong XTC judgment.");
   } else {
     const xtcSignals = strongConsistencyInvariants.map((entry) => {
       if (entry.contexts.length > 1) {

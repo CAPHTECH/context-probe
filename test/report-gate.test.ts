@@ -34,22 +34,22 @@ describe("report and gate", () => {
       result: {
         domainId: "architecture_design",
         metrics: [
-          metric({ metricId: "APSI", value: 0.61, unknowns: ["PCS は DDS/BPS/IPS の proxy 合成です"] }),
+          metric({ metricId: "APSI", value: 0.61, unknowns: ["PCS is a proxy composite of DDS, BPS, and IPS."] }),
           metric({ metricId: "QSF", value: 0.7 }),
           metric({ metricId: "DDS", value: 0.82 }),
           metric({ metricId: "BPS", value: 0.8 }),
           metric({ metricId: "IPS", value: 0.76 }),
-          metric({ metricId: "OAS", value: 0.54, unknowns: ["OAS は partial 実装です"] }),
+          metric({ metricId: "OAS", value: 0.54, unknowns: ["OAS is partial."] }),
           metric({ metricId: "EES", value: 0.66 }),
           metric({ metricId: "CTI", value: 0.21 }),
-          metric({ metricId: "TIS", value: 0.58, unknowns: ["TIS は bridge です"] }),
+          metric({ metricId: "TIS", value: 0.58, unknowns: ["TIS is a bridge metric."] }),
           metric({ metricId: "AELS", value: 0.63 })
         ],
         violations: []
       },
       evidence: [],
       confidence: 0.72,
-      unknowns: ["telemetry observations が不足しています"],
+      unknowns: ["Telemetry observations are missing."],
       diagnostics: [],
       provenance: [],
       version: "1.0"
@@ -60,10 +60,42 @@ describe("report and gate", () => {
     expect(report).toContain("Policy Profile: layered");
     expect(report).toContain("## Supporting Metrics");
     expect(report).toContain("## Bridge Metrics");
+    expect(report).toContain("## Metric Guidance");
+    expect(report).toContain("APSI: ideal=");
+    expect(report).toContain("QSF: ideal=");
+    expect(report).toContain("CTI: ideal=");
     expect(report).toContain("## Proxy / Partial Signals");
-    expect(report).toContain("APSI: PCS は DDS/BPS/IPS の proxy 合成です");
-    expect(report).toContain("OAS: OAS は partial 実装です");
-    expect(report).toContain("TIS: TIS は bridge です");
+    expect(report).toContain("APSI: PCS is a proxy composite of DDS, BPS, and IPS.");
+    expect(report).toContain("OAS: OAS is partial.");
+    expect(report).toContain("TIS: TIS is a bridge metric.");
+  });
+
+  test("domain markdown report includes actionable metric guidance", () => {
+    const report = renderMarkdownReport({
+      status: "ok",
+      result: {
+        domainId: "domain_design",
+        metrics: [
+          metric({ metricId: "DRF", value: 0.74 }),
+          metric({ metricId: "ULI", value: 0.68 }),
+          metric({ metricId: "MCCS", value: 0.61 })
+        ],
+        leakFindings: []
+      },
+      evidence: [],
+      confidence: 0.8,
+      unknowns: [],
+      diagnostics: [],
+      provenance: [],
+      version: "1.0"
+    });
+
+    expect(report).toContain("## Metrics");
+    expect(report).toContain("## Metric Guidance");
+    expect(report).toContain("DRF: ideal=");
+    expect(report).toContain("ULI: ideal=");
+    expect(report).toContain("MCCS: ideal=");
+    expect(report).toContain("next=");
   });
 
   test("gate does not fail architecture runs on APSI alone when supporting metrics are healthy", () => {
