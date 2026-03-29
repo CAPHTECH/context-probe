@@ -17,6 +17,7 @@ async function createMixedWorkspace(): Promise<string> {
 
   await mkdir(path.join(root, "src/contracts"), { recursive: true });
   await mkdir(path.join(root, "src/application"), { recursive: true });
+  await mkdir(path.join(root, "src/analyzers"), { recursive: true });
   await mkdir(path.join(root, "fixtures/validation/scoring/ips/bad-repo/src/contracts"), {
     recursive: true,
   });
@@ -32,6 +33,11 @@ async function createMixedWorkspace(): Promise<string> {
   await writeFile(
     path.join(root, "src/application/load-order.ts"),
     'import type { OrderContract } from "../contracts/order-contract";\n\nexport function loadOrder(input: OrderContract): OrderContract {\n  return input;\n}\n',
+    "utf8",
+  );
+  await writeFile(
+    path.join(root, "src/analyzers/architecture-contracts.ts"),
+    'export function architectureContracts(): string {\n  return "not-a-contract-surface";\n}\n',
     "utf8",
   );
   await writeFile(
@@ -92,6 +98,7 @@ describe("architecture contract scope", () => {
 
       expect(contractPaths).toEqual(["src/contracts/order-contract.ts"]);
       expect(contractPaths.some((entry) => entry.includes("fixtures/"))).toBe(false);
+      expect(contractPaths).not.toContain("src/analyzers/architecture-contracts.ts");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

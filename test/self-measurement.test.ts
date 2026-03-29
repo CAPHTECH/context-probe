@@ -2,7 +2,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, test } from "vitest";
 
+import { parseCodebase } from "../src/analyzers/code.js";
+import { classifyArchitectureLayer, collectContractFilePaths } from "../src/analyzers/contract-files.js";
 import { COMMANDS } from "../src/commands.js";
+import { loadArchitectureConstraints } from "../src/core/model.js";
 import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitRepo } from "./helpers.js";
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
@@ -76,7 +79,30 @@ describe("self measurement", () => {
       "No delivery observations were provided, so Delivery is using the neutral value 0.5.",
     );
     expect(architectureResponse.unknowns).toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
+    expect(
+      architectureResponse.evidence.some((entry) =>
+        entry.statement.includes("src/analyzers/architecture-contracts.ts"),
+      ),
+    ).toBe(false);
   }, 20000);
+
+  test("self-measurement architecture constraints classify all src files and isolate the explicit contract layer", async () => {
+    repoPath = await createTemporaryWorkspace(PROJECT_ENTRIES);
+
+    const constraints = await loadArchitectureConstraints(path.join(repoPath, CONSTRAINTS_ENTRY));
+    const codebase = await parseCodebase(repoPath);
+    const unclassifiedSrc = codebase.scorableSourceFiles
+      .filter((filePath) => filePath.startsWith("src/") && !classifyArchitectureLayer(filePath, constraints))
+      .sort();
+    const contractPaths = collectContractFilePaths({
+      codebase,
+      constraints,
+      allowDartDomainFallback: true,
+    }).sort();
+
+    expect(unclassifiedSrc).toEqual([]);
+    expect(contractPaths).toEqual(["src/core/contracts.ts"]);
+  });
 
   test("degrades gracefully when git metadata is absent", async () => {
     repoPath = await createTemporaryWorkspace(PROJECT_ENTRIES);

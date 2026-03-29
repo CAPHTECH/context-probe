@@ -69,10 +69,11 @@ export function collectContractFilePaths(options: {
       return false;
     }
 
-    if (hasContractDirectorySignal(filePath) || hasContractBasenameSignal(filePath)) {
-      return true;
+    if (explicitContractLayerExists) {
+      return isContractLayer(layer);
     }
-    if (isContractLayer(layer)) {
+
+    if (hasContractDirectorySignal(filePath) || hasContractBasenameSignal(filePath) || isContractLayer(layer)) {
       return true;
     }
     return isDartDomainFallbackContract({
