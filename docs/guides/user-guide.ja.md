@@ -127,6 +127,44 @@ npm run dev -- review.list_unknowns \
   --docs-root docs
 ```
 
+### 5. 上級: application 向け persistence pilot を実行する
+
+curated な shadow-rollout gate で `application` category が `replace` になっている場合は、主導線の report / gate surface からそのまま pilot を実行できます。
+
+pilot report の例:
+
+```bash
+npm run dev -- report.generate \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain domain_design \
+  --format md \
+  --pilot-persistence \
+  --rollout-category application \
+  --shadow-rollout-registry fixtures/validation/shadow-rollout/registry.yaml
+```
+
+pilot gate の例:
+
+```bash
+npm run dev -- gate.evaluate \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain domain_design \
+  --pilot-persistence \
+  --rollout-category application \
+  --shadow-rollout-registry fixtures/validation/shadow-rollout/registry.yaml
+```
+
+pilot mode で変わる点:
+
+- `score.compute` は shadow payload を引き続き計算します
+- `result.pilot` に baseline `ELS`、persistence candidate、実効 locality source、gate 状態が入ります
+- 実効 `ELS` が変わるのは、選択した category gate が現在 `replace` のときだけです
+- 現在の curated gate では `tooling` はまだ `shadow_only` のままです
+
 ## 結果の読み方
 
 共通レスポンスの見る順番は次の通りです。

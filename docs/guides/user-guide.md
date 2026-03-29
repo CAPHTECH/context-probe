@@ -116,6 +116,44 @@ npm run dev -- review.list_unknowns \
 
 Use this when you want a review queue derived from low confidence, collisions, or unresolved unknowns.
 
+### 5. Advanced: run the application persistence pilot
+
+When the curated shadow-rollout gate says the `application` category is ready for replacement, you can run the category-gated pilot directly from the main report and gate surfaces.
+
+Pilot report example:
+
+```bash
+npm run dev -- report.generate \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain domain_design \
+  --format md \
+  --pilot-persistence \
+  --rollout-category application \
+  --shadow-rollout-registry fixtures/validation/shadow-rollout/registry.yaml
+```
+
+Pilot gate example:
+
+```bash
+npm run dev -- gate.evaluate \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain domain_design \
+  --pilot-persistence \
+  --rollout-category application \
+  --shadow-rollout-registry fixtures/validation/shadow-rollout/registry.yaml
+```
+
+What changes in pilot mode:
+
+- `score.compute` still calculates the shadow payload
+- `result.pilot` records the baseline `ELS`, persistence candidate, effective locality source, and gate state
+- the effective `ELS` may change only when the selected category gate currently says `replace`
+- `tooling` remains `shadow_only` under the current curated gate
+
 ## How To Read Results
 
 Recommended reading order:

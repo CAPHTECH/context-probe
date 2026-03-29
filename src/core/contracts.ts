@@ -498,6 +498,250 @@ export interface CochangeAnalysis {
   contextsSeen: string[];
 }
 
+export interface CochangePairWeight {
+  left: string;
+  right: string;
+  rawCount: number;
+  jaccard: number;
+}
+
+export interface CochangeStabilityCluster {
+  contexts: string[];
+  birth: number;
+  death: number;
+  stability: number;
+}
+
+export interface CochangePersistenceAnalysis {
+  relevantCommitCount: number;
+  contextsSeen: string[];
+  pairWeights: CochangePairWeight[];
+  stableChangeClusters: CochangeStabilityCluster[];
+  naturalSplitLevels: number[];
+  noiseRatio: number;
+}
+
+export interface CochangePersistenceCandidateScore {
+  localityScore: number;
+  persistentCouplingPenalty: number;
+  strongestPair: CochangePairWeight | null;
+  strongestCluster: CochangeStabilityCluster | null;
+  clusterPenalty: number;
+  pairPenalty: number;
+  coherencePenalty: number;
+}
+
+export interface EvolutionLocalityModelComparison {
+  els: {
+    score: number;
+    components: {
+      CCL: number;
+      FS: number;
+      SCR: number;
+    };
+  };
+  persistenceCandidate: CochangePersistenceCandidateScore;
+  persistenceAnalysis: CochangePersistenceAnalysis;
+  delta: number;
+}
+
+export interface DomainDesignShadowAnalysis {
+  localityModels: EvolutionLocalityModelComparison;
+}
+
+export interface DomainDesignPilotAnalysis {
+  category: string;
+  applied: boolean;
+  localitySource: "els" | "persistence_candidate";
+  baselineElsValue: number;
+  persistenceCandidateValue: number;
+  effectiveElsValue: number;
+  overallGate: {
+    reasons: string[];
+    replacementVerdict: "go" | "no_go";
+    rolloutDisposition: "replace" | "shadow_only";
+  };
+  categoryGate: {
+    reasons: string[];
+    replacementVerdict: "go" | "no_go";
+    rolloutDisposition: "replace" | "shadow_only";
+  };
+}
+
+export interface DomainDesignScoreResult {
+  domainId: "domain_design";
+  metrics: MetricScore[];
+  leakFindings: BoundaryLeakFinding[];
+  history: CochangeAnalysis | null;
+  crossContextReferences: number;
+  shadow?: DomainDesignShadowAnalysis;
+  pilot?: DomainDesignPilotAnalysis;
+}
+
+export interface DomainDesignShadowRolloutObservation {
+  domainId: "domain_design";
+  metricId: "ELS";
+  elsMetric: MetricScore;
+  shadow: DomainDesignShadowAnalysis;
+  observation: {
+    policyDelta: number;
+    modelDelta: number;
+    driftCategory: "aligned" | "candidate_higher" | "candidate_lower";
+    tieTolerance: number;
+  };
+  history: CochangeAnalysis | null;
+  crossContextReferences: number;
+}
+
+export interface DomainDesignShadowRolloutBatchSpecEntry {
+  repoId: string;
+  repo: string;
+  model: string;
+  label?: string;
+  category?: string;
+  modelSource?: "repo_owned" | "versioned_manifest";
+  policy?: string;
+  tieTolerance?: number;
+}
+
+export interface DomainDesignShadowRolloutBatchSpec {
+  version: string;
+  policy?: string;
+  tieTolerance?: number;
+  entries: DomainDesignShadowRolloutBatchSpecEntry[];
+}
+
+export interface DomainDesignShadowRolloutBatchObservation {
+  repoId: string;
+  label?: string;
+  category: string;
+  modelSource: "repo_owned" | "versioned_manifest";
+  repoPath: string;
+  modelPath: string;
+  policyPath: string;
+  status: CommandStatus;
+  elsMetric: number;
+  persistenceLocalityScore: number;
+  policyDelta: number;
+  modelDelta: number;
+  driftCategory: "aligned" | "candidate_higher" | "candidate_lower";
+  relevantCommitCount: number;
+  confidence: number;
+  unknowns: string[];
+}
+
+export interface DomainDesignShadowRolloutBatchAggregate {
+  repoCount: number;
+  averageDelta: number;
+  weightedAverageDelta: number;
+  minDelta: number;
+  maxDelta: number;
+  deltaRange: number;
+  driftCounts: {
+    aligned: number;
+    candidateHigher: number;
+    candidateLower: number;
+  };
+}
+
+export interface DomainDesignShadowRolloutBatchCategorySummary {
+  category: string;
+  repoIds: string[];
+  summary: DomainDesignShadowRolloutBatchAggregate;
+}
+
+export interface DomainDesignShadowRolloutBatchResult {
+  observations: DomainDesignShadowRolloutBatchObservation[];
+  categories: DomainDesignShadowRolloutBatchCategorySummary[];
+  overall: DomainDesignShadowRolloutBatchAggregate;
+}
+
+export interface DomainDesignShadowRolloutRegistryEntry {
+  repoId: string;
+  label?: string;
+  category: string;
+  modelSource: "repo_owned" | "versioned_manifest";
+  manifestPath?: string;
+  observation: {
+    relevantCommitCount: number;
+    delta: number;
+  };
+}
+
+export interface DomainDesignShadowRolloutRegistry {
+  version: string;
+  repos: DomainDesignShadowRolloutRegistryEntry[];
+}
+
+export interface DomainDesignShadowRolloutGateObservation {
+  repoId: string;
+  category: string;
+  modelSource: "repo_owned" | "versioned_manifest";
+  modelPath?: string;
+  relevantCommitCount: number;
+  delta: number;
+}
+
+export interface DomainDesignShadowRolloutGateAggregate {
+  repoCount: number;
+  averageDelta: number;
+  weightedAverageDelta: number;
+  medianDelta: number;
+  minDelta: number;
+  maxDelta: number;
+  deltaRange: number;
+  positiveDeltaCount: number;
+  negativeDeltaCount: number;
+}
+
+export interface DomainDesignShadowRolloutGateCategorySummary {
+  category: string;
+  repoIds: string[];
+  summary: DomainDesignShadowRolloutGateAggregate;
+  gate: {
+    reasons: string[];
+    replacementVerdict: "go" | "no_go";
+    rolloutDisposition: "replace" | "shadow_only";
+  };
+}
+
+export interface DomainDesignShadowRolloutGateEvaluation {
+  observations: DomainDesignShadowRolloutGateObservation[];
+  repoCount: number;
+  repoOwnedCount: number;
+  versionedManifestCount: number;
+  overall: DomainDesignShadowRolloutGateAggregate;
+  categories: DomainDesignShadowRolloutGateCategorySummary[];
+  reasons: string[];
+  replacementVerdict: "go" | "no_go";
+  rolloutDisposition: "replace" | "shadow_only";
+}
+
+export interface DomainDesignShadowRolloutGateResult {
+  source: "registry" | "batch_spec";
+  registryPath?: string;
+  batchSpecPath?: string;
+  evaluation: DomainDesignShadowRolloutGateEvaluation;
+}
+
+export interface MarkdownReportResult {
+  format: "md";
+  report: string;
+}
+
+export interface MetricGateDecision {
+  status: CommandStatus;
+  failures: string[];
+  warnings: string[];
+}
+
+export interface MeasurementGateResult {
+  domainId: "domain_design" | "architecture_design";
+  gate: MetricGateDecision;
+  metrics: MetricScore[];
+  pilot?: DomainDesignPilotAnalysis;
+}
+
 export interface MetricThresholds {
   warn?: number;
   fail?: number;

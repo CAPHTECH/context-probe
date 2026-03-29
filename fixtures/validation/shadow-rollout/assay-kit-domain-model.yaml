@@ -1,0 +1,17 @@
+version: "1.0"
+contexts:
+  - name: CoreToolkit
+    pathGlobs:
+      - packages/assay-kit/src/**
+      - packages/assay-kit/bin/**
+      - packages/assay-kit/templates/**
+  - name: McpServer
+    pathGlobs:
+      - packages/assay-mcp-server/src/**
+      - packages/assay-mcp-server/bin/**
+  - name: VerificationKit
+    pathGlobs:
+      - packages/verification-kit/src/**
+  - name: FormalSpecs
+    pathGlobs:
+      - specs/**

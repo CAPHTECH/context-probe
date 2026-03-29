@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import path from "node:path";
 
 import type {
   ArchitectureBoundaryMap,
@@ -23,6 +24,16 @@ import type {
   ArchitectureTelemetrySourceConfig,
   CommandContext,
   CommandResponse,
+  MarkdownReportResult,
+  MeasurementGateResult,
+  DomainDesignScoreResult,
+  DomainDesignShadowRolloutGateResult,
+  DomainDesignShadowRolloutBatchAggregate,
+  DomainDesignShadowRolloutBatchObservation,
+  DomainDesignShadowRolloutBatchResult,
+  DomainDesignShadowRolloutRegistry,
+  DomainDesignShadowRolloutBatchSpec,
+  DomainDesignShadowRolloutObservation,
   DomainModel,
   ExtractionBackend,
   ExtractionProviderName,
@@ -38,13 +49,27 @@ import {
   extractInvariants,
   extractRules
 } from "./core/document-extractors.js";
-import { normalizeHistory, scoreEvolutionLocality } from "./core/history.js";
+import {
+  analyzeCochangePersistence,
+  compareEvolutionLocalityModels,
+  evaluateEvolutionLocalityObservationQuality,
+  normalizeHistory,
+  scoreEvolutionLocality
+} from "./core/history.js";
 import { readDataFile } from "./core/io.js";
 import { loadArchitectureConstraints, loadDomainModel } from "./core/model.js";
 import { loadPolicyConfig } from "./core/policy.js";
 import { renderMarkdownReport, evaluateGate } from "./core/report.js";
 import { applyReviewOverrides, listReviewItems, resolveReviewItems } from "./core/review.js";
-import { createResponse, mergeStatus, toProvenance } from "./core/response.js";
+import { confidenceFromSignals, createResponse, mergeStatus, toProvenance } from "./core/response.js";
+import {
+  batchToGateObservations,
+  evaluateShadowRolloutGate,
+  inferShadowRolloutModelSource,
+  loadShadowRolloutRegistry,
+  registryToGateObservations,
+  summarizeShadowRolloutBatchObservations
+} from "./core/shadow-rollout.js";
 import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./core/trace.js";
 import { detectDirectionViolations, scoreDependencyDirection } from "./analyzers/architecture.js";
@@ -79,6 +104,53 @@ async function requireArchitectureConstraints(
     throw new Error("`--constraints` is required");
   }
   return loadArchitectureConstraints(new URL(constraintsPath, `file://${context.cwd}/`).pathname);
+}
+
+async function requireShadowRolloutBatchSpec(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<{ spec: DomainDesignShadowRolloutBatchSpec; specPath: string }> {
+  const specPath = typeof args["batch-spec"] === "string" ? new URL(args["batch-spec"], `file://${context.cwd}/`).pathname : undefined;
+  if (!specPath) {
+    throw new Error("`--batch-spec` is required");
+  }
+  const spec = await readDataFile<DomainDesignShadowRolloutBatchSpec>(specPath);
+  if (!Array.isArray(spec.entries) || spec.entries.length === 0) {
+    throw new Error("Shadow rollout batch spec must contain at least one entry");
+  }
+  return { spec, specPath };
+}
+
+async function requireShadowRolloutRegistry(
+  args: Record<string, string | boolean>,
+  context: CommandContext
+): Promise<{ registry: DomainDesignShadowRolloutRegistry; registryPath: string }> {
+  const registryPath =
+    typeof args["shadow-rollout-registry"] === "string"
+      ? new URL(args["shadow-rollout-registry"], `file://${context.cwd}/`).pathname
+      : typeof args.registry === "string"
+        ? new URL(args.registry, `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!registryPath) {
+    throw new Error("`--shadow-rollout-registry` or `--registry` is required unless `--batch-spec` is provided");
+  }
+  const registry = await loadShadowRolloutRegistry(registryPath);
+  return { registry, registryPath };
+}
+
+function resolveSpecRelativePath(baseDirectory: string, input: string): string {
+  return path.isAbsolute(input) ? input : path.resolve(baseDirectory, input);
+}
+
+function parseTieTolerance(value: string | number | undefined): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? value : undefined;
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+  }
+  return undefined;
 }
 
 async function loadScenarioCatalogIfRequested(
@@ -574,7 +646,34 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
     const commits = await normalizeHistory(getRootPath(args, context), policyConfig, getProfile(args));
     const model = await requireDomainModel(args, context);
-    return createResponse(scoreEvolutionLocality(commits, model));
+    const analysis = scoreEvolutionLocality(commits, model);
+    const quality = evaluateEvolutionLocalityObservationQuality(commits, model);
+    return createResponse(analysis, {
+      confidence: quality.confidence,
+      unknowns: quality.unknowns
+    });
+  },
+
+  async "history.analyze_persistence"(args, context) {
+    const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
+    const commits = await normalizeHistory(getRootPath(args, context), policyConfig, getProfile(args));
+    const model = await requireDomainModel(args, context);
+    const result = analyzeCochangePersistence(commits, model);
+    return createResponse(result.analysis, {
+      confidence: result.confidence,
+      unknowns: result.unknowns
+    });
+  },
+
+  async "history.compare_locality_models"(args, context) {
+    const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
+    const commits = await normalizeHistory(getRootPath(args, context), policyConfig, getProfile(args));
+    const model = await requireDomainModel(args, context);
+    const result = compareEvolutionLocalityModels(commits, model);
+    return createResponse(result.comparison, {
+      confidence: result.confidence,
+      unknowns: result.unknowns
+    });
   },
 
   async "arch.load_topology"(args, context) {
@@ -597,6 +696,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
   async "score.compute"(args, context) {
     const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
     const domain = typeof args.domain === "string" ? args.domain : "domain_design";
+    const pilotPersistence = args["pilot-persistence"] === true;
+    const rolloutCategory = typeof args["rollout-category"] === "string" ? args["rollout-category"] : undefined;
+    if (rolloutCategory && !pilotPersistence) {
+      throw new Error("`--rollout-category` requires `--pilot-persistence`");
+    }
     if (domain === "architecture_design") {
       const constraints = await requireArchitectureConstraints(args, context);
       const [
@@ -741,11 +845,23 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const model = await requireDomainModel(args, context);
     const docsRoot = typeof args["docs-root"] === "string" ? getDocsRoot(args, context) : undefined;
     const extractionOptions = docsRoot ? await buildExtractionOptions(args, context) : undefined;
+    let pilotGateEvaluation: ReturnType<typeof evaluateShadowRolloutGate> | undefined;
+    if (pilotPersistence) {
+      if (!rolloutCategory) {
+        throw new Error("`--rollout-category` is required when `--pilot-persistence` is enabled");
+      }
+      const { registry, registryPath } = await requireShadowRolloutRegistry(args, context);
+      pilotGateEvaluation = evaluateShadowRolloutGate(registryToGateObservations(registry, registryPath));
+    }
+
     return computeDomainDesignScores({
       repoPath: getRootPath(args, context),
       model,
       policyConfig,
       profileName: getProfile(args),
+      shadowPersistence: args["shadow-persistence"] === true || pilotPersistence,
+      ...(pilotPersistence && rolloutCategory ? { pilotPersistenceCategory: rolloutCategory } : {}),
+      ...(pilotGateEvaluation ? { pilotGateEvaluation } : {}),
       ...(docsRoot ? { docsRoot } : {}),
       ...(extractionOptions
         ? {
@@ -761,6 +877,224 @@ export const COMMANDS: Record<string, CommandHandler> = {
           }
         : {})
     });
+  },
+
+  async "score.observe_shadow_rollout"(args, context) {
+    const scoreCompute = COMMANDS["score.compute"];
+    if (!scoreCompute) {
+      throw new Error("score.compute is not registered");
+    }
+
+    const {
+      ["pilot-persistence"]: _pilotPersistence,
+      ["rollout-category"]: _rolloutCategory,
+      ["shadow-rollout-registry"]: _shadowRolloutRegistry,
+      registry: _registry,
+      ...shadowArgs
+    } = args;
+
+    const scoreResponse = (await scoreCompute(
+      {
+        ...shadowArgs,
+        domain: "domain_design",
+        "shadow-persistence": true
+      },
+      context
+    )) as CommandResponse<DomainDesignScoreResult>;
+
+    const elsMetric = scoreResponse.result.metrics.find((metric) => metric.metricId === "ELS");
+    if (!elsMetric) {
+      throw new Error("ELS metric is not available in the current domain score response");
+    }
+    if (!scoreResponse.result.shadow) {
+      throw new Error("Shadow persistence payload is not available in the current domain score response");
+    }
+
+    const tieTolerance =
+      typeof args["tie-tolerance"] === "string" ? Number.parseFloat(args["tie-tolerance"]) : 0.02;
+    const safeTieTolerance = Number.isFinite(tieTolerance) && tieTolerance >= 0 ? tieTolerance : 0.02;
+    const baselineElsValue = scoreResponse.result.pilot?.baselineElsValue ?? elsMetric.value;
+    const policyDelta =
+      scoreResponse.result.shadow.localityModels.persistenceCandidate.localityScore - baselineElsValue;
+    const driftCategory =
+      Math.abs(policyDelta) <= safeTieTolerance
+        ? "aligned"
+        : policyDelta > 0
+          ? "candidate_higher"
+          : "candidate_lower";
+
+    return createResponse<DomainDesignShadowRolloutObservation>(
+      {
+        domainId: "domain_design",
+        metricId: "ELS",
+        elsMetric,
+        shadow: scoreResponse.result.shadow,
+        observation: {
+          policyDelta,
+          modelDelta: scoreResponse.result.shadow.localityModels.delta,
+          driftCategory,
+          tieTolerance: safeTieTolerance
+        },
+        history: scoreResponse.result.history,
+        crossContextReferences: scoreResponse.result.crossContextReferences
+      },
+      {
+        status: scoreResponse.status,
+        evidence: scoreResponse.evidence,
+        confidence: scoreResponse.confidence,
+        unknowns: scoreResponse.unknowns,
+        diagnostics: scoreResponse.diagnostics,
+        provenance: scoreResponse.provenance
+      }
+    );
+  },
+
+  async "score.observe_shadow_rollout_batch"(args, context) {
+    const observeShadowRollout = COMMANDS["score.observe_shadow_rollout"];
+    if (!observeShadowRollout) {
+      throw new Error("score.observe_shadow_rollout is not registered");
+    }
+
+    const { spec, specPath } = await requireShadowRolloutBatchSpec(args, context);
+    const specDirectory = path.dirname(specPath);
+    const argPolicyPath =
+      typeof args.policy === "string" ? new URL(args.policy, `file://${context.cwd}/`).pathname : undefined;
+    const argTieTolerance = parseTieTolerance(
+      typeof args["tie-tolerance"] === "string" ? args["tie-tolerance"] : undefined
+    );
+
+    const observations: DomainDesignShadowRolloutBatchObservation[] = [];
+    const statuses = new Set<CommandResponse<unknown>["status"]>();
+    const unknowns = new Set<string>();
+    const diagnostics = new Set<string>();
+    const confidenceSignals: number[] = [];
+
+    for (const entry of spec.entries) {
+      const repoPath = resolveSpecRelativePath(specDirectory, entry.repo);
+      const modelPath = resolveSpecRelativePath(specDirectory, entry.model);
+      const resolvedPolicyInput = entry.policy
+        ? resolveSpecRelativePath(specDirectory, entry.policy)
+        : spec.policy
+          ? resolveSpecRelativePath(specDirectory, spec.policy)
+          : argPolicyPath;
+
+      if (!resolvedPolicyInput) {
+        throw new Error(`Shadow rollout batch entry \`${entry.repoId}\` is missing a policy path`);
+      }
+
+      const tieTolerance =
+        parseTieTolerance(entry.tieTolerance) ??
+        parseTieTolerance(spec.tieTolerance) ??
+        argTieTolerance;
+
+      const response = (await observeShadowRollout(
+        {
+          repo: repoPath,
+          model: modelPath,
+          policy: resolvedPolicyInput,
+          ...(tieTolerance !== undefined ? { "tie-tolerance": String(tieTolerance) } : {})
+        },
+        context
+      )) as CommandResponse<DomainDesignShadowRolloutObservation>;
+
+      const category = entry.category ?? "uncategorized";
+      statuses.add(response.status);
+      confidenceSignals.push(response.confidence);
+      response.unknowns.forEach((unknown) => unknowns.add(`${entry.repoId}: ${unknown}`));
+      response.diagnostics.forEach((diagnostic) => diagnostics.add(`${entry.repoId}: ${diagnostic}`));
+
+      observations.push({
+        repoId: entry.repoId,
+        ...(entry.label ? { label: entry.label } : {}),
+        category,
+        modelSource: entry.modelSource ?? inferShadowRolloutModelSource(modelPath),
+        repoPath,
+        modelPath,
+        policyPath: resolvedPolicyInput,
+        status: response.status,
+        elsMetric: response.result.elsMetric.value,
+        persistenceLocalityScore:
+          response.result.shadow.localityModels.persistenceCandidate.localityScore,
+        policyDelta: response.result.observation.policyDelta,
+        modelDelta: response.result.observation.modelDelta,
+        driftCategory: response.result.observation.driftCategory,
+        relevantCommitCount:
+          response.result.shadow.localityModels.persistenceAnalysis.relevantCommitCount,
+        confidence: response.confidence,
+        unknowns: response.unknowns
+      });
+    }
+
+    const categories = Array.from(
+      observations.reduce((groups, observation) => {
+        const existing = groups.get(observation.category) ?? [];
+        existing.push(observation);
+        groups.set(observation.category, existing);
+        return groups;
+      }, new Map<string, DomainDesignShadowRolloutBatchObservation[]>()).entries()
+    ).map(([category, categoryObservations]) => ({
+      category,
+      repoIds: categoryObservations.map((entry) => entry.repoId),
+      summary: summarizeShadowRolloutBatchObservations(categoryObservations)
+    }));
+
+    return createResponse<DomainDesignShadowRolloutBatchResult>(
+      {
+        observations,
+        categories,
+        overall: summarizeShadowRolloutBatchObservations(observations)
+      },
+      {
+        status: mergeStatus(...statuses),
+        confidence: confidenceFromSignals(confidenceSignals),
+        unknowns: Array.from(unknowns),
+        diagnostics: Array.from(diagnostics),
+        provenance: [toProvenance(specPath, "shadow rollout batch spec")]
+      }
+    );
+  },
+
+  async "gate.evaluate_shadow_rollout"(args, context) {
+    const observeShadowRolloutBatch = COMMANDS["score.observe_shadow_rollout_batch"];
+    if (!observeShadowRolloutBatch) {
+      throw new Error("score.observe_shadow_rollout_batch is not registered");
+    }
+
+    if (typeof args["batch-spec"] === "string") {
+      const response = (await observeShadowRolloutBatch(args, context)) as CommandResponse<DomainDesignShadowRolloutBatchResult>;
+      const evaluation = evaluateShadowRolloutGate(batchToGateObservations(response.result.observations));
+
+      return createResponse<DomainDesignShadowRolloutGateResult>(
+        {
+          source: "batch_spec",
+          batchSpecPath: new URL(args["batch-spec"], `file://${context.cwd}/`).pathname,
+          evaluation
+        },
+        {
+          status: evaluation.rolloutDisposition === "replace" ? response.status : "warning",
+          evidence: response.evidence,
+          confidence: response.confidence,
+          unknowns: response.unknowns,
+          diagnostics: response.diagnostics,
+          provenance: response.provenance
+        }
+      );
+    }
+
+    const { registry, registryPath } = await requireShadowRolloutRegistry(args, context);
+    const evaluation = evaluateShadowRolloutGate(registryToGateObservations(registry, registryPath));
+
+    return createResponse<DomainDesignShadowRolloutGateResult>(
+      {
+        source: "registry",
+        registryPath,
+        evaluation
+      },
+      {
+        status: evaluation.rolloutDisposition === "replace" ? "ok" : "warning",
+        provenance: [toProvenance(registryPath, "shadow rollout registry")]
+      }
+    );
   },
 
   async "review.list_unknowns"(args, context) {
@@ -823,23 +1157,25 @@ export const COMMANDS: Record<string, CommandHandler> = {
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = (await scoreCompute(args, context)) as CommandResponse<{
-      domainId: string;
-      metrics: Array<{
-        metricId: string;
-        value: number;
-        components: Record<string, number>;
-        confidence: number;
-        evidenceRefs: string[];
-        unknowns: string[];
-      }>;
-      leakFindings?: unknown[];
-      violations?: unknown[];
-    }>;
+    const response = (await scoreCompute(args, context)) as CommandResponse<
+      DomainDesignScoreResult | {
+        domainId: string;
+        metrics: Array<{
+          metricId: string;
+          value: number;
+          components: Record<string, number>;
+          confidence: number;
+          evidenceRefs: string[];
+          unknowns: string[];
+        }>;
+        leakFindings?: unknown[];
+        violations?: unknown[];
+      }
+    >;
     const format = typeof args.format === "string" ? args.format : "json";
     if (format === "md") {
       const profileName = getProfile(args);
-      return createResponse(
+      return createResponse<MarkdownReportResult>(
         {
           format,
           report: renderMarkdownReport(response, profileName)
@@ -862,31 +1198,42 @@ export const COMMANDS: Record<string, CommandHandler> = {
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = (await scoreCompute(args, context)) as CommandResponse<{
-      domainId: string;
-      metrics: Array<{
-        metricId: string;
-        value: number;
-        components: Record<string, number>;
-        confidence: number;
-        evidenceRefs: string[];
-        unknowns: string[];
-      }>;
-    }>;
+    const response = (await scoreCompute(args, context)) as CommandResponse<
+      DomainDesignScoreResult | {
+        domainId: string;
+        metrics: Array<{
+          metricId: string;
+          value: number;
+          components: Record<string, number>;
+          confidence: number;
+          evidenceRefs: string[];
+          unknowns: string[];
+        }>;
+      }
+    >;
     const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
     const gate = evaluateGate(response, policyConfig, getProfile(args));
-    return createResponse(
+    const pilot =
+      response.result.domainId === "domain_design" && "pilot" in response.result
+        ? response.result.pilot
+        : undefined;
+    return createResponse<MeasurementGateResult>(
       {
-        domainId: response.result.domainId,
+        domainId: response.result.domainId as "domain_design" | "architecture_design",
         gate,
-        metrics: response.result.metrics
+        metrics: response.result.metrics,
+        ...(pilot ? { pilot } : {})
       },
       {
         status: gate.status,
         evidence: response.evidence,
         confidence: response.confidence,
         unknowns: response.unknowns,
-        diagnostics: [...response.diagnostics, `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`]
+        diagnostics: [
+          ...response.diagnostics,
+          ...(pilot ? [`Pilot locality source: ${pilot.localitySource} for category ${pilot.category}.`] : []),
+          `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`
+        ]
       }
     );
   }
