@@ -4,6 +4,9 @@
 
 この文書は、AIによる抽出と決定的解析をどう分離し、どのようなコマンド体系で実行するかを定義する。
 
+- 指標の意味は `reference/` を読む
+- ドメイン別の current implementation は [domain-design-measurement.ja.md](domain-design-measurement.ja.md) と [architecture-design-measurement.ja.md](architecture-design-measurement.ja.md) を読む
+
 ## 2. 実行パイプライン
 
 ```text

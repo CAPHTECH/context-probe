@@ -171,22 +171,12 @@ Start small:
 - `AELS`
 - `CTI`
 
-## Current Implementation Relationship
+## Reading Path
 
-Current implementation already computes:
+Read this document for the conceptual model.
 
-- `DDS`
-- `BPS`
-- `IPS`
-- `TIS`
-- `QSF`
-- `OAS`
-- `CTI`
-- `AELS`
-- `EES`
-- `APSI`
-
-Some of these remain partial or proxy-based. See [architecture-metric-mapping.md](architecture-metric-mapping.md).
+- For human interpretation, see [../reference/architecture-design-metrics.md](../reference/architecture-design-metrics.md).
+- For the current CLI behavior, source precedence, and proxy handling, see [../implementation/architecture-design-measurement.md](../implementation/architecture-design-measurement.md).
 
 ## Cautions
 

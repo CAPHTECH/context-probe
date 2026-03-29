@@ -4,6 +4,11 @@
 
 This document describes the runtime pipeline and command model used by the CLI.
 
+Use this page for command behavior and the shared runtime contract.
+
+- For metric meaning, read `reference/`.
+- For per-domain current implementation details, read [domain-design-measurement.md](domain-design-measurement.md) and [architecture-design-measurement.md](architecture-design-measurement.md).
+
 The design principle is simple:
 
 - AI handles extraction, candidate generation, and ambiguity surfacing

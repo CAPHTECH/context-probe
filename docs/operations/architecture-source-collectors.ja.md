@@ -50,20 +50,20 @@ command: "node scripts/collectors/architecture/telemetry-export-to-oas.mjs fixtu
 
 example config は次に置いています。
 
-- [telemetry-source.command.yaml](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/telemetry-source.command.yaml)
-- [delivery-source.command.yaml](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/delivery-source.command.yaml)
-- [complexity-source.command.yaml](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/complexity-source.command.yaml)
-- [scenario-observation-source.command.yaml](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/scenario-observation-source.command.yaml)
+- [telemetry-source.command.yaml](../../fixtures/examples/architecture-sources/telemetry-source.command.yaml)
+- [delivery-source.command.yaml](../../fixtures/examples/architecture-sources/delivery-source.command.yaml)
+- [complexity-source.command.yaml](../../fixtures/examples/architecture-sources/complexity-source.command.yaml)
+- [scenario-observation-source.command.yaml](../../fixtures/examples/architecture-sources/scenario-observation-source.command.yaml)
 
 ## 4. example input fixture
 
 collector 入力の example は次に置いています。
 
-- [telemetry-golden-signals.json](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/telemetry-golden-signals.json)
-- [delivery-dora-summary.json](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/delivery-dora-summary.json)
-- [complexity-snapshot.json](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/complexity-snapshot.json)
-- [scenario-benchmark-summary.json](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/scenario-benchmark-summary.json)
-- [scenario-incident-review-summary.json](/Users/rizumita/Workspace/caphtech.public/context_probe/fixtures/examples/architecture-sources/scenario-incident-review-summary.json)
+- [telemetry-golden-signals.json](../../fixtures/examples/architecture-sources/telemetry-golden-signals.json)
+- [delivery-dora-summary.json](../../fixtures/examples/architecture-sources/delivery-dora-summary.json)
+- [complexity-snapshot.json](../../fixtures/examples/architecture-sources/complexity-snapshot.json)
+- [scenario-benchmark-summary.json](../../fixtures/examples/architecture-sources/scenario-benchmark-summary.json)
+- [scenario-incident-review-summary.json](../../fixtures/examples/architecture-sources/scenario-incident-review-summary.json)
 
 ## 5. score.compute での利用例
 

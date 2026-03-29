@@ -214,9 +214,13 @@ pilot mode で変わる点:
 
 使い始めた後は、目的に応じて次の文書へ進んでください。
 
-- 実行パイプラインとコマンド体系: [../platform/runtime-and-commands.md](../platform/runtime-and-commands.md)
-- 指標の意味と読み方: [metric-reference.md](metric-reference.md)
-- 標準データモデル: [../platform/data-model.md](../platform/data-model.md)
-- ポリシー設定と CI 運用: [../operations/policy-and-ci.md](../operations/policy-and-ci.md)
-- source config と collector の詳細: [../operations/architecture-source-collectors.md](../operations/architecture-source-collectors.md)
-- 文書全体の索引: [../README.md](../README.md)
+- 実行パイプラインとコマンド体系: [../implementation/runtime-and-commands.ja.md](../implementation/runtime-and-commands.ja.md)
+- 指標の共通の読み方: [../reference/metric-reading-guide.ja.md](../reference/metric-reading-guide.ja.md)
+- ドメイン設計指標の意味: [../reference/domain-design-metrics.ja.md](../reference/domain-design-metrics.ja.md)
+- アーキテクチャ設計指標の意味: [../reference/architecture-design-metrics.ja.md](../reference/architecture-design-metrics.ja.md)
+- ドメイン設計の current implementation: [../implementation/domain-design-measurement.ja.md](../implementation/domain-design-measurement.ja.md)
+- アーキテクチャ設計の current implementation: [../implementation/architecture-design-measurement.ja.md](../implementation/architecture-design-measurement.ja.md)
+- 標準データモデル: [../concepts/data-model.ja.md](../concepts/data-model.ja.md)
+- ポリシー設定と CI 運用: [../operations/policy-and-ci.ja.md](../operations/policy-and-ci.ja.md)
+- source config と collector の詳細: [../operations/architecture-source-collectors.ja.md](../operations/architecture-source-collectors.ja.md)
+- 文書全体の索引: [../README.ja.md](../README.ja.md)

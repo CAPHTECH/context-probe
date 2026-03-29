@@ -357,7 +357,7 @@ greenfield と brownfield では観測可能な evidence が異なる。
 - `CTI`: complexity tax の観測
 - `APSI`: 下位スコアを要約する比較用指数
 
-詳細な対応表は [architecture-metric-mapping.md](architecture-metric-mapping.md) を参照する。
+人間向けの読み方は [../reference/architecture-design-metrics.ja.md](../reference/architecture-design-metrics.ja.md)、current implementation の挙動は [../implementation/architecture-design-measurement.ja.md](../implementation/architecture-design-measurement.ja.md) を参照する。
 
 ## 12. 注意点
 

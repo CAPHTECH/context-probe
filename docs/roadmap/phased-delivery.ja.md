@@ -13,9 +13,9 @@
 - 共通データモデル、コマンド体系、ポリシー方針を定義する
 
 成果物:
-- `overview/`
-- `platform/`
-- `domains/`
+- `concepts/`
+- `reference/`
+- `implementation/`
 - `operations/`
 - `roadmap/`
 

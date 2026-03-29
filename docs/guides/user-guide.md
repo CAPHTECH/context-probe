@@ -201,9 +201,13 @@ Those commands are useful, but they have more setup requirements. Start with `sc
 
 ## Where To Read Next
 
-- Runtime pipeline and commands: [../platform/runtime-and-commands.md](../platform/runtime-and-commands.md)
-- Metric meaning and interpretation: [metric-reference.md](metric-reference.md)
-- Standard data model: [../platform/data-model.md](../platform/data-model.md)
+- Runtime pipeline and commands: [../implementation/runtime-and-commands.md](../implementation/runtime-and-commands.md)
+- Shared metric reading rules: [../reference/metric-reading-guide.md](../reference/metric-reading-guide.md)
+- Domain metric meaning: [../reference/domain-design-metrics.md](../reference/domain-design-metrics.md)
+- Architecture metric meaning: [../reference/architecture-design-metrics.md](../reference/architecture-design-metrics.md)
+- Current domain-design measurement path: [../implementation/domain-design-measurement.md](../implementation/domain-design-measurement.md)
+- Current architecture-design measurement path: [../implementation/architecture-design-measurement.md](../implementation/architecture-design-measurement.md)
+- Standard data model: [../concepts/data-model.md](../concepts/data-model.md)
 - Policy and CI operation: [../operations/policy-and-ci.md](../operations/policy-and-ci.md)
 - Source config and collectors: [../operations/architecture-source-collectors.md](../operations/architecture-source-collectors.md)
 - Full document index: [../README.md](../README.md)

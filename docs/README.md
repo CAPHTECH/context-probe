@@ -1,27 +1,24 @@
 # Documentation Index
 
-This repository separates shared platform documentation from domain-specific evaluation packs. The current implementation focuses first on domain design, while keeping room for architecture-design and future packs.
+The documentation is organized around three responsibilities:
 
-Japanese counterparts are preserved with the `.ja.md` suffix.
+- `concepts/`: what the system is trying to measure
+- `reference/`: how humans should read the metrics
+- `implementation/`: how the current CLI actually computes and reports them
 
-## Recommended Reading Order
+Japanese documents are the primary source of truth. English documents mirror the same structure so readers can move between languages without changing paths or document roles.
 
-1. [overview/platform-vision.md](overview/platform-vision.md)
-2. [guides/user-guide.md](guides/user-guide.md)
-3. [guides/metric-reference.md](guides/metric-reference.md)
-4. [platform/measurement-model.md](platform/measurement-model.md)
-5. [platform/runtime-and-commands.md](platform/runtime-and-commands.md)
-6. [platform/analysis-mechanism.md](platform/analysis-mechanism.md)
-7. [platform/data-model.md](platform/data-model.md)
-8. [domains/domain-design.md](domains/domain-design.md)
-9. [domains/architecture-design.md](domains/architecture-design.md)
-10. [domains/architecture-scenario-model.md](domains/architecture-scenario-model.md)
-11. [domains/architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
-12. [domains/architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
-13. [domains/architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
-14. [operations/policy-and-ci.md](operations/policy-and-ci.md)
-15. [operations/architecture-source-collectors.md](operations/architecture-source-collectors.md)
-16. [roadmap/phased-delivery.md](roadmap/phased-delivery.md)
+## Start Here
+
+Choose the shortest path for your task:
+
+1. First-time CLI usage: [guides/user-guide.md](guides/user-guide.md)
+2. How to read `score`, `confidence`, and `unknowns`: [reference/metric-reading-guide.md](reference/metric-reading-guide.md)
+3. Domain metric meaning: [reference/domain-design-metrics.md](reference/domain-design-metrics.md)
+4. Architecture metric meaning: [reference/architecture-design-metrics.md](reference/architecture-design-metrics.md)
+5. Current runtime and command model: [implementation/runtime-and-commands.md](implementation/runtime-and-commands.md)
+6. Current domain-design measurement path: [implementation/domain-design-measurement.md](implementation/domain-design-measurement.md)
+7. Current architecture-design measurement path: [implementation/architecture-design-measurement.md](implementation/architecture-design-measurement.md)
 
 ## Directory Guide
 
@@ -29,39 +26,43 @@ Japanese counterparts are preserved with the `.ja.md` suffix.
 
 - [user-guide.md](guides/user-guide.md)
   - Quick-start guidance for first-time CLI users.
-- [metric-reference.md](guides/metric-reference.md)
-  - Human-readable reference for every major metric, including interpretation and next actions.
 
-### `overview/`
+### `reference/`
 
-- [platform-vision.md](overview/platform-vision.md)
-  - Product vision, core principles, scope, and target users for the platform.
+- [metric-reading-guide.md](reference/metric-reading-guide.md)
+  - Shared rules for interpreting scores, confidence, unknowns, and summary metrics.
+- [domain-design-metrics.md](reference/domain-design-metrics.md)
+  - Human-readable meaning, warning signs, and next actions for domain-design metrics.
+- [architecture-design-metrics.md](reference/architecture-design-metrics.md)
+  - Human-readable meaning, warning signs, and next actions for architecture-design metrics.
 
-### `platform/`
+### `implementation/`
 
-- [measurement-model.md](platform/measurement-model.md)
-  - Shared measurement model used across all evaluation packs.
-- [runtime-and-commands.md](platform/runtime-and-commands.md)
-  - Runtime pipeline, command system, and the split between AI extraction and deterministic analyzers.
-- [analysis-mechanism.md](platform/analysis-mechanism.md)
-  - How the current implementation turns inputs into metrics, evidence, confidence, and unknowns.
-- [data-model.md](platform/data-model.md)
+- [runtime-and-commands.md](implementation/runtime-and-commands.md)
+  - Runtime pipeline, command surface, and output contract.
+- [domain-design-measurement.md](implementation/domain-design-measurement.md)
+  - Current domain-design analyzers, input dependencies, unknowns, and rollout behavior.
+- [architecture-design-measurement.md](implementation/architecture-design-measurement.md)
+  - Current architecture-design analyzers, source precedence, proxy behavior, and report/gate semantics.
+
+### `concepts/`
+
+- [platform-vision.md](concepts/platform-vision.md)
+  - Product vision, principles, and scope.
+- [measurement-model.md](concepts/measurement-model.md)
+  - Shared measurement model used across evaluation packs.
+- [data-model.md](concepts/data-model.md)
   - Standard data structures such as Artifact, Evidence, and MetricScore.
-
-### `domains/`
-
-- [domain-design.md](domains/domain-design.md)
-  - Full specification for domain-design evaluation.
-- [architecture-design.md](domains/architecture-design.md)
-  - Full specification for architecture-design evaluation centered on APSI.
-- [architecture-scenario-model.md](domains/architecture-scenario-model.md)
+- [domain-design.md](concepts/domain-design.md)
+  - Conceptual specification for domain-design evaluation.
+- [architecture-design.md](concepts/architecture-design.md)
+  - Conceptual specification for architecture-design evaluation centered on APSI.
+- [architecture-scenario-model.md](concepts/architecture-scenario-model.md)
   - Input model for quality scenarios used by architecture scoring.
-- [architecture-pattern-profiles.md](domains/architecture-pattern-profiles.md)
-  - Pattern-family-specific weighting, gains, and complexity-tax guidance.
-- [architecture-evidence-lifecycle.md](domains/architecture-evidence-lifecycle.md)
-  - How evidence sources change across greenfield and brownfield phases.
-- [architecture-metric-mapping.md](domains/architecture-metric-mapping.md)
-  - Mapping between the conceptual architecture model and the current implementation.
+- [architecture-pattern-profiles.md](concepts/architecture-pattern-profiles.md)
+  - Pattern-family emphasis, gains, and complexity-tax guidance.
+- [architecture-evidence-lifecycle.md](concepts/architecture-evidence-lifecycle.md)
+  - How evidence sources shift across greenfield and brownfield phases.
 
 ### `operations/`
 
@@ -74,3 +75,5 @@ Japanese counterparts are preserved with the `.ja.md` suffix.
 
 - [phased-delivery.md](roadmap/phased-delivery.md)
   - Delivery phases from MVP through future expansion.
+- [tda-persistent-homology-task.md](roadmap/tda-persistent-homology-task.md)
+  - Experimental rollout notes for the persistence-topology locality work.

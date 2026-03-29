@@ -134,7 +134,7 @@ fitness functions は単独指標ではなく、greenfield から brownfield に
 2. canonical scenario observation source config
 3. 将来の benchmark / telemetry / incident backend からの scenario actualization
 
-reference collector は [operations/architecture-source-collectors.md](../operations/architecture-source-collectors.md) に置き、source config の `command` から canonical JSON を供給する。
+reference collector は [../operations/architecture-source-collectors.ja.md](../operations/architecture-source-collectors.ja.md) に置き、source config の `command` から canonical JSON を供給する。
 
 ## 6. telemetry と history の役割分担
 
