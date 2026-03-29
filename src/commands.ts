@@ -62,6 +62,7 @@ import { loadPolicyConfig } from "./core/policy.js";
 import { renderMarkdownReport, evaluateGate } from "./core/report.js";
 import { applyReviewOverrides, listReviewItems, resolveReviewItems } from "./core/review.js";
 import { confidenceFromSignals, createResponse, mergeStatus, toProvenance } from "./core/response.js";
+import { scaffoldArchitectureConstraints, scaffoldDomainModel } from "./core/scaffold.js";
 import {
   batchToGateObservations,
   evaluateShadowRolloutGate,
@@ -539,6 +540,26 @@ export const COMMANDS: Record<string, CommandHandler> = {
     return createResponse(model, { provenance: [toProvenance(context.cwd, "domain_model")] });
   },
 
+  async "model.scaffold"(args, context) {
+    const repoRoot = getRootPath(args, context);
+    const docsRoot = typeof args["docs-root"] === "string" ? getDocsRoot(args, context) : undefined;
+    const scaffold = await scaffoldDomainModel({
+      repoRoot,
+      ...(docsRoot ? { docsRoot, extractionOptions: await buildExtractionOptions(args, context) } : {})
+    });
+    return createResponse(scaffold.result, {
+      status: scaffold.unknowns.length > 0 ? "warning" : "ok",
+      evidence: scaffold.evidence,
+      confidence: scaffold.confidence,
+      unknowns: scaffold.unknowns,
+      diagnostics: scaffold.diagnostics,
+      provenance: [
+        toProvenance(repoRoot, "domain_model_scaffold"),
+        ...(docsRoot ? [toProvenance(docsRoot, "domain_model_scaffold_docs")] : [])
+      ]
+    });
+  },
+
   async "doc.extract_glossary"(args, context) {
     const glossary = await extractGlossary(await buildExtractionOptions(args, context));
     return createResponse(glossary, {
@@ -679,6 +700,19 @@ export const COMMANDS: Record<string, CommandHandler> = {
   async "arch.load_topology"(args, context) {
     const constraints = await requireArchitectureConstraints(args, context);
     return createResponse(constraints);
+  },
+
+  async "constraints.scaffold"(args, context) {
+    const repoRoot = getRootPath(args, context);
+    const scaffold = await scaffoldArchitectureConstraints({ repoRoot });
+    return createResponse(scaffold.result, {
+      status: scaffold.unknowns.length > 0 ? "warning" : "ok",
+      evidence: scaffold.evidence,
+      confidence: scaffold.confidence,
+      unknowns: scaffold.unknowns,
+      diagnostics: scaffold.diagnostics,
+      provenance: [toProvenance(repoRoot, "architecture_constraints_scaffold")]
+    });
   },
 
   async "arch.detect_direction_violations"(args, context) {

@@ -74,9 +74,37 @@ export interface ContextDefinition {
   internalGlobs?: string[];
 }
 
+export interface AggregateDefinition {
+  name: string;
+  context: string;
+  aliases?: string[];
+}
+
 export interface DomainModel {
   version: string;
   contexts: ContextDefinition[];
+  aggregates?: AggregateDefinition[];
+}
+
+export interface DomainContextCandidate {
+  definition: ContextDefinition;
+  confidence: number;
+  evidence: Evidence[];
+  unknowns: string[];
+}
+
+export interface DomainAggregateCandidate {
+  definition: AggregateDefinition;
+  confidence: number;
+  evidence: Evidence[];
+  unknowns: string[];
+}
+
+export interface DomainModelScaffoldResult {
+  model: DomainModel;
+  yaml: string;
+  contexts: DomainContextCandidate[];
+  aggregates: DomainAggregateCandidate[];
 }
 
 export interface LayerDefinition {
@@ -411,6 +439,20 @@ export interface ArchitectureConstraints {
   direction?: "inward";
   layers: LayerDefinition[];
   complexity?: ArchitectureComplexityMetadata;
+}
+
+export interface ArchitectureLayerCandidate {
+  definition: LayerDefinition;
+  confidence: number;
+  evidence: Evidence[];
+  unknowns: string[];
+}
+
+export interface ArchitectureConstraintsScaffoldResult {
+  constraints: ArchitectureConstraints;
+  yaml: string;
+  layers: ArchitectureLayerCandidate[];
+  complexityCandidate?: ArchitectureComplexityMetadata;
 }
 
 export interface ArchitectureComplexityExportBundle {

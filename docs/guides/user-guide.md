@@ -41,6 +41,21 @@ npm run dev -- --help
 
 All examples below assume you run commands from the repository root through `npm run dev -- ...`.
 
+If you do not have a model or constraints file yet, scaffold one first:
+
+```bash
+npm run dev -- model.scaffold \
+  --repo . \
+  --docs-root docs
+```
+
+```bash
+npm run dev -- constraints.scaffold \
+  --repo .
+```
+
+Both commands return review-first YAML in `result.yaml`. The CLI does not write files automatically.
+
 ## First 10 Minutes
 
 Start with a single domain-design run:

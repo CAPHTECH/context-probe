@@ -145,19 +145,19 @@
 - `SIC`: Strong Invariant Closure
 - `XTC`: Cross-Aggregate Transaction Need
 
-### D3. モデル読込・候補生成
+### D3. モデル読込・scaffold 生成
 
 #### 主コマンド
 
 - `model.load`
-- `model.infer_context_candidates`
-- `model.infer_aggregate_candidates`
+- `model.scaffold`
 
 #### 要件
 
-- 明示モデルと推定候補を区別する
-- 推定候補には `confidence` と `unknowns` を付ける
-- ownership、security、use case 群、用語、ルールを根拠に候補を作る
+- 明示モデルと scaffold 候補を区別する
+- scaffold 候補には `confidence` と `unknowns` を付ける
+- ownership、security、use case 群、用語、ルールを根拠に candidate YAML を作る
+- CLI は raw YAML を直接 stdout に出さず、`result.yaml` と構造化候補を同時に返す
 
 ### D4. 追跡リンク生成
 

@@ -70,6 +70,21 @@ npm run build
 node dist/src/cli.js --help
 ```
 
+### 先に入力 YAML を scaffold する
+
+まだ `--model` や `--constraints` を持っていない場合は、先に scaffold を作り、`result.yaml` をレビューします。
+
+```bash
+npm run dev -- model.scaffold \
+  --repo . \
+  --docs-root docs
+```
+
+```bash
+npm run dev -- constraints.scaffold \
+  --repo .
+```
+
 ### ドメイン設計スコアの計測例
 
 ```bash

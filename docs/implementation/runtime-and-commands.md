@@ -96,6 +96,13 @@ Category summaries also carry their own `replace` or `shadow_only` decision so r
 
 These are useful when you need to inspect extracted evidence directly.
 
+## Authoring Utilities
+
+- `model.scaffold`: infers context and aggregate candidates from the repo, optionally strengthens them with `--docs-root`, and returns both `result.model` and a loadable YAML string in `result.yaml`
+- `constraints.scaffold`: infers layer candidates from the repo and returns both `result.constraints` and a loadable YAML string in `result.yaml`
+
+Scaffold commands keep the shared JSON response contract. They do not write files directly.
+
 ## Domain Inputs
 
 ### Domain Design
@@ -103,7 +110,7 @@ These are useful when you need to inspect extracted evidence directly.
 Required:
 
 - `--repo`
-- `--model`
+- `--model` for scoring
 
 Optional:
 
@@ -116,6 +123,8 @@ Optional:
 - `--registry`
 - extraction backend settings
 - policy/profile overrides
+
+If you do not have a model yet, start with `model.scaffold --repo <path> [--docs-root <path>]` and review the returned YAML before scoring.
 
 `--shadow-persistence` computes the beta0 persistence comparison in parallel with normal domain scoring and returns it under `result.shadow.localityModels`. It does not change `ELS`, thresholds, or aggregate scores.
 
@@ -134,7 +143,7 @@ Use `gate.evaluate_shadow_rollout --registry <path>` to evaluate the current cur
 Required:
 
 - `--repo`
-- `--constraints`
+- `--constraints` for scoring
 
 Optional:
 
@@ -144,6 +153,8 @@ Optional:
 - topology model
 - boundary map
 - complexity sources
+
+If you do not have constraints yet, start with `constraints.scaffold --repo <path>` and review the returned YAML before scoring.
 
 ## Output Shape
 

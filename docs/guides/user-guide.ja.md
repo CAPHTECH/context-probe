@@ -38,6 +38,21 @@ npm run dev -- --help
 
 以降の例では、リポジトリ直下で `npm run dev -- ...` を使います。
 
+モデルや制約ファイルがまだない場合は、先に scaffold を作れます。
+
+```bash
+npm run dev -- model.scaffold \
+  --repo . \
+  --docs-root docs
+```
+
+```bash
+npm run dev -- constraints.scaffold \
+  --repo .
+```
+
+どちらも `result.yaml` にレビュー用の YAML 文字列を返します。CLI はファイルを自動生成しないので、必要ならその内容を保存して `score.compute` に渡します。
+
 ## 最初の 10 分
 
 まずはドメイン設計のスコアを 1 回出して、出力の形を確認します。

@@ -5,6 +5,7 @@ export const DOMAIN_DESIGN_PACK: DomainPack = {
   version: "0.1",
   commands: [
     "model.load",
+    "model.scaffold",
     "code.detect_dependencies",
     "code.detect_contract_usage",
     "code.detect_boundary_leaks",
@@ -26,6 +27,7 @@ export const ARCHITECTURE_DESIGN_PACK: DomainPack = {
   id: "architecture_design",
   version: "0.1",
   commands: [
+    "constraints.scaffold",
     "arch.load_topology",
     "arch.detect_direction_violations",
     "arch.score_dependency_direction",

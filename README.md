@@ -70,6 +70,21 @@ npm run build
 node dist/src/cli.js --help
 ```
 
+### Scaffold Inputs First
+
+If you do not have a reviewed `--model` or `--constraints` file yet, scaffold one first and inspect `result.yaml`.
+
+```bash
+npm run dev -- model.scaffold \
+  --repo . \
+  --docs-root docs
+```
+
+```bash
+npm run dev -- constraints.scaffold \
+  --repo .
+```
+
 ### Measure Domain Design
 
 ```bash

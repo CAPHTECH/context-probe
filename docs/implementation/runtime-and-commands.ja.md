@@ -90,8 +90,7 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 | コマンド | 目的 |
 |---|---|
 | `model.load` | 明示モデルを読み込む |
-| `model.infer_context_candidates` | Context候補を推定する |
-| `model.infer_aggregate_candidates` | Aggregate候補を推定する |
+| `model.scaffold` | Context / Aggregate 候補を含む domain model YAML を scaffold する |
 | `code.detect_boundary_leaks` | 境界漏れを検出する |
 | `graph.build_coupling` | 境界採点用の coupling graph を作る |
 | `graph.score_decomposition` | 境界分割案を採点する |
@@ -118,12 +117,12 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 - pilot の適用結果は `result.pilot` に入り、baseline `ELS`、candidate 値、effective `ELS`、overall/category gate 状態を返します
 - score-neutral であり、既存の policy 式や閾値を変更しません
 
-## 6. アーキテクチャ設計パック用コマンド案
+## 6. アーキテクチャ設計パック用コマンド
 
 | コマンド | 目的 |
 |---|---|
+| `constraints.scaffold` | layer 候補を含む architecture constraints YAML を scaffold する |
 | `arch.load_topology` | 明示されたアーキテクチャ図や制約を読み込む |
-| `arch.infer_layer_candidates` | レイヤや境界候補を推定する |
 | `arch.detect_direction_violations` | 依存方向違反を検出する |
 | `arch.detect_adapter_leaks` | ポート / アダプタ境界漏れを検出する |
 | `arch.detect_contract_breaks` | 契約の破壊的変更や不整合を検出する |
@@ -132,6 +131,12 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 | `arch.score_boundary_purity` | 境界純度を採点する |
 | `arch.score_interface_stability` | 契約安定度を採点する |
 | `arch.score_topology_isolation` | トポロジ分離度を採点する |
+
+補足:
+
+- `model.scaffold` は `result.model` に構造化モデル、`result.yaml` にそのまま保存できる YAML 文字列、`result.contexts` / `result.aggregates` に候補と confidence を返します
+- `constraints.scaffold` は `result.constraints` と `result.yaml` を返し、`complexity` は stable な直接観測がない限り自動では埋めません
+- どちらの scaffold も JSON の共通レスポンス契約を維持し、ファイルは自動生成しません
 
 ## 7. 実行モード
 
