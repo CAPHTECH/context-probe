@@ -100,6 +100,12 @@ npm run dev -- score.compute \
 
 このリポジトリ自身を測るときの最小セットは `config/self-measurement/` に置いてあります。
 
+architecture の full self-measurement bundle を回す前に、measured / derived snapshot を更新します。
+
+```bash
+npm run self:architecture:refresh
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -116,7 +122,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。
+ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、curated snapshot が古いときは warn-only で知らせます。
 
 ### 2. Markdown レポートを生成する
 

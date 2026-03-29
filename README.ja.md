@@ -122,6 +122,12 @@ npm run dev -- score.compute \
 
 自己計測で `QSF` `TIS` `OAS` `EES` の proxy を減らしたい場合は、`config/self-measurement/` の補助入力も一緒に渡します。
 
+architecture の自己計測前には、measured / derived snapshot を先に更新します。
+
+```bash
+npm run self:architecture:refresh
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -138,7 +144,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。
+これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。`npm run self:architecture:refresh` は repo-local automation で、measured な `scenario-observations` と derived な `boundary-map` を更新し、古い curated snapshot には warn-only の freshness notice を出します。
 
 ### source config を使った brownfield evidence の取り込み例
 

@@ -1,5 +1,7 @@
-# Runtime-containment snapshot for the local CLI execution path, reviewed on 2026-03-29.
 version: "1.0"
+snapshot:
+  sourceKind: "curated"
+  reviewedAt: "2026-03-29T00:00:00Z"
 observations:
   - nodeId: command_router
     failureContainmentRatio: 0.88

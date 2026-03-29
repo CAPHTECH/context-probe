@@ -122,6 +122,12 @@ For architecture runs, `--constraints` is required instead of `--model`.
 
 If you want self-measurement with fewer proxy fallbacks in `QSF`, `TIS`, `OAS`, and `EES`, pass the reviewed supporting inputs from `config/self-measurement/` as well.
 
+Refresh the measured and derived architecture snapshots before a self-measurement run:
+
+```bash
+npm run self:architecture:refresh
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -138,7 +144,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs.
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots.
 
 ### Ingest Brownfield Evidence Through Source Config
 

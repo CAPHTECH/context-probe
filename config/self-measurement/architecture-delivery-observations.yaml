@@ -1,5 +1,7 @@
-# Curated self-measurement snapshot reviewed on 2026-03-29.
 version: "1.0"
+snapshot:
+  sourceKind: "curated"
+  reviewedAt: "2026-03-29T00:00:00Z"
 scores:
   LeadTimeScore: 0.78
   DeployFreqScore: 0.74

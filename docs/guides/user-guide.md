@@ -94,6 +94,12 @@ This bare command is enough to run, but `QSF`, `TIS`, `OAS`, and `EES` stay neut
 
 This repository keeps a reviewed self-measurement bundle under `config/self-measurement/`.
 
+Before running the full architecture self-measurement bundle, refresh the measured and derived snapshots:
+
+```bash
+npm run self:architecture:refresh
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -110,7 +116,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are maintained as curated observation snapshots.
+Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are maintained as curated observation snapshots. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices when curated snapshots are stale.
 
 ### 2. Generate a Markdown report
 

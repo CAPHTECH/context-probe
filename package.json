@@ -35,6 +35,7 @@
     "lint:fix": "biome check --write .",
     "prepack": "npm run build",
     "prepublishOnly": "npm run check && npm test",
+    "self:architecture:refresh": "node scripts/self-measurement/refresh-architecture-inputs.mjs",
     "test": "vitest run",
     "test:pbt": "vitest run test/pbt/*.test.ts",
     "test:watch": "vitest"

@@ -1,24 +1,30 @@
 version: "1.0"
+snapshot:
+  sourceKind: derived
+  capturedAt: 2026-03-29T20:53:33.471Z
+  derivedFrom:
+    path: config/self-measurement/architecture-constraints.yaml
+    sha256: e9ac527759e3527efe4642e04d5483cd3e6b4b111c6d35db6e5b48092872196b
 boundaries:
   - name: contracts
     pathGlobs:
-      - "src/core/contracts.ts"
+      - src/core/contracts.ts
   - name: foundation
     pathGlobs:
-      - "src/core/formula.ts"
-      - "src/core/io.ts"
-      - "src/core/model.ts"
-      - "src/core/policy.ts"
-      - "src/core/response.ts"
-      - "src/core/scoring-shared.ts"
+      - src/core/formula.ts
+      - src/core/io.ts
+      - src/core/model.ts
+      - src/core/policy.ts
+      - src/core/response.ts
+      - src/core/scoring-shared.ts
   - name: analysis
     pathGlobs:
-      - "src/core/**"
-      - "src/analyzers/**"
-      - "src/packs/**"
+      - src/core/**
+      - src/analyzers/**
+      - src/packs/**
   - name: application
     pathGlobs:
-      - "src/cli.ts"
-      - "src/command-helpers.ts"
-      - "src/commands.ts"
-      - "src/index.ts"
+      - src/cli.ts
+      - src/command-helpers.ts
+      - src/commands.ts
+      - src/index.ts
