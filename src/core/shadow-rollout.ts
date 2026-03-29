@@ -119,6 +119,7 @@ function summarizeGateObservations(
   const deltas = observations.map((entry) => entry.delta).sort((left, right) => left - right);
   const totalRelevantCommits = observations.reduce((sum, entry) => sum + entry.relevantCommitCount, 0);
   const weightedDeltaTotal = observations.reduce((sum, entry) => sum + entry.delta * entry.relevantCommitCount, 0);
+  const averageDelta = observations.reduce((sum, entry) => sum + entry.delta, 0) / observations.length;
   const middleIndex = Math.floor(deltas.length / 2);
   const medianDelta =
     deltas.length % 2 === 0
@@ -129,8 +130,8 @@ function summarizeGateObservations(
 
   return {
     repoCount: observations.length,
-    averageDelta: observations.reduce((sum, entry) => sum + entry.delta, 0) / observations.length,
-    weightedAverageDelta: totalRelevantCommits === 0 ? 0 : weightedDeltaTotal / totalRelevantCommits,
+    averageDelta,
+    weightedAverageDelta: totalRelevantCommits === 0 ? averageDelta : weightedDeltaTotal / totalRelevantCommits,
     medianDelta,
     minDelta,
     maxDelta,

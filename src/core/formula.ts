@@ -21,7 +21,7 @@ class FormulaParser {
     if (this.index < this.tokens.length) {
       throw new Error(`Unexpected token at end of expression: ${this.expression}`);
     }
-    return value;
+    return this.ensureFinite(value);
   }
 
   private parseExpression(): number {
@@ -33,7 +33,7 @@ class FormulaParser {
       }
       const operator = token.value;
       const right = this.parseTerm();
-      value = operator === "+" ? value + right : value - right;
+      value = this.ensureFinite(operator === "+" ? value + right : value - right);
     }
     return value;
   }
@@ -47,7 +47,7 @@ class FormulaParser {
       }
       const operator = token.value;
       const right = this.parseFactor();
-      value = operator === "*" ? value * right : value / right;
+      value = this.ensureFinite(operator === "*" ? value * right : value / right);
     }
     return value;
   }
@@ -68,7 +68,7 @@ class FormulaParser {
       return value;
     }
     if (token.type === "operator" && token.value === "-") {
-      return -this.parseFactor();
+      return this.ensureFinite(-this.parseFactor());
     }
     if (token.type === "paren" && token.value === "(") {
       const nested = this.parseExpression();
@@ -79,6 +79,13 @@ class FormulaParser {
       return nested;
     }
     throw new Error(`Unexpected token in formula: ${JSON.stringify(token)}`);
+  }
+
+  private ensureFinite(value: number): number {
+    if (!Number.isFinite(value)) {
+      throw new Error(`Formula produced a non-finite result: ${this.expression}`);
+    }
+    return value;
   }
 
   private peekOperator(operator: "+" | "-" | "*" | "/"): boolean {
@@ -117,17 +124,21 @@ function tokenize(expression: string): Token[] {
       continue;
     }
     if (/\d/.test(char)) {
-      let value = char;
-      cursor += 1;
-      while (cursor < expression.length && /[\d.]/.test(expression[cursor] ?? "")) {
-        const nextChar = expression[cursor];
-        if (!nextChar) {
-          break;
-        }
-        value += nextChar;
-        cursor += 1;
+      const remaining = expression.slice(cursor);
+      const match = /^\d+(?:\.\d*)?/u.exec(remaining);
+      const literal = match?.[0];
+      if (!literal) {
+        throw new Error(`Invalid numeric literal in formula: ${expression}`);
       }
-      tokens.push({ type: "number", value: Number(value) });
+      cursor += literal.length;
+      if (expression[cursor] === ".") {
+        throw new Error(`Invalid numeric literal in formula: ${expression}`);
+      }
+      const numericValue = Number(literal);
+      if (!Number.isFinite(numericValue)) {
+        throw new Error(`Invalid numeric literal in formula: ${expression}`);
+      }
+      tokens.push({ type: "number", value: numericValue });
       continue;
     }
     if (/[A-Za-z_]/.test(char)) {

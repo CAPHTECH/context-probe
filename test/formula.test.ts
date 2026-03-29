@@ -12,4 +12,13 @@ describe("evaluateFormula", () => {
 
     expect(value).toBeCloseTo(0.6875, 5);
   });
+
+  test("rejects malformed numeric literals", () => {
+    expect(() => evaluateFormula("1..2", {})).toThrow("Invalid numeric literal");
+    expect(() => evaluateFormula("1.2.3 + 4", {})).toThrow("Invalid numeric literal");
+  });
+
+  test("rejects non-finite results", () => {
+    expect(() => evaluateFormula("1 / 0", {})).toThrow("non-finite result");
+  });
 });

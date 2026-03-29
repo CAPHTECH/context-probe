@@ -178,6 +178,32 @@ describe("shadow rollout gate command", () => {
     expect(application?.gate.rolloutDisposition).toBe("shadow_only");
     expect(application?.gate.reasons).toContain("missing_versioned_manifest_path");
   });
+
+  test("falls back to arithmetic mean when all gate weights are zero", () => {
+    const evaluation = evaluateShadowRolloutGate([
+      {
+        repoId: "alpha",
+        category: "application",
+        modelSource: "repo_owned",
+        modelPath: "/tmp/alpha-model.yaml",
+        relevantCommitCount: 0,
+        delta: 0.2,
+      },
+      {
+        repoId: "beta",
+        category: "application",
+        modelSource: "repo_owned",
+        modelPath: "/tmp/beta-model.yaml",
+        relevantCommitCount: 0,
+        delta: 0.1,
+      },
+    ]);
+
+    expect(evaluation.overall.averageDelta).toBeCloseTo(0.15, 12);
+    expect(evaluation.overall.weightedAverageDelta).toBeCloseTo(0.15, 12);
+    expect(evaluation.reasons).toContain("insufficient_real_repo_observations");
+    expect(evaluation.reasons).toContain("real_repo_weighted_average_delta_above_threshold");
+  });
 });
 
 async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {

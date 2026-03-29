@@ -1,0 +1,38 @@
+version: "1.0"
+counterexamples:
+  - id: "formula-invalid-decimal-1"
+    module: "src/core/formula.ts"
+    discovered: "2026-03-29"
+    description: "Malformed decimal literal returned NaN instead of throwing."
+    input:
+      expression: "1..2"
+      variables: {}
+    expected: "throw Invalid numeric literal"
+    regression_test: "test/formula.test.ts::rejects malformed numeric literals"
+  - id: "formula-non-finite-result-1"
+    module: "src/core/formula.ts"
+    discovered: "2026-03-29"
+    description: "Division by zero produced Infinity instead of rejecting the formula."
+    input:
+      expression: "1 / 0"
+      variables: {}
+    expected: "throw non-finite result"
+    regression_test: "test/formula.test.ts::rejects non-finite results"
+  - id: "shadow-rollout-zero-weight-weighted-average"
+    module: "src/core/shadow-rollout.ts"
+    discovered: "2026-03-29"
+    description: "When all relevantCommitCount values were zero, weightedAverageDelta collapsed to 0 instead of the arithmetic mean."
+    input:
+      observations:
+        - repoId: "alpha"
+          category: "application"
+          modelSource: "repo_owned"
+          relevantCommitCount: 0
+          delta: 0.2
+        - repoId: "beta"
+          category: "application"
+          modelSource: "repo_owned"
+          relevantCommitCount: 0
+          delta: 0.1
+    expected: "weightedAverageDelta === averageDelta === 0.15"
+    regression_test: "test/shadow-rollout-gate.test.ts::falls back to arithmetic mean when all gate weights are zero"
