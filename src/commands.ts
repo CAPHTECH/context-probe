@@ -2,47 +2,52 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import type {
-  ArchitectureBoundaryMap,
-  ArchitectureComplexityExportBundle,
-  ArchitectureComplexitySourceConfig,
-  ArchitectureConstraints,
-  ArchitectureDeliveryNormalizationProfile,
-  ArchitectureDeliveryObservationSet,
-  ArchitectureDeliveryExportBundle,
-  ArchitectureDeliveryRawObservationSet,
-  ArchitectureDeliverySourceConfig,
-  ArchitecturePatternRuntimeObservationSet,
-  ArchitecturePatternRuntimeNormalizationProfile,
-  ArchitecturePatternRuntimeRawObservationSet,
-  ArchitectureTelemetryNormalizationProfile,
-  ArchitectureTopologyModel,
-  ArchitectureScenarioCatalog,
-  ArchitectureScenarioObservationSourceConfig,
-  ArchitectureTelemetryExportBundle,
-  ArchitectureTelemetryObservationSet,
-  ArchitectureTelemetryRawObservationSet,
-  ArchitectureTelemetrySourceConfig,
   CommandContext,
   CommandResponse,
-  MarkdownReportResult,
-  MeasurementGateResult,
   DomainDesignScoreResult,
-  DomainDesignShadowRolloutGateResult,
-  DomainDesignShadowRolloutBatchAggregate,
   DomainDesignShadowRolloutBatchObservation,
   DomainDesignShadowRolloutBatchResult,
-  DomainDesignShadowRolloutRegistry,
-  DomainDesignShadowRolloutBatchSpec,
+  DomainDesignShadowRolloutGateResult,
   DomainDesignShadowRolloutObservation,
-  DomainModel,
-  ExtractionBackend,
-  ExtractionProviderName,
+  MarkdownReportResult,
+  MeasurementGateResult,
   ReviewItem,
-  ReviewResolution,
-  ReviewResolutionLog,
-  ScenarioObservationSet,
-  TopologyRuntimeObservationSet
+  ReviewResolution
 } from "./core/contracts.js";
+import type { CommandArgs } from "./command-helpers.js";
+import {
+  buildExtractionOptions,
+  getDocsRoot,
+  getProfile,
+  getRootPath,
+  loadBoundaryMapIfRequested,
+  loadComplexityExportIfRequested,
+  loadComplexitySourceConfigIfRequested,
+  loadDeliveryExportIfRequested,
+  loadDeliveryNormalizationProfileIfRequested,
+  loadDeliveryObservationsIfRequested,
+  loadDeliveryRawObservationsIfRequested,
+  loadDeliverySourceConfigIfRequested,
+  loadPatternRuntimeNormalizationProfileIfRequested,
+  loadPatternRuntimeObservationsIfRequested,
+  loadPatternRuntimeRawObservationsIfRequested,
+  loadRuntimeObservationsIfRequested,
+  loadScenarioCatalogIfRequested,
+  loadScenarioObservationSourceConfigIfRequested,
+  loadScenarioObservationsIfRequested,
+  loadTelemetryExportIfRequested,
+  loadTelemetryNormalizationProfileIfRequested,
+  loadTelemetryObservationsIfRequested,
+  loadTelemetryRawObservationsIfRequested,
+  loadTelemetrySourceConfigIfRequested,
+  loadTopologyModelIfRequested,
+  parseTieTolerance,
+  requireArchitectureConstraints,
+  requireDomainModel,
+  requireShadowRolloutBatchSpec,
+  requireShadowRolloutRegistry,
+  resolveSpecRelativePath
+} from "./command-helpers.js";
 import { normalizeDocuments, registerArtifacts } from "./core/artifacts.js";
 import {
   extractGlossary,
@@ -57,10 +62,9 @@ import {
   scoreEvolutionLocality
 } from "./core/history.js";
 import { readDataFile } from "./core/io.js";
-import { loadArchitectureConstraints, loadDomainModel } from "./core/model.js";
 import { loadPolicyConfig } from "./core/policy.js";
 import { renderMarkdownReport, evaluateGate } from "./core/report.js";
-import { applyReviewOverrides, listReviewItems, resolveReviewItems } from "./core/review.js";
+import { listReviewItems, resolveReviewItems } from "./core/review.js";
 import { confidenceFromSignals, createResponse, mergeStatus, toProvenance } from "./core/response.js";
 import { scaffoldArchitectureConstraints, scaffoldDomainModel } from "./core/scaffold.js";
 import {
@@ -83,440 +87,7 @@ import {
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "./analyzers/code.js";
 import { DOMAIN_PACKS } from "./packs/index.js";
 
-export type CommandHandler = (
-  args: Record<string, string | boolean>,
-  context: CommandContext
-) => Promise<CommandResponse<unknown>>;
-
-async function requireDomainModel(args: Record<string, string | boolean>, context: CommandContext): Promise<DomainModel> {
-  const modelPath = typeof args.model === "string" ? args.model : undefined;
-  if (!modelPath) {
-    throw new Error("`--model` is required");
-  }
-  return loadDomainModel(new URL(modelPath, `file://${context.cwd}/`).pathname);
-}
-
-async function requireArchitectureConstraints(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureConstraints> {
-  const constraintsPath = typeof args.constraints === "string" ? args.constraints : undefined;
-  if (!constraintsPath) {
-    throw new Error("`--constraints` is required");
-  }
-  return loadArchitectureConstraints(new URL(constraintsPath, `file://${context.cwd}/`).pathname);
-}
-
-async function requireShadowRolloutBatchSpec(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<{ spec: DomainDesignShadowRolloutBatchSpec; specPath: string }> {
-  const specPath = typeof args["batch-spec"] === "string" ? new URL(args["batch-spec"], `file://${context.cwd}/`).pathname : undefined;
-  if (!specPath) {
-    throw new Error("`--batch-spec` is required");
-  }
-  const spec = await readDataFile<DomainDesignShadowRolloutBatchSpec>(specPath);
-  if (!Array.isArray(spec.entries) || spec.entries.length === 0) {
-    throw new Error("Shadow rollout batch spec must contain at least one entry");
-  }
-  return { spec, specPath };
-}
-
-async function requireShadowRolloutRegistry(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<{ registry: DomainDesignShadowRolloutRegistry; registryPath: string }> {
-  const registryPath =
-    typeof args["shadow-rollout-registry"] === "string"
-      ? new URL(args["shadow-rollout-registry"], `file://${context.cwd}/`).pathname
-      : typeof args.registry === "string"
-        ? new URL(args.registry, `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!registryPath) {
-    throw new Error("`--shadow-rollout-registry` or `--registry` is required unless `--batch-spec` is provided");
-  }
-  const registry = await loadShadowRolloutRegistry(registryPath);
-  return { registry, registryPath };
-}
-
-function resolveSpecRelativePath(baseDirectory: string, input: string): string {
-  return path.isAbsolute(input) ? input : path.resolve(baseDirectory, input);
-}
-
-function parseTieTolerance(value: string | number | undefined): number | undefined {
-  if (typeof value === "number") {
-    return Number.isFinite(value) && value >= 0 ? value : undefined;
-  }
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-  }
-  return undefined;
-}
-
-async function loadScenarioCatalogIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureScenarioCatalog | undefined> {
-  const scenarioCatalogPath =
-    typeof args["scenario-catalog"] === "string"
-      ? new URL(args["scenario-catalog"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!scenarioCatalogPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureScenarioCatalog>(scenarioCatalogPath);
-}
-
-async function loadScenarioObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ScenarioObservationSet | undefined> {
-  const observationsPath =
-    typeof args["scenario-observations"] === "string"
-      ? new URL(args["scenario-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!observationsPath) {
-    return undefined;
-  }
-  return readDataFile<ScenarioObservationSet>(observationsPath);
-}
-
-async function loadScenarioObservationSourceConfigIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<{ config: ArchitectureScenarioObservationSourceConfig; configPath: string } | undefined> {
-  const configPath =
-    typeof args["scenario-observation-source"] === "string"
-      ? new URL(args["scenario-observation-source"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!configPath) {
-    return undefined;
-  }
-  const config = await readDataFile<ArchitectureScenarioObservationSourceConfig>(configPath);
-  return { config, configPath };
-}
-
-async function loadTopologyModelIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureTopologyModel | undefined> {
-  const topologyPath =
-    typeof args["topology-model"] === "string"
-      ? new URL(args["topology-model"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!topologyPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureTopologyModel>(topologyPath);
-}
-
-async function loadBoundaryMapIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureBoundaryMap | undefined> {
-  const boundaryMapPath =
-    typeof args["boundary-map"] === "string"
-      ? new URL(args["boundary-map"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!boundaryMapPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureBoundaryMap>(boundaryMapPath);
-}
-
-async function loadRuntimeObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<TopologyRuntimeObservationSet | undefined> {
-  const runtimePath =
-    typeof args["runtime-observations"] === "string"
-      ? new URL(args["runtime-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!runtimePath) {
-    return undefined;
-  }
-  return readDataFile<TopologyRuntimeObservationSet>(runtimePath);
-}
-
-async function loadDeliveryObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureDeliveryObservationSet | undefined> {
-  const deliveryPath =
-    typeof args["delivery-observations"] === "string"
-      ? new URL(args["delivery-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!deliveryPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureDeliveryObservationSet>(deliveryPath);
-}
-
-async function loadDeliveryRawObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureDeliveryRawObservationSet | undefined> {
-  const deliveryPath =
-    typeof args["delivery-raw-observations"] === "string"
-      ? new URL(args["delivery-raw-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!deliveryPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureDeliveryRawObservationSet>(deliveryPath);
-}
-
-async function loadDeliveryExportIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureDeliveryExportBundle | undefined> {
-  const deliveryPath =
-    typeof args["delivery-export"] === "string"
-      ? new URL(args["delivery-export"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!deliveryPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureDeliveryExportBundle>(deliveryPath);
-}
-
-async function loadDeliveryNormalizationProfileIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureDeliveryNormalizationProfile | undefined> {
-  const profilePath =
-    typeof args["delivery-normalization-profile"] === "string"
-      ? new URL(args["delivery-normalization-profile"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!profilePath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureDeliveryNormalizationProfile>(profilePath);
-}
-
-async function loadDeliverySourceConfigIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<{ config: ArchitectureDeliverySourceConfig; configPath: string } | undefined> {
-  const configPath =
-    typeof args["delivery-source"] === "string"
-      ? new URL(args["delivery-source"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!configPath) {
-    return undefined;
-  }
-  const config = await readDataFile<ArchitectureDeliverySourceConfig>(configPath);
-  return { config, configPath };
-}
-
-async function loadTelemetryObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureTelemetryObservationSet | undefined> {
-  const telemetryPath =
-    typeof args["telemetry-observations"] === "string"
-      ? new URL(args["telemetry-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!telemetryPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureTelemetryObservationSet>(telemetryPath);
-}
-
-async function loadTelemetryRawObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureTelemetryRawObservationSet | undefined> {
-  const telemetryPath =
-    typeof args["telemetry-raw-observations"] === "string"
-      ? new URL(args["telemetry-raw-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!telemetryPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureTelemetryRawObservationSet>(telemetryPath);
-}
-
-async function loadTelemetryExportIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureTelemetryExportBundle | undefined> {
-  const telemetryPath =
-    typeof args["telemetry-export"] === "string"
-      ? new URL(args["telemetry-export"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!telemetryPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureTelemetryExportBundle>(telemetryPath);
-}
-
-async function loadTelemetryNormalizationProfileIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureTelemetryNormalizationProfile | undefined> {
-  const profilePath =
-    typeof args["telemetry-normalization-profile"] === "string"
-      ? new URL(args["telemetry-normalization-profile"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!profilePath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureTelemetryNormalizationProfile>(profilePath);
-}
-
-async function loadTelemetrySourceConfigIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<{ config: ArchitectureTelemetrySourceConfig; configPath: string } | undefined> {
-  const configPath =
-    typeof args["telemetry-source"] === "string"
-      ? new URL(args["telemetry-source"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!configPath) {
-    return undefined;
-  }
-  const config = await readDataFile<ArchitectureTelemetrySourceConfig>(configPath);
-  return { config, configPath };
-}
-
-async function loadPatternRuntimeObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitecturePatternRuntimeObservationSet | undefined> {
-  const runtimePath =
-    typeof args["pattern-runtime-observations"] === "string"
-      ? new URL(args["pattern-runtime-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!runtimePath) {
-    return undefined;
-  }
-  return readDataFile<ArchitecturePatternRuntimeObservationSet>(runtimePath);
-}
-
-async function loadPatternRuntimeRawObservationsIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitecturePatternRuntimeRawObservationSet | undefined> {
-  const runtimePath =
-    typeof args["pattern-runtime-raw-observations"] === "string"
-      ? new URL(args["pattern-runtime-raw-observations"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!runtimePath) {
-    return undefined;
-  }
-  return readDataFile<ArchitecturePatternRuntimeRawObservationSet>(runtimePath);
-}
-
-async function loadPatternRuntimeNormalizationProfileIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitecturePatternRuntimeNormalizationProfile | undefined> {
-  const profilePath =
-    typeof args["pattern-runtime-normalization-profile"] === "string"
-      ? new URL(args["pattern-runtime-normalization-profile"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!profilePath) {
-    return undefined;
-  }
-  return readDataFile<ArchitecturePatternRuntimeNormalizationProfile>(profilePath);
-}
-
-async function loadComplexityExportIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ArchitectureComplexityExportBundle | undefined> {
-  const complexityPath =
-    typeof args["complexity-export"] === "string"
-      ? new URL(args["complexity-export"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!complexityPath) {
-    return undefined;
-  }
-  return readDataFile<ArchitectureComplexityExportBundle>(complexityPath);
-}
-
-async function loadComplexitySourceConfigIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<{ config: ArchitectureComplexitySourceConfig; configPath: string } | undefined> {
-  const configPath =
-    typeof args["complexity-source"] === "string"
-      ? new URL(args["complexity-source"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!configPath) {
-    return undefined;
-  }
-  const config = await readDataFile<ArchitectureComplexitySourceConfig>(configPath);
-  return { config, configPath };
-}
-
-function getRootPath(args: Record<string, string | boolean>, context: CommandContext): string {
-  return typeof args.repo === "string"
-    ? new URL(args.repo, `file://${context.cwd}/`).pathname
-    : context.cwd;
-}
-
-function getDocsRoot(args: Record<string, string | boolean>, context: CommandContext): string {
-  return typeof args["docs-root"] === "string"
-    ? new URL(args["docs-root"], `file://${context.cwd}/`).pathname
-    : context.cwd;
-}
-
-function getProfile(args: Record<string, string | boolean>): string {
-  return typeof args.profile === "string" ? args.profile : "default";
-}
-
-function getExtractor(args: Record<string, string | boolean>): ExtractionBackend {
-  return args.extractor === "cli" ? "cli" : "heuristic";
-}
-
-function getProvider(args: Record<string, string | boolean>): ExtractionProviderName | undefined {
-  if (args.provider === "codex" || args.provider === "claude") {
-    return args.provider;
-  }
-  return undefined;
-}
-
-function getPromptProfile(args: Record<string, string | boolean>): string {
-  return typeof args["prompt-profile"] === "string" ? args["prompt-profile"] : "default";
-}
-
-function getFallback(args: Record<string, string | boolean>): "heuristic" | "none" {
-  return args.fallback === "none" ? "none" : "heuristic";
-}
-
-async function loadReviewLogIfRequested(
-  args: Record<string, string | boolean>,
-  context: CommandContext
-): Promise<ReviewResolutionLog | undefined> {
-  const reviewLogPath =
-    typeof args["review-log"] === "string"
-      ? new URL(args["review-log"], `file://${context.cwd}/`).pathname
-      : undefined;
-  if (!reviewLogPath) {
-    return undefined;
-  }
-  return readDataFile<ReviewResolutionLog>(reviewLogPath);
-}
-
-async function buildExtractionOptions(args: Record<string, string | boolean>, context: CommandContext) {
-  const provider = getProvider(args);
-  const providerCommand = typeof args["provider-cmd"] === "string" ? args["provider-cmd"] : undefined;
-  const reviewLog = await loadReviewLogIfRequested(args, context);
-  return {
-    root: getDocsRoot(args, context),
-    cwd: context.cwd,
-    extractor: getExtractor(args),
-    ...(provider ? { provider } : {}),
-    ...(providerCommand ? { providerCommand } : {}),
-    promptProfile: getPromptProfile(args),
-    fallback: getFallback(args),
-    ...(reviewLog ? { reviewLog } : {}),
-    applyReviewLog: args["apply-review-log"] === true
-  } as const;
-}
+export type CommandHandler = (args: CommandArgs, context: CommandContext) => Promise<CommandResponse<unknown>>;
 
 export const COMMANDS: Record<string, CommandHandler> = {
   async "ingest.register_artifacts"(args, context) {
@@ -785,10 +356,6 @@ export const COMMANDS: Record<string, CommandHandler> = {
 
       const usableTelemetryRaw = Boolean(telemetryRawObservations && telemetryNormalizationProfile);
       const usableDeliveryRaw = Boolean(deliveryRawObservations && deliveryNormalizationProfile);
-      const usablePatternRuntimeRaw = Boolean(
-        patternRuntimeRawObservations && patternRuntimeNormalizationProfile
-      );
-
       const scenarioObservationSource =
         !scenarioObservations && scenarioObservationSourceConfig
           ? await resolveScenarioObservationSourceConfig(scenarioObservationSourceConfig)
@@ -884,7 +451,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       if (!rolloutCategory) {
         throw new Error("`--rollout-category` is required when `--pilot-persistence` is enabled");
       }
-      const { registry, registryPath } = await requireShadowRolloutRegistry(args, context);
+      const { registry, registryPath } = await requireShadowRolloutRegistry(args, context, loadShadowRolloutRegistry);
       pilotGateEvaluation = evaluateShadowRolloutGate(registryToGateObservations(registry, registryPath));
     }
 
@@ -1115,7 +682,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       );
     }
 
-    const { registry, registryPath } = await requireShadowRolloutRegistry(args, context);
+    const { registry, registryPath } = await requireShadowRolloutRegistry(args, context, loadShadowRolloutRegistry);
     const evaluation = evaluateShadowRolloutGate(registryToGateObservations(registry, registryPath));
 
     return createResponse<DomainDesignShadowRolloutGateResult>(

@@ -32,10 +32,6 @@ function fileExists(filePath: string): boolean {
   return ts.sys.fileExists(filePath);
 }
 
-function isEcmaSourceFile(filePath: string): boolean {
-  return ECMASCRIPT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
-}
-
 function isDartSourceFile(filePath: string): boolean {
   return path.extname(filePath).toLowerCase() === DART_EXTENSION;
 }
