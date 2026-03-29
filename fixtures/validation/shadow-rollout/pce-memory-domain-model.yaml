@@ -1,0 +1,82 @@
+version: "1.0"
+contexts:
+  - name: RuntimeInterfaces
+    pathGlobs:
+      - "apps/pce-memory/src/index.ts"
+      - "apps/pce-memory/src/cli/**/*.ts"
+      - "apps/pce-memory/src/client/**/*.ts"
+      - "apps/pce-memory/src/daemon/**/*.ts"
+      - "apps/pce-memory/src/config/**/*.ts"
+      - "apps/pce-memory/src/shared/**/*.ts"
+      - "apps/pce-memory/src/utils/**/*.ts"
+    contractGlobs:
+      - "apps/pce-memory/src/index.ts"
+      - "apps/pce-memory/src/cli/**/*.ts"
+      - "apps/pce-memory/src/client/**/*.ts"
+      - "apps/pce-memory/src/daemon/**/*.ts"
+      - "apps/pce-memory/src/config/**/*.ts"
+  - name: DomainState
+    pathGlobs:
+      - "apps/pce-memory/src/domain/**/*.ts"
+      - "apps/pce-memory/src/layer/**/*.ts"
+      - "apps/pce-memory/src/state/**/*.ts"
+    contractGlobs:
+      - "apps/pce-memory/src/domain/**/*.ts"
+      - "apps/pce-memory/src/layer/**/*.ts"
+      - "apps/pce-memory/src/state/**/*.ts"
+  - name: HandlerPipeline
+    pathGlobs:
+      - "apps/pce-memory/src/core/**/*.ts"
+    contractGlobs:
+      - "apps/pce-memory/src/core/**/*.ts"
+  - name: SyncAndAudit
+    pathGlobs:
+      - "apps/pce-memory/src/sync/**/*.ts"
+      - "apps/pce-memory/src/audit/**/*.ts"
+      - "apps/pce-memory/src/store/policy.ts"
+    contractGlobs:
+      - "apps/pce-memory/src/sync/**/*.ts"
+      - "apps/pce-memory/src/audit/**/*.ts"
+      - "apps/pce-memory/src/store/policy.ts"
+  - name: PersistenceStore
+    pathGlobs:
+      - "apps/pce-memory/src/db/**/*.ts"
+      - "apps/pce-memory/src/db/schema.sql"
+      - "apps/pce-memory/src/store/claims.ts"
+      - "apps/pce-memory/src/store/claimLinks.ts"
+      - "apps/pce-memory/src/store/entities.ts"
+      - "apps/pce-memory/src/store/relations.ts"
+      - "apps/pce-memory/src/store/observations.ts"
+      - "apps/pce-memory/src/store/evidence.ts"
+      - "apps/pce-memory/src/store/feedback.ts"
+      - "apps/pce-memory/src/store/logs.ts"
+      - "apps/pce-memory/src/store/promotionQueue.ts"
+      - "apps/pce-memory/src/store/rollbackTopology.ts"
+      - "apps/pce-memory/src/store/rate.ts"
+      - "apps/pce-memory/src/store/health.ts"
+      - "apps/pce-memory/src/store/maintenance.ts"
+      - "apps/pce-memory/src/store/topology.ts"
+      - "apps/pce-memory/src/store/graphAudit.ts"
+      - "apps/pce-memory/src/store/critic.ts"
+      - "apps/pce-memory/src/store/activeContext.ts"
+    contractGlobs:
+      - "apps/pce-memory/src/db/**/*.ts"
+      - "apps/pce-memory/src/db/schema.sql"
+      - "apps/pce-memory/src/store/claims.ts"
+      - "apps/pce-memory/src/store/claimLinks.ts"
+      - "apps/pce-memory/src/store/entities.ts"
+      - "apps/pce-memory/src/store/relations.ts"
+      - "apps/pce-memory/src/store/observations.ts"
+      - "apps/pce-memory/src/store/evidence.ts"
+      - "apps/pce-memory/src/store/feedback.ts"
+  - name: SearchAndEmbeddings
+    pathGlobs:
+      - "apps/pce-memory/src/store/embedding.ts"
+      - "apps/pce-memory/src/store/hybridSearch.ts"
+      - "apps/pce-memory/src/store/rerank.ts"
+      - "apps/pce-memory/src/store/search/**/*.ts"
+    contractGlobs:
+      - "apps/pce-memory/src/store/embedding.ts"
+      - "apps/pce-memory/src/store/hybridSearch.ts"
+      - "apps/pce-memory/src/store/rerank.ts"
+      - "apps/pce-memory/src/store/search/**/*.ts"

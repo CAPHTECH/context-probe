@@ -55,15 +55,24 @@ Current execution order is roughly:
 2. parse the repository
 3. detect contract usage and boundary leaks
 4. normalize Git history and compute evolution locality
-5. if `--docs-root` is present, lazily extract glossary, rules, and invariants
-6. compute boundary fitness, aggregate fitness, and trace links
-7. evaluate formulas
-8. assemble the final response
+5. optionally inspect co-change topology through the experimental `history.analyze_persistence` surface
+6. optionally compare `ELS` with the beta0 persistence candidate through `history.compare_locality_models`, or attach the same comparison as a shadow payload when `score.compute --shadow-persistence` is enabled
+7. if `--docs-root` is present, lazily extract glossary, rules, and invariants
+8. compute boundary fitness, aggregate fitness, and trace links
+9. evaluate formulas
+10. assemble the final response
 
 Important behavior:
 
 - `DRF`, `ULI`, `BFS`, and `AFS` require `--docs-root`
 - `MCCS` and `ELS` can run without docs
+- `history.analyze_persistence` is score-neutral and does not replace `ELS`
+- `history.compare_locality_models` is score-neutral and exists only to calibrate the persistence candidate against `ELS`
+- `score.compute --shadow-persistence` keeps `ELS` as the source-of-truth metric and only adds `result.shadow.localityModels` for observation
+- `score.compute --pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` still computes the same shadow payload, but it may replace the effective `ELS` value when the selected category gate is currently `replace`
+- pilot mode records the baseline `ELS`, persistence candidate value, effective locality source, and overall or category gate state under `result.pilot`
+- `score.observe_shadow_rollout_batch` exists to compare shadow deltas across a curated repo set without changing production scoring
+- `gate.evaluate_shadow_rollout` evaluates the curated adoption gate from either a versioned registry or a live batch observation without changing production scoring
 - response-level unknowns aggregate skipped inputs and approximation notes
 
 ## Architecture-Design Path

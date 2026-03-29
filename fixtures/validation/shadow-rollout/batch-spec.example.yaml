@@ -1,0 +1,46 @@
+version: "1.0"
+policy: "../../policies/default.yaml"
+tieTolerance: 0.02
+entries:
+  - repoId: context-probe
+    label: "context-probe"
+    category: "tooling"
+    modelSource: "repo_owned"
+    repo: "/absolute/path/to/context-probe"
+    model: "/absolute/path/to/context-probe/config/self-measurement/domain-model.yaml"
+  - repoId: kakusill
+    label: "kakusill"
+    category: "application"
+    modelSource: "repo_owned"
+    repo: "/absolute/path/to/kakusill"
+    model: "/absolute/path/to/kakusill/docs/architecture/context-probe/domain-model.yaml"
+  - repoId: sim_prism
+    label: "sim_prism"
+    category: "application"
+    modelSource: "versioned_manifest"
+    repo: "/absolute/path/to/sim_prism"
+    model: "./sim_prism-domain-model.yaml"
+  - repoId: pce-memory
+    label: "pce-memory"
+    category: "tooling"
+    modelSource: "versioned_manifest"
+    repo: "/absolute/path/to/pce-memory"
+    model: "./pce-memory-domain-model.yaml"
+  - repoId: zakki
+    label: "zakki"
+    category: "application"
+    modelSource: "versioned_manifest"
+    repo: "/absolute/path/to/zakki"
+    model: "./zakki-domain-model.yaml"
+  - repoId: assay-kit
+    label: "assay-kit"
+    category: "tooling"
+    modelSource: "versioned_manifest"
+    repo: "/absolute/path/to/assay-kit"
+    model: "./assay-kit-domain-model.yaml"
+  - repoId: project_logica
+    label: "project_logica"
+    category: "tooling"
+    modelSource: "versioned_manifest"
+    repo: "/absolute/path/to/project_logica"
+    model: "./project_logica-domain-model.yaml"

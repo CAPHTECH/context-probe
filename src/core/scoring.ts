@@ -19,6 +19,8 @@ import type {
   CochangeAnalysis,
   CochangeCommit,
   CommandResponse,
+  DomainDesignScoreResult,
+  DomainDesignShadowRolloutGateEvaluation,
   DomainModel,
   ExtractionBackend,
   ExtractionProviderName,
@@ -37,7 +39,12 @@ import { computeAggregateFitness } from "./aggregate-fitness.js";
 import { computeBoundaryFitness } from "./boundary-fitness.js";
 import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
 import { evaluateFormula } from "./formula.js";
-import { normalizeHistory, scoreEvolutionLocality } from "./history.js";
+import {
+  compareEvolutionLocalityModels,
+  evaluateEvolutionLocalityObservationQuality,
+  normalizeHistory,
+  scoreEvolutionLocality
+} from "./history.js";
 import { getDomainPolicy } from "./policy.js";
 import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
 import { listReviewItems } from "./review.js";
@@ -259,6 +266,9 @@ export async function computeDomainDesignScores(options: {
   model: DomainModel;
   policyConfig: PolicyConfig;
   profileName: string;
+  shadowPersistence?: boolean;
+  pilotPersistenceCategory?: string;
+  pilotGateEvaluation?: DomainDesignShadowRolloutGateEvaluation;
   docsRoot?: string;
   extraction?: {
     extractor: ExtractionBackend;
@@ -269,15 +279,7 @@ export async function computeDomainDesignScores(options: {
     reviewLog?: ReviewResolutionLog;
     applyReviewLog?: boolean;
   };
-}): Promise<
-  CommandResponse<{
-    domainId: "domain_design";
-    metrics: MetricScore[];
-    leakFindings: BoundaryLeakFinding[];
-    history: CochangeAnalysis | null;
-    crossContextReferences: number;
-  }>
-> {
+}): Promise<CommandResponse<DomainDesignScoreResult>> {
   const { repoPath, model, policyConfig, profileName } = options;
   const policy = getDomainPolicy(policyConfig, profileName, "domain_design");
   const codebase = await parseCodebase(repoPath);
@@ -372,26 +374,26 @@ export async function computeDomainDesignScores(options: {
     SCR: 0
   };
   let historyConfidence = 0;
+  let shadow: DomainDesignScoreResult["shadow"] | undefined;
+  const requiresLocalityComparison = options.shadowPersistence || Boolean(options.pilotPersistenceCategory);
 
   try {
     const commits = await normalizeHistory(repoPath, policyConfig, profileName);
     history = scoreEvolutionLocality(commits, model);
+    const historyQuality = evaluateEvolutionLocalityObservationQuality(commits, model);
     historySignals = {
       CCL: history.crossContextChangeLocality,
       FS: history.featureScatter,
       SCR: history.surpriseCouplingRatio
     };
-    if (history.commits.length === 0) {
-      historyConfidence = 0.5;
-    } else if (history.commits.length < 3) {
-      historyConfidence = 0.6;
-    } else {
-      historyConfidence = 0.9;
-    }
-    if (history.commits.length === 0) {
-      unknowns.push("No Git commits suitable for evaluation were found.");
-    } else if (history.commits.length < 3) {
-      unknowns.push("Git history is still thin, so ELS is provisional.");
+    historyConfidence = historyQuality.confidence;
+    unknowns.push(...historyQuality.unknowns);
+    if (requiresLocalityComparison) {
+      const localityModels = compareEvolutionLocalityModels(commits, model);
+      shadow = {
+        localityModels: localityModels.comparison
+      };
+      unknowns.push(...localityModels.unknowns);
     }
   } catch (error) {
     history = null;
@@ -624,19 +626,76 @@ export async function computeDomainDesignScores(options: {
     );
   }
 
+  let pilot: DomainDesignScoreResult["pilot"] | undefined;
+  if (options.pilotPersistenceCategory) {
+    if (!options.pilotGateEvaluation) {
+      throw new Error("pilotPersistenceCategory requires pilotGateEvaluation");
+    }
+    if (!shadow) {
+      throw new Error("pilotPersistenceCategory requires locality comparison data");
+    }
+
+    const elsMetric = scores.find((metric) => metric.metricId === "ELS");
+    if (!elsMetric) {
+      throw new Error("ELS metric is required for persistence pilot mode");
+    }
+
+    const categoryGate = options.pilotGateEvaluation.categories.find(
+      (entry) => entry.category === options.pilotPersistenceCategory
+    );
+    if (!categoryGate) {
+      throw new Error(
+        `No shadow rollout category gate is registered for \`${options.pilotPersistenceCategory}\``
+      );
+    }
+
+    const baselineElsValue = elsMetric.value;
+    const persistenceCandidateValue =
+      shadow.localityModels.persistenceCandidate.localityScore;
+    const applied = categoryGate.gate.rolloutDisposition === "replace";
+
+    if (applied) {
+      elsMetric.value = persistenceCandidateValue;
+      elsMetric.unknowns = Array.from(
+        new Set([...elsMetric.unknowns, `ELS is piloted by persistence_candidate for category \`${options.pilotPersistenceCategory}\`.`])
+      );
+    }
+
+    pilot = {
+      category: options.pilotPersistenceCategory,
+      applied,
+      localitySource: applied ? "persistence_candidate" : "els",
+      baselineElsValue,
+      persistenceCandidateValue,
+      effectiveElsValue: elsMetric.value,
+      overallGate: {
+        reasons: options.pilotGateEvaluation.reasons,
+        replacementVerdict: options.pilotGateEvaluation.replacementVerdict,
+        rolloutDisposition: options.pilotGateEvaluation.rolloutDisposition
+      },
+      categoryGate: {
+        reasons: categoryGate.gate.reasons,
+        replacementVerdict: categoryGate.gate.replacementVerdict,
+        rolloutDisposition: categoryGate.gate.rolloutDisposition
+      }
+    };
+  }
+
   return createResponse(
     {
       domainId: "domain_design",
       metrics: scores,
       leakFindings,
       history,
-      crossContextReferences: contractUsage.applicableReferences
+      crossContextReferences: contractUsage.applicableReferences,
+      ...(shadow ? { shadow } : {}),
+      ...(pilot ? { pilot } : {})
     },
     {
       status: diagnostics.length > 0 ? "warning" : "ok",
       evidence: dedupeEvidence([...evidence, ...additionalEvidence]),
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
-      unknowns,
+      unknowns: Array.from(new Set(unknowns)),
       diagnostics,
       provenance: [toProvenance(repoPath, "domain_design"), ...(options.docsRoot ? [toProvenance(options.docsRoot, "domain_design_docs")] : [])]
     }

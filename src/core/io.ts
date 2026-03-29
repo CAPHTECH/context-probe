@@ -7,7 +7,20 @@ import YAML from "yaml";
 
 const DOCUMENT_EXTENSIONS = new Set([".md", ".adoc", ".txt"]);
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs", ".dart"]);
-const DEFAULT_IGNORES = ["node_modules/**", "dist/**", ".git/**"];
+const DEFAULT_IGNORES = [
+  "node_modules",
+  "node_modules/**",
+  "**/node_modules",
+  "**/node_modules/**",
+  "dist",
+  "dist/**",
+  "**/dist",
+  "**/dist/**",
+  ".git",
+  ".git/**",
+  "**/.git",
+  "**/.git/**"
+];
 
 export function toPosixPath(input: string): string {
   return input.split(path.sep).join("/");
@@ -51,7 +64,20 @@ export async function listFiles(root: string): Promise<string[]> {
         await visit(absolutePath);
         continue;
       }
-      results.push(absolutePath);
+      if (entry.isFile()) {
+        results.push(absolutePath);
+        continue;
+      }
+      if (entry.isSymbolicLink()) {
+        try {
+          const stats = await fs.stat(absolutePath);
+          if (stats.isFile()) {
+            results.push(absolutePath);
+          }
+        } catch {
+          // Ignore broken or inaccessible symlinks during repository scans.
+        }
+      }
     }
   }
 
