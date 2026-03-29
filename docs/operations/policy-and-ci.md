@@ -23,6 +23,8 @@ Recommended usage:
 3. publish `report.generate` output when helpful
 4. route `review.list_unknowns` output to human review
 
+When `--pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` is enabled for `domain_design`, the returned `ELS` metric may be replaced by the persistence candidate for categories whose curated gate currently says `replace`. CI gate semantics do not change: `gate.evaluate` still judges only the returned metric values against policy thresholds.
+
 ## Suggested Rules
 
 ### Domain Design

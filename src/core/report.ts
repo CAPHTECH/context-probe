@@ -1,4 +1,10 @@
-import type { CommandResponse, MetricScore, PolicyConfig } from "./contracts.js";
+import type {
+  CommandResponse,
+  DomainDesignPilotAnalysis,
+  MetricGateDecision,
+  MetricScore,
+  PolicyConfig
+} from "./contracts.js";
 import { getDomainPolicy } from "./policy.js";
 
 interface MetricGuidance {
@@ -115,6 +121,32 @@ function renderMetricGuidanceSection(metrics: MetricScore[]): string[] {
   return ["", "## Metric Guidance", ...guidanceLines];
 }
 
+function renderPilotRolloutSection(pilot: DomainDesignPilotAnalysis | undefined): string[] {
+  if (!pilot) {
+    return [];
+  }
+
+  const overallReasons =
+    pilot.overallGate.reasons.length > 0 ? pilot.overallGate.reasons.join(", ") : "none";
+  const categoryReasons =
+    pilot.categoryGate.reasons.length > 0 ? pilot.categoryGate.reasons.join(", ") : "none";
+
+  return [
+    "",
+    "## Pilot Rollout",
+    `- Category: ${pilot.category}`,
+    `- Applied: ${pilot.applied ? "yes" : "no"}`,
+    `- Locality Source: ${pilot.localitySource}`,
+    `- Baseline ELS: ${pilot.baselineElsValue.toFixed(3)}`,
+    `- Persistence Candidate: ${pilot.persistenceCandidateValue.toFixed(3)}`,
+    `- Effective ELS: ${pilot.effectiveElsValue.toFixed(3)}`,
+    `- Overall Gate: ${pilot.overallGate.rolloutDisposition} (${pilot.overallGate.replacementVerdict})`,
+    `- Overall Reasons: ${overallReasons}`,
+    `- Category Gate: ${pilot.categoryGate.rolloutDisposition} (${pilot.categoryGate.replacementVerdict})`,
+    `- Category Reasons: ${categoryReasons}`
+  ];
+}
+
 function isArchitectureDomain(
   response: CommandResponse<{
     domainId: string;
@@ -229,6 +261,7 @@ export function renderMarkdownReport(
     metrics: MetricScore[];
     leakFindings?: unknown[];
     violations?: unknown[];
+    pilot?: DomainDesignPilotAnalysis;
   }>,
   profileName?: string
 ): string {
@@ -243,6 +276,7 @@ export function renderMarkdownReport(
   lines.push("");
   lines.push("## Metrics");
   lines.push(...response.result.metrics.map(formatMetric));
+  lines.push(...renderPilotRolloutSection(response.result.pilot));
   lines.push(...renderMetricGuidanceSection(response.result.metrics));
 
   if (response.unknowns.length > 0) {
@@ -268,7 +302,7 @@ export function evaluateGate(
   }>,
   policyConfig: PolicyConfig,
   profileName: string
-) {
+): MetricGateDecision {
   const policy = getDomainPolicy(policyConfig, profileName, response.result.domainId);
   const failures: string[] = [];
   const warnings: string[] = [];
@@ -314,5 +348,5 @@ export function evaluateGate(
     status: failures.length > 0 ? "error" : warnings.length > 0 ? "warning" : "ok",
     failures,
     warnings
-  } as const;
+  };
 }
