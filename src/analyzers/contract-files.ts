@@ -63,10 +63,16 @@ export function collectContractFilePaths(options: {
     const parsedFile = fileMap.get(filePath);
     const layer = classifyArchitectureLayer(filePath, options.constraints);
 
+    // Architecture constraints define the measurement scope. Contract-like files
+    // outside those layer globs must not influence IPS/CTI for the current repo.
+    if (!layer) {
+      return false;
+    }
+
     if (hasContractDirectorySignal(filePath) || hasContractBasenameSignal(filePath)) {
       return true;
     }
-    if (layer && isContractLayer(layer)) {
+    if (isContractLayer(layer)) {
       return true;
     }
     return isDartDomainFallbackContract({
