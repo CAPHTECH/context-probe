@@ -1,0 +1,29 @@
+version: "1.0"
+nodes:
+  - nodeId: cli
+    kind: gateway
+    isolationBoundary: process
+  - nodeId: command_router
+    kind: service
+    isolationBoundary: process
+  - nodeId: analysis_core
+    kind: service
+    isolationBoundary: analysis
+  - nodeId: repo_state
+    kind: datastore
+    isolationBoundary: storage
+edges:
+  - source: cli
+    target: command_router
+    kind: sync_call
+  - source: command_router
+    target: analysis_core
+    kind: sync_call
+  - source: command_router
+    target: repo_state
+    kind: runtime_dependency
+    shared: true
+  - source: analysis_core
+    target: repo_state
+    kind: runtime_dependency
+    shared: true

@@ -96,6 +96,28 @@ npm run dev -- score.compute \
 
 この系統では `--model` ではなく `--constraints` が必須です。
 
+このコマンドだけでも動きますが、`QSF` `TIS` `OAS` `EES` を neutral / proxy ではなく観測付きで読みたい場合は、scenario / topology / runtime / telemetry / delivery の入力も渡します。
+
+このリポジトリ自身を測るときの最小セットは `config/self-measurement/` に置いてあります。
+
+```bash
+npm run dev -- score.compute \
+  --domain architecture_design \
+  --repo . \
+  --constraints config/self-measurement/architecture-constraints.yaml \
+  --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
+  --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
+  --topology-model config/self-measurement/architecture-topology.yaml \
+  --runtime-observations config/self-measurement/architecture-runtime-observations.yaml \
+  --telemetry-observations config/self-measurement/architecture-telemetry-observations.yaml \
+  --pattern-runtime-observations config/self-measurement/architecture-pattern-runtime-observations.yaml \
+  --delivery-observations config/self-measurement/architecture-delivery-observations.yaml \
+  --policy fixtures/policies/default.yaml
+```
+
+ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。
+
 ### 2. Markdown レポートを生成する
 
 計測結果を読みやすい Markdown にしたい場合は `report.generate` を使います。
@@ -220,6 +242,10 @@ pilot mode で変わる点:
 ### Git 履歴が足りない
 
 履歴系の評価は Git 情報に依存します。履歴が未初期化、または少なすぎる場合は、`ELS` などの confidence が下がったり、`unknowns` に注意が出たりします。
+
+### architecture self-measurement に補助入力を付けていない
+
+`architecture_design` は `--constraints` だけでも動きますが、その場合 `QSF` `TIS` `OAS` `EES` が未観測や bridge fallback になりやすいです。自己計測で proxy を減らしたいなら、`config/self-measurement/architecture-*.yaml` を一緒に渡してください。
 
 ### `doc.extract_*` を最初から使おうとする
 

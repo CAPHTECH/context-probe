@@ -120,6 +120,26 @@ npm run dev -- score.compute \
 
 アーキテクチャ設計では `--model` ではなく `--constraints` が必須です。
 
+自己計測で `QSF` `TIS` `OAS` `EES` の proxy を減らしたい場合は、`config/self-measurement/` の補助入力も一緒に渡します。
+
+```bash
+npm run dev -- score.compute \
+  --domain architecture_design \
+  --repo . \
+  --constraints config/self-measurement/architecture-constraints.yaml \
+  --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
+  --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
+  --topology-model config/self-measurement/architecture-topology.yaml \
+  --runtime-observations config/self-measurement/architecture-runtime-observations.yaml \
+  --telemetry-observations config/self-measurement/architecture-telemetry-observations.yaml \
+  --pattern-runtime-observations config/self-measurement/architecture-pattern-runtime-observations.yaml \
+  --delivery-observations config/self-measurement/architecture-delivery-observations.yaml \
+  --policy fixtures/policies/default.yaml
+```
+
+これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。
+
 ### source config を使った brownfield evidence の取り込み例
 
 ```bash
@@ -199,8 +219,18 @@ npm run dev -- score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
+  --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
+  --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
+  --topology-model config/self-measurement/architecture-topology.yaml \
+  --runtime-observations config/self-measurement/architecture-runtime-observations.yaml \
+  --telemetry-observations config/self-measurement/architecture-telemetry-observations.yaml \
+  --pattern-runtime-observations config/self-measurement/architecture-pattern-runtime-observations.yaml \
+  --delivery-observations config/self-measurement/architecture-delivery-observations.yaml \
   --policy fixtures/policies/default.yaml
 ```
+
+補助入力を省略すると architecture 側は neutral / proxy fallback が増えるため、自己計測では上のフルセットを基準にしてください。
 
 ### 4. Markdown レポートを生成する
 

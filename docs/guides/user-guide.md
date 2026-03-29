@@ -90,6 +90,28 @@ npm run dev -- score.compute \
 
 For architecture runs, `--constraints` is required instead of `--model`.
 
+This bare command is enough to run, but `QSF`, `TIS`, `OAS`, and `EES` stay neutral or proxy-heavy unless you also provide scenario, topology, runtime, telemetry, and delivery inputs.
+
+This repository keeps a reviewed self-measurement bundle under `config/self-measurement/`.
+
+```bash
+npm run dev -- score.compute \
+  --domain architecture_design \
+  --repo . \
+  --constraints config/self-measurement/architecture-constraints.yaml \
+  --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
+  --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
+  --topology-model config/self-measurement/architecture-topology.yaml \
+  --runtime-observations config/self-measurement/architecture-runtime-observations.yaml \
+  --telemetry-observations config/self-measurement/architecture-telemetry-observations.yaml \
+  --pattern-runtime-observations config/self-measurement/architecture-pattern-runtime-observations.yaml \
+  --delivery-observations config/self-measurement/architecture-delivery-observations.yaml \
+  --policy fixtures/policies/default.yaml
+```
+
+Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are maintained as curated observation snapshots.
+
 ### 2. Generate a Markdown report
 
 ```bash
@@ -209,6 +231,10 @@ Domain-design scoring still runs without it, but document-derived metrics are sk
 ### Too little Git history
 
 History-based metrics such as `ELS` or `AELS` depend on Git metadata. Thin history lowers confidence and increases unknowns.
+
+### Running architecture self-measurement without supporting inputs
+
+`architecture_design` still runs with only `--constraints`, but `QSF`, `TIS`, `OAS`, and `EES` are then much more likely to fall back to unobserved or bridge-based values. For self-measurement, pass the `config/self-measurement/architecture-*.yaml` files together.
 
 ### Starting with `doc.extract_*`
 

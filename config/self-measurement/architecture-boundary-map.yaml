@@ -1,0 +1,24 @@
+version: "1.0"
+boundaries:
+  - name: contracts
+    pathGlobs:
+      - "src/core/contracts.ts"
+  - name: foundation
+    pathGlobs:
+      - "src/core/formula.ts"
+      - "src/core/io.ts"
+      - "src/core/model.ts"
+      - "src/core/policy.ts"
+      - "src/core/response.ts"
+      - "src/core/scoring-shared.ts"
+  - name: analysis
+    pathGlobs:
+      - "src/core/**"
+      - "src/analyzers/**"
+      - "src/packs/**"
+  - name: application
+    pathGlobs:
+      - "src/cli.ts"
+      - "src/command-helpers.ts"
+      - "src/commands.ts"
+      - "src/index.ts"

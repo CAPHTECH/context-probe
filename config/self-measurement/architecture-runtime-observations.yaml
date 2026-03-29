@@ -1,0 +1,11 @@
+# Runtime-containment snapshot for the local CLI execution path, reviewed on 2026-03-29.
+version: "1.0"
+observations:
+  - nodeId: command_router
+    failureContainmentRatio: 0.88
+    runtimeContainment: 0.84
+    note: "Command orchestration stays within the process boundary for the dominant failure modes."
+  - nodeId: analysis_core
+    failureContainmentRatio: 0.92
+    runtimeContainment: 0.9
+    note: "Analyzer and scoring failures are typically isolated to the analysis boundary."

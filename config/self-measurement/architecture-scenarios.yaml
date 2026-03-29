@@ -1,0 +1,32 @@
+version: "1.0"
+scenarios:
+  - scenarioId: "S-001"
+    name: "Architecture score latency"
+    qualityAttribute: "feedback-loop"
+    responseMeasure:
+      metric: "score.compute duration"
+      unit: "seconds"
+    direction: lower_is_better
+    priority: 5
+    target: 1
+    worstAcceptable: 5
+  - scenarioId: "S-002"
+    name: "Architecture report latency"
+    qualityAttribute: "feedback-loop"
+    responseMeasure:
+      metric: "report.generate duration"
+      unit: "seconds"
+    direction: lower_is_better
+    priority: 4
+    target: 1
+    worstAcceptable: 5
+  - scenarioId: "S-003"
+    name: "Local verification cycle"
+    qualityAttribute: "maintainability"
+    responseMeasure:
+      metric: "check-and-test duration"
+      unit: "seconds"
+    direction: lower_is_better
+    priority: 4
+    target: 8
+    worstAcceptable: 30

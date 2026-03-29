@@ -120,6 +120,26 @@ npm run dev -- score.compute \
 
 For architecture runs, `--constraints` is required instead of `--model`.
 
+If you want self-measurement with fewer proxy fallbacks in `QSF`, `TIS`, `OAS`, and `EES`, pass the reviewed supporting inputs from `config/self-measurement/` as well.
+
+```bash
+npm run dev -- score.compute \
+  --domain architecture_design \
+  --repo . \
+  --constraints config/self-measurement/architecture-constraints.yaml \
+  --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
+  --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
+  --topology-model config/self-measurement/architecture-topology.yaml \
+  --runtime-observations config/self-measurement/architecture-runtime-observations.yaml \
+  --telemetry-observations config/self-measurement/architecture-telemetry-observations.yaml \
+  --pattern-runtime-observations config/self-measurement/architecture-pattern-runtime-observations.yaml \
+  --delivery-observations config/self-measurement/architecture-delivery-observations.yaml \
+  --policy fixtures/policies/default.yaml
+```
+
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs.
+
 ### Ingest Brownfield Evidence Through Source Config
 
 ```bash
@@ -199,8 +219,18 @@ npm run dev -- score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
+  --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
+  --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
+  --topology-model config/self-measurement/architecture-topology.yaml \
+  --runtime-observations config/self-measurement/architecture-runtime-observations.yaml \
+  --telemetry-observations config/self-measurement/architecture-telemetry-observations.yaml \
+  --pattern-runtime-observations config/self-measurement/architecture-pattern-runtime-observations.yaml \
+  --delivery-observations config/self-measurement/architecture-delivery-observations.yaml \
   --policy fixtures/policies/default.yaml
 ```
+
+Without those supporting files, architecture self-measurement will still run, but many metrics fall back to neutral or proxy behavior.
 
 ### 4. Generate a Markdown Report
 

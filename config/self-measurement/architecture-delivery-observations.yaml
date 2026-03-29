@@ -1,0 +1,8 @@
+# Curated self-measurement snapshot reviewed on 2026-03-29.
+version: "1.0"
+scores:
+  LeadTimeScore: 0.78
+  DeployFreqScore: 0.74
+  RecoveryScore: 0.82
+  ChangeFailScore: 0.18
+  ReworkScore: 0.16
