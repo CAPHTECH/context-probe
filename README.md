@@ -1,85 +1,108 @@
-# AI支援設計計測プラットフォーム
+# AI-Assisted Design Measurement Platform
 
-AIと決定的な解析器を組み合わせて、設計品質を証拠ベースで計測するための docs-first リポジトリです。現時点ではドメイン設計評価を最初の評価領域として扱い、将来的にはアーキテクチャ設計、運用設計、セキュリティ設計などへ拡張できる前提で文書を整理しています。
+Japanese version: [README.ja.md](README.ja.md)
 
-## 読み始め
+This is a docs-first repository for measuring design quality with evidence, using AI-assisted extraction together with deterministic analyzers. The current implementation covers domain-design and architecture-design evaluation, and the documentation is split so future packs can extend the same measurement model without changing the reading model.
 
-1. [docs/overview/platform-vision.md](docs/overview/platform-vision.md)
+Japanese documents are the primary source of truth. English documents mirror the same structure and document roles.
+
+## Start Reading
+
+1. [docs/README.md](docs/README.md)
 2. [docs/guides/user-guide.md](docs/guides/user-guide.md)
-3. [docs/platform/measurement-model.md](docs/platform/measurement-model.md)
-4. [docs/domains/domain-design.md](docs/domains/domain-design.md)
-5. [docs/domains/architecture-design.md](docs/domains/architecture-design.md)
-6. [docs/domains/architecture-scenario-model.md](docs/domains/architecture-scenario-model.md)
+3. [docs/concepts/measurement-model.md](docs/concepts/measurement-model.md)
+4. [docs/reference/domain-design-metrics.md](docs/reference/domain-design-metrics.md)
+5. [docs/reference/architecture-design-metrics.md](docs/reference/architecture-design-metrics.md)
+6. [docs/implementation/runtime-and-commands.md](docs/implementation/runtime-and-commands.md)
 7. [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md)
 
-## 文書構成
+## Documentation Map
 
-- [docs/README.md](docs/README.md): 文書全体の索引
-- [docs/guides/user-guide.md](docs/guides/user-guide.md): 初回利用者向けの最短ガイド
-- [docs/overview/platform-vision.md](docs/overview/platform-vision.md): プラットフォーム全体のVisionと対象範囲
-- [docs/platform/measurement-model.md](docs/platform/measurement-model.md): 共通計測モデルと評価領域拡張の前提
-- [docs/platform/runtime-and-commands.md](docs/platform/runtime-and-commands.md): 実行パイプラインとコマンド体系
-- [docs/platform/analysis-mechanism.md](docs/platform/analysis-mechanism.md): current implementation の解析経路と metric 反映の追跡ガイド
-- [docs/platform/data-model.md](docs/platform/data-model.md): 標準データモデルと出力契約
-- [docs/domains/domain-design.md](docs/domains/domain-design.md): ドメイン設計評価の詳細仕様
-- [docs/domains/architecture-design.md](docs/domains/architecture-design.md): APSI を中核にしたアーキテクチャ設計評価の本体仕様
-- [docs/domains/architecture-scenario-model.md](docs/domains/architecture-scenario-model.md): quality scenario の入力仕様
-- [docs/domains/architecture-pattern-profiles.md](docs/domains/architecture-pattern-profiles.md): pattern family ごとの重点と利得 / 税
-- [docs/domains/architecture-evidence-lifecycle.md](docs/domains/architecture-evidence-lifecycle.md): greenfield / brownfield の evidence 切替
-- [docs/domains/architecture-metric-mapping.md](docs/domains/architecture-metric-mapping.md): APSI モデルと current implementation の対応表
-- [docs/operations/policy-and-ci.md](docs/operations/policy-and-ci.md): ポリシー設定、CI、レビュー運用
-- [docs/operations/architecture-source-collectors.md](docs/operations/architecture-source-collectors.md): source config と reference collector の接続例
-- [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md): 段階的導入計画
+- [docs/README.md](docs/README.md): documentation index
+- [docs/guides/user-guide.md](docs/guides/user-guide.md): quickest path for first-time CLI use
+- [docs/concepts/](docs/concepts): conceptual specifications and measurement model
+- [docs/reference/](docs/reference): how to interpret metrics and summary scores
+- [docs/implementation/](docs/implementation): how the current CLI computes and reports the metrics
+- [docs/operations/](docs/operations): policy, CI, and collector operation guidance
+- [docs/roadmap/](docs/roadmap): phased rollout and experimental notes
 
-## 中核原則
+## First Commands To Learn
 
-- AIは採点者ではなく、証拠抽出器と曖昧性整理器として使う
-- スコアは固定式と決定的解析で算出する
-- すべての指標に `evidence` `confidence` `unknowns` `provenance` を付ける
-- 組織横断の絶対評価より、候補比較と時系列比較を重視する
-- 評価領域ごとの違いは、共通基盤の上に載る拡張パックとして扱う
+- `score.compute`
+- `report.generate`
+- `gate.evaluate`
+- `review.list_unknowns`
 
-## 実装状況
+## Core Principles
 
-- CLI中心の TypeScript / Node 実装を追加済み
-- Phase 1 相当として、依存解析、境界漏れ検出、進化局所性、スコア計算、レポート、ゲート判定を実装済み
-- Phase 2 の入口として、`doc.extract_*` の external CLI extractor、`trace.*` の証拠付きリンク生成、`review.resolve` の review log 化を追加済み
-- 将来拡張向けに `domain_design` と `architecture_design` の pack 境界を追加済み
+- Use AI as an evidence extractor and ambiguity reducer, not as the scorer.
+- Compute scores through fixed formulas and deterministic analysis.
+- Attach `evidence`, `confidence`, `unknowns`, and `provenance` to every metric.
+- Prefer candidate comparison and time-series comparison over cross-organization ranking.
+- Add new evaluation domains as packs on top of a shared measurement foundation.
 
-## クイックスタート
+## Current Implementation
 
-最初に CLI の使い方を追いたい場合は、[docs/guides/user-guide.md](docs/guides/user-guide.md) を先に読むと、セットアップから代表コマンドまでをまとめて確認できます。
+- TypeScript / Node CLI implementation is available.
+- Phase 1 capabilities include dependency analysis, boundary-leak detection, evolutionary locality, score computation, reporting, and gate evaluation.
+- Phase 2 entry points include external CLI extractors for `doc.extract_*`, evidence-backed term links via `trace.*`, and review log support via `review.resolve`.
+- Pack boundaries for `domain_design` and `architecture_design` are already present for future expansion.
+
+## Quick Start
+
+If you want the shortest setup-to-command path, start with [docs/guides/user-guide.md](docs/guides/user-guide.md).
 
 ```bash
 npm install
+npm run dev -- --help
+```
+
+If you want the compiled CLI as well:
+
+```bash
 npm run build
 node dist/src/cli.js --help
 ```
 
-### ドメイン設計スコアの計測例
+### Measure Domain Design
 
 ```bash
-node dist/src/cli.js score.compute \
+npm run dev -- score.compute \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain domain_design
+```
+
+Add `--docs-root docs` when you want document-derived metrics included in the run.
+
+### Generate a Markdown Report
+
+```bash
+npm run dev -- report.generate \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
   --domain domain_design \
-  --repo fixtures/domain-design/sample-repo \
-  --model fixtures/domain-design/model.yaml \
-  --policy fixtures/policies/default.yaml
+  --format md
 ```
 
-### アーキテクチャ依存方向の計測例
+### Measure Architecture Design
 
 ```bash
-node dist/src/cli.js score.compute \
-  --domain architecture_design \
-  --repo fixtures/architecture/sample-repo \
-  --constraints fixtures/architecture/constraints.yaml \
-  --policy fixtures/policies/default.yaml
+npm run dev -- score.compute \
+  --repo . \
+  --constraints config/self-measurement/architecture-constraints.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain architecture_design
 ```
 
-### source config を使った brownfield evidence の取り込み例
+For architecture runs, `--constraints` is required instead of `--model`.
+
+### Ingest Brownfield Evidence Through Source Config
 
 ```bash
-node dist/src/cli.js score.compute \
+npm run dev -- score.compute \
   --domain architecture_design \
   --repo fixtures/validation/scoring/qsf/repo \
   --constraints fixtures/validation/scoring/qsf/constraints.yaml \
@@ -92,21 +115,31 @@ node dist/src/cli.js score.compute \
   --profile layered
 ```
 
-collector と source config の詳細は [docs/operations/architecture-source-collectors.md](docs/operations/architecture-source-collectors.md) にまとめています。
+Collector and source-config details are documented in [docs/operations/architecture-source-collectors.md](docs/operations/architecture-source-collectors.md).
 
-### Codex CLI を使った用語抽出例
+### List Unknowns That Need Human Review
 
 ```bash
-node dist/src/cli.js doc.extract_glossary \
+npm run dev -- review.list_unknowns \
+  --repo . \
+  --model config/self-measurement/domain-model.yaml \
+  --policy fixtures/policies/default.yaml \
+  --domain domain_design
+```
+
+### Advanced: Extract Glossary Terms With Codex CLI
+
+```bash
+npm run dev -- doc.extract_glossary \
   --docs-root docs \
   --extractor cli \
   --provider codex
 ```
 
-### Review log を適用した再抽出例
+### Advanced: Re-run Extraction With a Review Log
 
 ```bash
-node dist/src/cli.js doc.extract_glossary \
+npm run dev -- doc.extract_glossary \
   --docs-root docs \
   --extractor cli \
   --provider claude \
@@ -114,13 +147,13 @@ node dist/src/cli.js doc.extract_glossary \
   --apply-review-log
 ```
 
-## このプロジェクト自身を計測する
+## Measure This Repository
 
-自己計測用の最小定義は [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml) と [config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml) に置いています。
+Minimal self-measurement definitions are stored in [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml) and [config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml).
 
-### 1. Git 履歴を有効化する
+### 1. Enable Git History
 
-`ELS` は Git 履歴を参照するため、未初期化の環境では warning と低 confidence になります。ローカルでまだ Git を初期化していない場合は次を実行します。
+`ELS` reads Git history. In an uninitialized environment it will fall back to warnings and low confidence. If you have not initialized Git locally yet, run:
 
 ```bash
 git init
@@ -128,30 +161,30 @@ git add .
 git -c user.name="Context Probe" -c user.email="context-probe@example.com" commit -m "chore: initialize context-probe"
 ```
 
-### 2. ドメイン設計スコアを出す
+### 2. Compute Domain-Design Score
 
 ```bash
-node dist/src/cli.js score.compute \
+npm run dev -- score.compute \
   --domain domain_design \
   --repo . \
   --model config/self-measurement/domain-model.yaml \
   --policy fixtures/policies/default.yaml
 ```
 
-### 3. アーキテクチャ設計スコアを出す
+### 3. Compute Architecture-Design Score
 
 ```bash
-node dist/src/cli.js score.compute \
+npm run dev -- score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
   --policy fixtures/policies/default.yaml
 ```
 
-### 4. Markdown レポートを生成する
+### 4. Generate a Markdown Report
 
 ```bash
-node dist/src/cli.js report.generate \
+npm run dev -- report.generate \
   --domain domain_design \
   --repo . \
   --model config/self-measurement/domain-model.yaml \
@@ -159,11 +192,11 @@ node dist/src/cli.js report.generate \
   --format md
 ```
 
-## 検証
+## Verification
 
 ```bash
 npm run check
 npm test
 ```
 
-`npm test` には `fixtures/validation/extraction/` の curated golden corpus を使った抽出品質検証も含まれます。ここでは `doc.extract_*` `trace.link_terms` `review.list_unknowns` を既存CLIのまま叩き、`must_include` `must_exclude` `must_link_to_code` `max_review_items` で回帰を検知します。
+`npm test` includes extraction-quality regression checks backed by the curated golden corpus under `fixtures/validation/extraction/`. Those checks exercise the existing CLI commands such as `doc.extract_*`, `trace.link_terms`, and `review.list_unknowns` with `must_include`, `must_exclude`, `must_link_to_code`, and `max_review_items`.
