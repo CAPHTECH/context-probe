@@ -5,10 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
-import type {
-  CommandResponse,
-  DomainDesignShadowRolloutGateResult
-} from "../src/core/contracts.js";
+import type { CommandResponse, DomainDesignShadowRolloutGateResult } from "../src/core/contracts.js";
 import { evaluateShadowRolloutGate } from "../src/core/shadow-rollout.js";
 import { createTemporaryGitRepoFromFixture } from "./helpers.js";
 
@@ -32,24 +29,17 @@ describe("shadow rollout gate command", () => {
   test("evaluates the versioned real-repo registry", async () => {
     const response = (await COMMANDS["gate.evaluate_shadow_rollout"]!(
       {
-        registry: REGISTRY_PATH
+        registry: REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     )) as CommandResponse<DomainDesignShadowRolloutGateResult>;
 
     expect(response.status).toBe("warning");
     expect(response.result.source).toBe("registry");
     expect(response.result.evaluation.repoCount).toBe(7);
-    const application = response.result.evaluation.categories.find(
-      (entry) => entry.category === "application"
-    );
-    const tooling = response.result.evaluation.categories.find(
-      (entry) => entry.category === "tooling"
-    );
-    expect(response.result.evaluation.categories.map((entry) => entry.category)).toEqual([
-      "application",
-      "tooling"
-    ]);
+    const application = response.result.evaluation.categories.find((entry) => entry.category === "application");
+    const tooling = response.result.evaluation.categories.find((entry) => entry.category === "tooling");
+    expect(response.result.evaluation.categories.map((entry) => entry.category)).toEqual(["application", "tooling"]);
     expect(application?.gate.rolloutDisposition).toBe("replace");
     expect(application?.gate.replacementVerdict).toBe("go");
     expect(application?.gate.reasons).toEqual([]);
@@ -59,7 +49,7 @@ describe("shadow rollout gate command", () => {
     expect(response.result.evaluation.rolloutDisposition).toBe("shadow_only");
     expect(response.result.evaluation.reasons).toEqual(["real_repo_delta_range_above_threshold"]);
     expect(response.provenance).toContainEqual(
-      expect.objectContaining({ path: REGISTRY_PATH, note: "shadow rollout registry" })
+      expect.objectContaining({ path: REGISTRY_PATH, note: "shadow rollout registry" }),
     );
   });
 
@@ -75,22 +65,18 @@ describe("shadow rollout gate command", () => {
     await appendAndCommit(
       scatteredRepo,
       {
-        "src/billing/contracts/invoice-contract.ts":
-          "\nexport interface ShadowGateInvoiceOne { id: string; }\n",
-        "src/fulfillment/internal/fulfillment-service.ts":
-          "\nexport const shadowGateOne = 'gate-1';\n"
+        "src/billing/contracts/invoice-contract.ts": "\nexport interface ShadowGateInvoiceOne { id: string; }\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const shadowGateOne = 'gate-1';\n",
       },
-      "feat: gate scattered 1"
+      "feat: gate scattered 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
-        "src/billing/contracts/invoice-contract.ts":
-          "\nexport interface ShadowGateInvoiceTwo { id: string; }\n",
-        "src/fulfillment/internal/fulfillment-service.ts":
-          "\nexport const shadowGateTwo = 'gate-2';\n"
+        "src/billing/contracts/invoice-contract.ts": "\nexport interface ShadowGateInvoiceTwo { id: string; }\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const shadowGateTwo = 'gate-2';\n",
       },
-      "feat: gate scattered 2"
+      "feat: gate scattered 2",
     );
 
     await cp(FIXTURE_MODEL, copiedModelPath);
@@ -113,16 +99,16 @@ describe("shadow rollout gate command", () => {
         '    category: "risky"',
         '    modelSource: "repo_owned"',
         `    repo: "${scatteredRepo}"`,
-        '    model: "./model.yaml"'
+        '    model: "./model.yaml"',
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
 
     const response = (await COMMANDS["gate.evaluate_shadow_rollout"]!(
       {
-        "batch-spec": batchSpecPath
+        "batch-spec": batchSpecPath,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     )) as CommandResponse<DomainDesignShadowRolloutGateResult>;
 
     expect(response.status).toBe("warning");
@@ -132,7 +118,7 @@ describe("shadow rollout gate command", () => {
     expect(response.result.evaluation.reasons).toContain("insufficient_real_repo_observations");
     expect(response.result.evaluation.rolloutDisposition).toBe("shadow_only");
     expect(response.provenance).toContainEqual(
-      expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" })
+      expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" }),
     );
   }, 20000);
 
@@ -143,7 +129,7 @@ describe("shadow rollout gate command", () => {
         category: "application",
         modelSource: "versioned_manifest",
         relevantCommitCount: 50,
-        delta: 0.01
+        delta: 0.01,
       },
       {
         repoId: "app-b",
@@ -151,7 +137,7 @@ describe("shadow rollout gate command", () => {
         modelSource: "versioned_manifest",
         modelPath: "/tmp/app-b-model.yaml",
         relevantCommitCount: 60,
-        delta: 0.02
+        delta: 0.02,
       },
       {
         repoId: "app-c",
@@ -159,7 +145,7 @@ describe("shadow rollout gate command", () => {
         modelSource: "versioned_manifest",
         modelPath: "/tmp/app-c-model.yaml",
         relevantCommitCount: 55,
-        delta: 0.015
+        delta: 0.015,
       },
       {
         repoId: "tool-a",
@@ -167,7 +153,7 @@ describe("shadow rollout gate command", () => {
         modelSource: "repo_owned",
         modelPath: "/tmp/tool-a-model.yaml",
         relevantCommitCount: 40,
-        delta: 0.01
+        delta: 0.01,
       },
       {
         repoId: "tool-b",
@@ -175,7 +161,7 @@ describe("shadow rollout gate command", () => {
         modelSource: "repo_owned",
         modelPath: "/tmp/tool-b-model.yaml",
         relevantCommitCount: 42,
-        delta: 0.015
+        delta: 0.015,
       },
       {
         repoId: "tool-c",
@@ -183,8 +169,8 @@ describe("shadow rollout gate command", () => {
         modelSource: "repo_owned",
         modelPath: "/tmp/tool-c-model.yaml",
         relevantCommitCount: 43,
-        delta: 0.02
-      }
+        delta: 0.02,
+      },
     ]);
 
     const application = evaluation.categories.find((entry) => entry.category === "application");
@@ -194,11 +180,7 @@ describe("shadow rollout gate command", () => {
   });
 });
 
-async function appendAndCommit(
-  repoPath: string,
-  updates: Record<string, string>,
-  message: string
-): Promise<void> {
+async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {
   for (const [relativePath, content] of Object.entries(updates)) {
     await appendFile(path.join(repoPath, relativePath), content, "utf8");
   }

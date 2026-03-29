@@ -12,22 +12,22 @@ describe("history buffer configuration", () => {
     const execFileMock = vi.fn();
     const execFilePromiseMock = vi.fn(async () => ({
       stdout: "__COMMIT__\nabc123\nfeat: sample\nM\tsrc/billing/invoice.ts\n",
-      stderr: ""
+      stderr: "",
     }));
     Object.assign(execFileMock, {
-      [Symbol.for("nodejs.util.promisify.custom")]: execFilePromiseMock
+      [Symbol.for("nodejs.util.promisify.custom")]: execFilePromiseMock,
     });
     vi.doMock("node:child_process", () => ({
-      execFile: execFileMock
+      execFile: execFileMock,
     }));
 
     const { normalizeHistory } = await import("../src/core/history.js");
     const policyConfig: PolicyConfig = {
       profiles: {
         default: {
-          domains: {}
-        }
-      }
+          domains: {},
+        },
+      },
     };
 
     const commits = await normalizeHistory("/tmp/repo", policyConfig, "default");
@@ -35,11 +35,19 @@ describe("history buffer configuration", () => {
     expect(commits).toHaveLength(1);
     expect(execFilePromiseMock).toHaveBeenCalledWith(
       "git",
-      ["-C", "/tmp/repo", "log", "--no-merges", "--find-renames", "--name-status", "--pretty=format:__COMMIT__%n%H%n%s"],
+      [
+        "-C",
+        "/tmp/repo",
+        "log",
+        "--no-merges",
+        "--find-renames",
+        "--name-status",
+        "--pretty=format:__COMMIT__%n%H%n%s",
+      ],
       expect.objectContaining({
         cwd: "/tmp/repo",
-        maxBuffer: 64 * 1024 * 1024
-      })
+        maxBuffer: 64 * 1024 * 1024,
+      }),
     );
   });
 });

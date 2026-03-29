@@ -4,8 +4,8 @@ import { describe, expect, test } from "vitest";
 
 import { scoreInterfaceProtocolStability } from "../src/analyzers/architecture-contracts.js";
 import { scoreBoundaryPurity } from "../src/analyzers/architecture-purity.js";
-import { scoreComplexityTax } from "../src/analyzers/cti.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../src/analyzers/code.js";
+import { scoreComplexityTax } from "../src/analyzers/cti.js";
 import { COMMANDS } from "../src/commands.js";
 import { registerArtifacts } from "../src/core/artifacts.js";
 import type { CommandResponse, GlossaryTerm, MetricScore } from "../src/core/contracts.js";
@@ -43,44 +43,44 @@ describe("dart support", () => {
           target: "lib/contracts/order_contract.dart",
           specifier: "../contracts/order_contract.dart",
           targetKind: "file",
-          kind: "import"
+          kind: "import",
         }),
         expect.objectContaining({
           source: "lib/application/use_case.dart",
           target: "lib/contracts/order_contract.dart",
           specifier: "package:parser_repo/contracts/order_contract.dart",
           targetKind: "file",
-          kind: "import"
+          kind: "import",
         }),
         expect.objectContaining({
           source: "lib/infrastructure/json_codec.dart",
           target: "dart:convert",
           specifier: "dart:convert",
           targetKind: "external",
-          kind: "import"
+          kind: "import",
         }),
         expect.objectContaining({
           source: "lib/contracts/contracts.dart",
           target: "lib/contracts/order_contract.dart",
           specifier: "order_contract.dart",
           targetKind: "file",
-          kind: "export"
+          kind: "export",
         }),
         expect.objectContaining({
           source: "lib/models/order.dart",
           target: "lib/models/order.g.dart",
           specifier: "order.g.dart",
           targetKind: "file",
-          kind: "part"
+          kind: "part",
         }),
         expect.objectContaining({
           source: "lib/application/missing_dep.dart",
           target: "../contracts/missing_contract.dart",
           specifier: "../contracts/missing_contract.dart",
           targetKind: "missing",
-          kind: "import"
-        })
-      ])
+          kind: "import",
+        }),
+      ]),
     );
 
     expect(codebase.files).toEqual(
@@ -89,14 +89,14 @@ describe("dart support", () => {
           path: "lib/models/order.g.dart",
           language: "dart",
           generated: true,
-          libraryRole: "part"
+          libraryRole: "part",
         }),
         expect.objectContaining({
           path: "src/bridge.ts",
           language: "typescript",
-          generated: false
-        })
-      ])
+          generated: false,
+        }),
+      ]),
     );
     expect(codebase.scorableSourceFiles).not.toContain("lib/models/order.g.dart");
     expect(codebase.scorableSourceFiles).toContain("lib/models/order.dart");
@@ -116,7 +116,7 @@ describe("dart support", () => {
         confidence: 1,
         evidence: [],
         unknowns: [],
-        fragmentIds: []
+        fragmentIds: [],
       },
       {
         termId: "TERM-GENERATED-ONLY",
@@ -127,19 +127,19 @@ describe("dart support", () => {
         confidence: 1,
         evidence: [],
         unknowns: [],
-        fragmentIds: []
-      }
+        fragmentIds: [],
+      },
     ];
 
-    expect(
-      artifacts.find((artifact) => artifact.path === "lib/contracts/order_contract.dart")?.type
-    ).toBe("source_code");
+    expect(artifacts.find((artifact) => artifact.path === "lib/contracts/order_contract.dart")?.type).toBe(
+      "source_code",
+    );
 
     const links = await buildTermTraceLinks({
       docsRoot: path.join(PARSER_REPO, "docs"),
       repoRoot: PARSER_REPO,
       codeFiles: codebase.scorableSourceFiles,
-      terms
+      terms,
     });
 
     expect(links.find((link) => link.canonicalTerm === "OrderContract")?.coverage.codeHits).toBeGreaterThan(0);
@@ -161,18 +161,18 @@ describe("dart support", () => {
         repo: DART_DOMAIN_GOOD_REPO,
         model: DART_DOMAIN_MODEL,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: DART_DOMAIN_BAD_REPO,
         model: DART_DOMAIN_MODEL,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(goodResponse.status).not.toBe("error");
@@ -186,18 +186,18 @@ describe("dart support", () => {
         repo: DART_ARCHITECTURE_GOOD_REPO,
         constraints: DART_ARCHITECTURE_CONSTRAINTS,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: DART_ARCHITECTURE_BAD_REPO,
         constraints: DART_ARCHITECTURE_CONSTRAINTS,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(goodResponse.status).not.toBe("error");
@@ -216,31 +216,35 @@ describe("dart support", () => {
     const protocol = await scoreInterfaceProtocolStability({
       root: FLUTTER_HEURISTIC_REPO,
       codebase,
-      constraints
+      constraints,
     });
     const complexity = scoreComplexityTax({
       codebase,
-      constraints
+      constraints,
     });
 
     expect(
       purity.findings.some(
         (finding) =>
-          finding.kind === "framework_contamination" && finding.path === "lib/features/entries/domain/entry_repository.dart"
-      )
+          finding.kind === "framework_contamination" &&
+          finding.path === "lib/features/entries/domain/entry_repository.dart",
+      ),
     ).toBe(false);
     expect(
       purity.findings.some(
         (finding) =>
-          finding.kind === "framework_contamination" && finding.path === "lib/features/events/domain/event_repository.dart"
-      )
+          finding.kind === "framework_contamination" &&
+          finding.path === "lib/features/events/domain/event_repository.dart",
+      ),
     ).toBe(false);
     expect(protocol.unknowns).not.toContain("There are too few contract files, so IPS is conservative.");
-    expect(protocol.findings.some((finding) => finding.path === "lib/features/events/data/supabase_event_repository.dart")).toBe(
-      false
-    );
     expect(
-      protocol.findings.some((finding) => finding.path === "lib/features/events/presentation/event_templates_screen.dart")
+      protocol.findings.some((finding) => finding.path === "lib/features/events/data/supabase_event_repository.dart"),
+    ).toBe(false);
+    expect(
+      protocol.findings.some(
+        (finding) => finding.path === "lib/features/events/presentation/event_templates_screen.dart",
+      ),
     ).toBe(false);
     expect(complexity.components.ContractsOrSchemasPerService).toBe(0);
   });

@@ -1,14 +1,7 @@
 import path from "node:path";
-
-import type {
-  DomainModel,
-  GlossaryTerm,
-  ModelCodeLink,
-  TermTraceLink,
-  TraceLinkOccurrence
-} from "./contracts.js";
 import { normalizeDocuments } from "./artifacts.js";
-import { listFiles, matchGlobs, readText, isSourceFile, relativePath } from "./io.js";
+import type { DomainModel, GlossaryTerm, ModelCodeLink, TermTraceLink, TraceLinkOccurrence } from "./contracts.js";
+import { isSourceFile, listFiles, matchGlobs, readText, relativePath } from "./io.js";
 
 function countOccurrences(text: string, query: string): number {
   if (!query) {
@@ -25,7 +18,7 @@ export async function buildTermTraceLinks(options: {
 }): Promise<TermTraceLink[]> {
   const fragments = await normalizeDocuments(options.docsRoot);
   const codeFiles = options.repoRoot
-    ? options.codeFiles ?? (await listFiles(options.repoRoot)).filter((filePath) => isSourceFile(filePath))
+    ? (options.codeFiles ?? (await listFiles(options.repoRoot)).filter((filePath) => isSourceFile(filePath)))
     : [];
 
   const codeContents = await Promise.all(
@@ -39,8 +32,8 @@ export async function buildTermTraceLinks(options: {
       content:
         options.repoRoot && !path.isAbsolute(filePath)
           ? await readText(path.join(options.repoRoot, filePath))
-          : await readText(filePath)
-    }))
+          : await readText(filePath),
+    })),
   );
 
   return options.terms.map((term) => {
@@ -52,7 +45,7 @@ export async function buildTermTraceLinks(options: {
           kind: "document",
           path: fragment.path,
           fragmentId: fragment.fragmentId,
-          matchCount: Math.max(matchCount, term.fragmentIds.includes(fragment.fragmentId) ? 1 : 0)
+          matchCount: Math.max(matchCount, term.fragmentIds.includes(fragment.fragmentId) ? 1 : 0),
         });
       }
     }
@@ -62,7 +55,7 @@ export async function buildTermTraceLinks(options: {
         occurrences.push({
           kind: "code",
           path: codeFile.path,
-          matchCount
+          matchCount,
         });
       }
     }
@@ -74,9 +67,9 @@ export async function buildTermTraceLinks(options: {
       occurrences,
       coverage: {
         documentHits,
-        codeHits
+        codeHits,
       },
-      confidence: Math.min(1, term.confidence * (documentHits + codeHits > 0 ? 1 : 0.7))
+      confidence: Math.min(1, term.confidence * (documentHits + codeHits > 0 ? 1 : 0.7)),
     };
   });
 }
@@ -93,9 +86,9 @@ export function buildModelCodeLinks(model: DomainModel, filePaths: string[]): Mo
       counts: {
         contract,
         internal,
-        unclassified
+        unclassified,
       },
-      coverage: files.length === 0 ? 0 : (contract + internal) / files.length
+      coverage: files.length === 0 ? 0 : (contract + internal) / files.length,
     };
   });
 }

@@ -18,24 +18,13 @@ export async function createTemporaryWorkspace(entries: string[]): Promise<strin
   return tempRoot;
 }
 
-export async function initializeTemporaryGitRepo(
-  repoPath: string,
-  commitMessage: string
-): Promise<void> {
+export async function initializeTemporaryGitRepo(repoPath: string, commitMessage: string): Promise<void> {
   await execFile("git", ["init"], { cwd: repoPath });
   await execFile("git", ["add", "."], { cwd: repoPath });
   await execFile(
     "git",
-    [
-      "-c",
-      "user.email=tester@example.com",
-      "-c",
-      "user.name=Context Probe Tester",
-      "commit",
-      "-m",
-      commitMessage
-    ],
-    { cwd: repoPath }
+    ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", "commit", "-m", commitMessage],
+    { cwd: repoPath },
   );
 }
 
@@ -53,13 +42,19 @@ export async function createTemporaryGitRepoFromFixture(fixturePath: string): Pr
   const fulfillmentFile = path.join(tempRoot, "src/fulfillment/internal/fulfillment-service.ts");
   await writeFile(
     billingFile,
-    'export interface InvoiceContract {\n  id: string;\n  total: number;\n  currency: string;\n}\n',
-    "utf8"
+    "export interface InvoiceContract {\n  id: string;\n  total: number;\n  currency: string;\n}\n",
+    "utf8",
   );
   await writeFile(
     fulfillmentFile,
-    'import type { InvoiceContract } from "../../billing/contracts/invoice-contract";\nimport { BillingInvoiceEntity } from "../../billing/internal/billing-invoice-entity";\n\nexport function mapInvoice(contract: InvoiceContract): BillingInvoiceEntity {\n  return new BillingInvoiceEntity(`${contract.id}:${contract.currency}`, contract.total);\n}\n',
-    "utf8"
+    `import type { InvoiceContract } from "../../billing/contracts/invoice-contract";
+import { BillingInvoiceEntity } from "../../billing/internal/billing-invoice-entity";
+
+export function mapInvoice(contract: InvoiceContract): BillingInvoiceEntity {
+  return new BillingInvoiceEntity(\`\${contract.id}:\${contract.currency}\`, contract.total);
+}
+`,
+    "utf8",
   );
   await execFile("git", ["add", "."], { cwd: tempRoot });
   await execFile("git", ["commit", "-m", "feat: cross-context update"], { cwd: tempRoot });

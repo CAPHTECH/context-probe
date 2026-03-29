@@ -6,17 +6,13 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
-import type {
-  CochangeCommit,
-  DomainDesignShadowRolloutGateEvaluation,
-  DomainModel
-} from "../src/core/contracts.js";
+import type { CochangeCommit, DomainDesignShadowRolloutGateEvaluation, DomainModel } from "../src/core/contracts.js";
 import { compareEvolutionLocalityModels } from "../src/core/history.js";
 import { loadDomainModel } from "../src/core/model.js";
 import {
   evaluateShadowRolloutGate,
   loadShadowRolloutRegistry,
-  registryToGateObservations
+  registryToGateObservations,
 } from "../src/core/shadow-rollout.js";
 import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitRepo } from "./helpers.js";
 
@@ -33,20 +29,12 @@ const MAX_THIN_HISTORY_LOCALITY_SCORE = 0.5;
 const MIN_REPO_BACKED_ADVANTAGE_CASES = 2;
 const MIN_IMPROVEMENT_RATE = 0.2;
 const REAL_REPO_REGISTRY_PATH = path.resolve("fixtures/validation/shadow-rollout/registry.yaml");
-const SIM_PRISM_MANIFEST_PATH = path.resolve(
-  "fixtures/validation/shadow-rollout/sim_prism-domain-model.yaml"
-);
-const PCE_MEMORY_MANIFEST_PATH = path.resolve(
-  "fixtures/validation/shadow-rollout/pce-memory-domain-model.yaml"
-);
-const ZAKKI_MANIFEST_PATH = path.resolve(
-  "fixtures/validation/shadow-rollout/zakki-domain-model.yaml"
-);
-const ASSAY_KIT_MANIFEST_PATH = path.resolve(
-  "fixtures/validation/shadow-rollout/assay-kit-domain-model.yaml"
-);
+const SIM_PRISM_MANIFEST_PATH = path.resolve("fixtures/validation/shadow-rollout/sim_prism-domain-model.yaml");
+const PCE_MEMORY_MANIFEST_PATH = path.resolve("fixtures/validation/shadow-rollout/pce-memory-domain-model.yaml");
+const ZAKKI_MANIFEST_PATH = path.resolve("fixtures/validation/shadow-rollout/zakki-domain-model.yaml");
+const ASSAY_KIT_MANIFEST_PATH = path.resolve("fixtures/validation/shadow-rollout/assay-kit-domain-model.yaml");
 const PROJECT_LOGICA_MANIFEST_PATH = path.resolve(
-  "fixtures/validation/shadow-rollout/project_logica-domain-model.yaml"
+  "fixtures/validation/shadow-rollout/project_logica-domain-model.yaml",
 );
 
 const SYNTHETIC_MODEL: DomainModel = {
@@ -54,8 +42,8 @@ const SYNTHETIC_MODEL: DomainModel = {
   contexts: [
     { name: "billing", pathGlobs: ["src/billing/**"] },
     { name: "fulfillment", pathGlobs: ["src/fulfillment/**"] },
-    { name: "support", pathGlobs: ["src/support/**"] }
-  ]
+    { name: "support", pathGlobs: ["src/support/**"] },
+  ],
 };
 
 interface LocalityComparisonResult {
@@ -156,12 +144,12 @@ describe("persistence adoption benchmark", () => {
     expect(summary.controlViolations).toBe(0);
     expect(summary.syntheticAdvantage.caseCount).toBeGreaterThanOrEqual(2);
     expect(summary.syntheticAdvantage.elsMisclassifications).toBeGreaterThan(
-      summary.syntheticAdvantage.persistenceMisclassifications
+      summary.syntheticAdvantage.persistenceMisclassifications,
     );
     expect(summary.syntheticAdvantage.improvementRate).toBeGreaterThanOrEqual(MIN_IMPROVEMENT_RATE);
     expect(summary.repoBackedAdvantage.caseCount).toBeGreaterThanOrEqual(MIN_REPO_BACKED_ADVANTAGE_CASES);
     expect(summary.repoBackedAdvantage.elsMisclassifications).toBeGreaterThan(
-      summary.repoBackedAdvantage.persistenceMisclassifications
+      summary.repoBackedAdvantage.persistenceMisclassifications,
     );
     expect(summary.repoBackedAdvantage.improvementRate).toBeGreaterThanOrEqual(MIN_IMPROVEMENT_RATE);
     expect(summary.robustnessViolations).toBe(0);
@@ -186,7 +174,7 @@ describe("persistence adoption benchmark", () => {
       "pce-memory",
       "zakki",
       "assay-kit",
-      "project_logica"
+      "project_logica",
     ]);
     expect(simPrismModel.contexts.map((context) => context.name)).toEqual([
       "CoreRuntime",
@@ -194,7 +182,7 @@ describe("persistence adoption benchmark", () => {
       "BehaviorSystem",
       "AnalyticsAndExperiments",
       "PluginContracts",
-      "APIAndBuilders"
+      "APIAndBuilders",
     ]);
     expect(pceMemoryModel.contexts.map((context) => context.name)).toEqual([
       "RuntimeInterfaces",
@@ -202,19 +190,19 @@ describe("persistence adoption benchmark", () => {
       "HandlerPipeline",
       "SyncAndAudit",
       "PersistenceStore",
-      "SearchAndEmbeddings"
+      "SearchAndEmbeddings",
     ]);
     expect(zakkiModel.contexts.map((context) => context.name)).toEqual([
       "MobileApp",
       "WebsiteApp",
       "WorkerBackend",
-      "DataAndSchema"
+      "DataAndSchema",
     ]);
     expect(assayKitModel.contexts.map((context) => context.name)).toEqual([
       "CoreToolkit",
       "McpServer",
       "VerificationKit",
-      "FormalSpecs"
+      "FormalSpecs",
     ]);
     expect(projectLogicaModel.contexts.map((context) => context.name)).toEqual([
       "CoreKernel",
@@ -222,7 +210,7 @@ describe("persistence adoption benchmark", () => {
       "Integrations",
       "ServicePlugins",
       "WorkflowAgents",
-      "SamplePlugins"
+      "SamplePlugins",
     ]);
   });
 
@@ -234,7 +222,7 @@ describe("persistence adoption benchmark", () => {
     expect(summary.versionedManifestCount).toBe(5);
     expect(summary.overall.positiveDeltaCount).toBe(6);
     expect(summary.overall.negativeDeltaCount).toBe(1);
-    expect(summary.overall.averageDelta).toBeCloseTo(0.059910945945228024, 12);
+    expect(summary.overall.averageDelta).toBeCloseTo(0.05991094594522802, 12);
     expect(summary.overall.weightedAverageDelta).toBeCloseTo(0.043210609174773186, 12);
     expect(summary.overall.medianDelta).toBeCloseTo(0.04821513002364075, 12);
     expect(summary.overall.minDelta).toBeCloseTo(-0.08938050770826689, 12);
@@ -302,15 +290,14 @@ async function evaluateBenchmark(tempRoots: string[]): Promise<BenchmarkSummary>
       const elsCorrect = scoresPreferBetter(result.better.els.score, result.worse.els.score);
       const persistenceCorrect = scoresPreferBetter(
         result.better.persistenceCandidate.localityScore,
-        result.worse.persistenceCandidate.localityScore
+        result.worse.persistenceCandidate.localityScore,
       );
 
       if (entry.kind === "control" && (!elsCorrect || !persistenceCorrect)) {
         controlViolations += 1;
       }
       if (entry.kind === "advantage") {
-        const bucket =
-          entry.evidenceLevel === "repo_backed" ? repoBackedAdvantageResults : syntheticAdvantageResults;
+        const bucket = entry.evidenceLevel === "repo_backed" ? repoBackedAdvantageResults : syntheticAdvantageResults;
         bucket.push({ elsCorrect, persistenceCorrect });
       }
       continue;
@@ -321,8 +308,7 @@ async function evaluateBenchmark(tempRoots: string[]): Promise<BenchmarkSummary>
       const maxDrift = entry.maxDrift ?? DRIFT_TOLERANCE;
       const elsDrift = Math.abs(result.baseline.els.score - result.variant.els.score);
       const persistenceDrift = Math.abs(
-        result.baseline.persistenceCandidate.localityScore -
-          result.variant.persistenceCandidate.localityScore
+        result.baseline.persistenceCandidate.localityScore - result.variant.persistenceCandidate.localityScore,
       );
 
       if (elsDrift > maxDrift || persistenceDrift > maxDrift) {
@@ -335,9 +321,7 @@ async function evaluateBenchmark(tempRoots: string[]): Promise<BenchmarkSummary>
       const result = await entry.build();
       const maxConfidence = entry.maxConfidence ?? MAX_THIN_HISTORY_CONFIDENCE;
       const maxLocalityScore = entry.maxLocalityScore ?? MAX_THIN_HISTORY_LOCALITY_SCORE;
-      const hasRequiredUnknown = result.unknowns.some((unknown) =>
-        unknown.includes(entry.requiredUnknownFragment)
-      );
+      const hasRequiredUnknown = result.unknowns.some((unknown) => unknown.includes(entry.requiredUnknownFragment));
 
       if (
         result.confidence >= maxConfidence ||
@@ -398,30 +382,28 @@ async function evaluateBenchmark(tempRoots: string[]): Promise<BenchmarkSummary>
     confidenceViolations,
     determinismViolations,
     reasons,
-    verdict: reasons.length === 0 ? "go" : "no_go"
+    verdict: reasons.length === 0 ? "go" : "no_go",
   };
 }
 
-function summarizeAdvantages(
-  results: Array<{ elsCorrect: boolean; persistenceCorrect: boolean }>
-): AdvantageSummary {
+function summarizeAdvantages(results: Array<{ elsCorrect: boolean; persistenceCorrect: boolean }>): AdvantageSummary {
   const caseCount = results.length;
   const elsMisclassifications = results.filter((entry) => !entry.elsCorrect).length;
   const persistenceMisclassifications = results.filter((entry) => !entry.persistenceCorrect).length;
   const improvementRate =
-    elsMisclassifications === 0
-      ? 0
-      : (elsMisclassifications - persistenceMisclassifications) / elsMisclassifications;
+    elsMisclassifications === 0 ? 0 : (elsMisclassifications - persistenceMisclassifications) / elsMisclassifications;
 
   return {
     caseCount,
     elsMisclassifications,
     persistenceMisclassifications,
-    improvementRate
+    improvementRate,
   };
 }
 
-function evaluateRealRepoReplacementGate(observations: Awaited<ReturnType<typeof loadRealRepoObservations>>): DomainDesignShadowRolloutGateEvaluation {
+function evaluateRealRepoReplacementGate(
+  observations: Awaited<ReturnType<typeof loadRealRepoObservations>>,
+): DomainDesignShadowRolloutGateEvaluation {
   return evaluateShadowRolloutGate(observations);
 }
 
@@ -442,24 +424,24 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
         await appendAndCommit(
           localRepo,
           {
-            "src/billing/internal/billing-service.ts": "\nexport const billingLocalizedOne = 'billing-l1';\n"
+            "src/billing/internal/billing-service.ts": "\nexport const billingLocalizedOne = 'billing-l1';\n",
           },
-          "feat: billing localized 1"
+          "feat: billing localized 1",
         );
         await appendAndCommit(
           localRepo,
           {
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentLocalizedOne = 'fulfillment-l1';\n"
+              "\nexport const fulfillmentLocalizedOne = 'fulfillment-l1';\n",
           },
-          "feat: fulfillment localized 1"
+          "feat: fulfillment localized 1",
         );
         await appendAndCommit(
           localRepo,
           {
-            "src/billing/internal/billing-service.ts": "\nexport const billingLocalizedTwo = 'billing-l2';\n"
+            "src/billing/internal/billing-service.ts": "\nexport const billingLocalizedTwo = 'billing-l2';\n",
           },
-          "feat: billing localized 2"
+          "feat: billing localized 2",
         );
 
         await appendAndCommit(
@@ -467,34 +449,34 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingScatteredOne = 'billing-s1';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentScatteredOne = 'fulfillment-s1';\n"
+              "\nexport const fulfillmentScatteredOne = 'fulfillment-s1';\n",
           },
-          "feat: cross-context scattered 1"
+          "feat: cross-context scattered 1",
         );
         await appendAndCommit(
           scatteredRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingScatteredTwo = 'billing-s2';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentScatteredTwo = 'fulfillment-s2';\n"
+              "\nexport const fulfillmentScatteredTwo = 'fulfillment-s2';\n",
           },
-          "feat: cross-context scattered 2"
+          "feat: cross-context scattered 2",
         );
         await appendAndCommit(
           scatteredRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingScatteredThree = 'billing-s3';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentScatteredThree = 'fulfillment-s3';\n"
+              "\nexport const fulfillmentScatteredThree = 'fulfillment-s3';\n",
           },
-          "feat: cross-context scattered 3"
+          "feat: cross-context scattered 3",
         );
 
         return {
           better: (await compareLocality(localRepo)).result,
-          worse: (await compareLocality(scatteredRepo)).result
+          worse: (await compareLocality(scatteredRepo)).result,
         };
-      }
+      },
     },
     {
       kind: "control",
@@ -502,8 +484,8 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
       id: "hub-vs-balanced-pair",
       build: async () => ({
         better: compareCommits(hubCommits()).result,
-        worse: compareCommits(balancedPersistentPairCommits()).result
-      })
+        worse: compareCommits(balancedPersistentPairCommits()).result,
+      }),
     },
     {
       kind: "advantage",
@@ -511,8 +493,8 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
       id: "rotating-pairs-vs-stable-pair",
       build: async () => ({
         better: compareCommits(rotatingPairCommits()).result,
-        worse: compareCommits(stablePairCommits()).result
-      })
+        worse: compareCommits(stablePairCommits()).result,
+      }),
     },
     {
       kind: "advantage",
@@ -520,8 +502,8 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
       id: "partially-concentrated-vs-stable-pair",
       build: async () => ({
         better: compareCommits(partiallyConcentratedCommits()).result,
-        worse: compareCommits(stablePairCommits()).result
-      })
+        worse: compareCommits(stablePairCommits()).result,
+      }),
     },
     {
       kind: "advantage",
@@ -538,9 +520,9 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
 
         return {
           better: (await compareLocality(rotating.repoPath, rotating.modelPath)).result,
-          worse: (await compareLocality(stable.repoPath, stable.modelPath)).result
+          worse: (await compareLocality(stable.repoPath, stable.modelPath)).result,
         };
-      }
+      },
     },
     {
       kind: "advantage",
@@ -557,9 +539,9 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
 
         return {
           better: (await compareLocality(partial.repoPath, partial.modelPath)).result,
-          worse: (await compareLocality(stable.repoPath, stable.modelPath)).result
+          worse: (await compareLocality(stable.repoPath, stable.modelPath)).result,
         };
-      }
+      },
     },
     {
       kind: "robustness",
@@ -571,59 +553,61 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
         await appendAndCommit(
           baselineRepo,
           {
-            "src/billing/internal/billing-service.ts": "\nexport const billingRenameBaseline = 'baseline';\n"
+            "src/billing/internal/billing-service.ts": "\nexport const billingRenameBaseline = 'baseline';\n",
           },
-          "refactor: billing baseline"
+          "refactor: billing baseline",
         );
         await appendAndCommit(
           baselineRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingRenameBaselineOne = 'baseline-r1';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentRenameBaselineOne = 'baseline-r1';\n"
+              "\nexport const fulfillmentRenameBaselineOne = 'baseline-r1';\n",
           },
-          "feat: rename baseline 1"
+          "feat: rename baseline 1",
         );
         await appendAndCommit(
           baselineRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingRenameBaselineTwo = 'baseline-r2';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentRenameBaselineTwo = 'baseline-r2';\n"
+              "\nexport const fulfillmentRenameBaselineTwo = 'baseline-r2';\n",
           },
-          "feat: rename baseline 2"
+          "feat: rename baseline 2",
         );
 
         await renameAndCommit(
           renamedRepo,
           "src/billing/internal/billing-service.ts",
           "src/billing/internal/billing-renamed-service.ts",
-          "refactor: rename billing service"
+          "refactor: rename billing service",
         );
         await appendAndCommit(
           renamedRepo,
           {
-            "src/billing/internal/billing-renamed-service.ts": "\nexport const billingRenameVariantOne = 'variant-r1';\n",
+            "src/billing/internal/billing-renamed-service.ts":
+              "\nexport const billingRenameVariantOne = 'variant-r1';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentRenameVariantOne = 'variant-r1';\n"
+              "\nexport const fulfillmentRenameVariantOne = 'variant-r1';\n",
           },
-          "feat: rename variant 1"
+          "feat: rename variant 1",
         );
         await appendAndCommit(
           renamedRepo,
           {
-            "src/billing/internal/billing-renamed-service.ts": "\nexport const billingRenameVariantTwo = 'variant-r2';\n",
+            "src/billing/internal/billing-renamed-service.ts":
+              "\nexport const billingRenameVariantTwo = 'variant-r2';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentRenameVariantTwo = 'variant-r2';\n"
+              "\nexport const fulfillmentRenameVariantTwo = 'variant-r2';\n",
           },
-          "feat: rename variant 2"
+          "feat: rename variant 2",
         );
 
         return {
           baseline: (await compareLocality(baselineRepo)).result,
-          variant: (await compareLocality(renamedRepo)).result
+          variant: (await compareLocality(renamedRepo)).result,
         };
-      }
+      },
     },
     {
       kind: "robustness",
@@ -635,62 +619,62 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
         await appendAndCommit(
           linearRepo,
           {
-            "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinear = 'billing-merge-linear';\n"
+            "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinear = 'billing-merge-linear';\n",
           },
-          "refactor: billing merge control"
+          "refactor: billing merge control",
         );
         await appendAndCommit(
           linearRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinearOne = 'billing-m1';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentMergeLinearOne = 'fulfillment-m1';\n"
+              "\nexport const fulfillmentMergeLinearOne = 'fulfillment-m1';\n",
           },
-          "feat: merge control 1"
+          "feat: merge control 1",
         );
         await appendAndCommit(
           linearRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinearTwo = 'billing-m2';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentMergeLinearTwo = 'fulfillment-m2';\n"
+              "\nexport const fulfillmentMergeLinearTwo = 'fulfillment-m2';\n",
           },
-          "feat: merge control 2"
+          "feat: merge control 2",
         );
 
         await commitOnBranchAndMerge(
           mergedRepo,
           "feature/merge-noise",
           {
-            "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinear = 'billing-merge-linear';\n"
+            "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinear = 'billing-merge-linear';\n",
           },
           "refactor: billing merge control",
-          "merge: merge billing refactor branch"
+          "merge: merge billing refactor branch",
         );
         await appendAndCommit(
           mergedRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinearOne = 'billing-m1';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentMergeLinearOne = 'fulfillment-m1';\n"
+              "\nexport const fulfillmentMergeLinearOne = 'fulfillment-m1';\n",
           },
-          "feat: merge control 1"
+          "feat: merge control 1",
         );
         await appendAndCommit(
           mergedRepo,
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingMergeLinearTwo = 'billing-m2';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentMergeLinearTwo = 'fulfillment-m2';\n"
+              "\nexport const fulfillmentMergeLinearTwo = 'fulfillment-m2';\n",
           },
-          "feat: merge control 2"
+          "feat: merge control 2",
         );
 
         return {
           baseline: (await compareLocality(linearRepo)).result,
-          variant: (await compareLocality(mergedRepo)).result
+          variant: (await compareLocality(mergedRepo)).result,
         };
-      }
+      },
     },
     {
       kind: "confidence",
@@ -703,12 +687,12 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
           {
             "src/billing/internal/billing-service.ts": "\nexport const billingThinOne = 'billing-thin';\n",
             "src/fulfillment/internal/fulfillment-service.ts":
-              "\nexport const fulfillmentThinOne = 'fulfillment-thin';\n"
+              "\nexport const fulfillmentThinOne = 'fulfillment-thin';\n",
           },
-          "feat: thin cross-context update"
+          "feat: thin cross-context update",
         );
         return compareLocality(repoPath);
-      }
+      },
     },
     {
       kind: "determinism",
@@ -719,15 +703,15 @@ function createAcceptanceCases(tempRoots: string[]): AcceptanceCase[] {
           commit("ab2", ["src/billing/b.ts", "src/fulfillment/b.ts"]),
           commit("ac1", ["src/billing/c.ts", "src/support/c.ts"]),
           commit("a1", ["src/billing/local.ts"]),
-          commit("s1", ["src/support/local.ts"])
+          commit("s1", ["src/support/local.ts"]),
         ];
 
         return {
           forward: compareCommits(commits),
-          reversed: compareCommits([...commits].reverse())
+          reversed: compareCommits([...commits].reverse()),
         };
-      }
-    }
+      },
+    },
   ];
 }
 
@@ -735,7 +719,7 @@ function commit(hash: string, files: string[]): CochangeCommit {
   return {
     hash,
     subject: hash,
-    files
+    files,
   };
 }
 
@@ -746,7 +730,7 @@ function stablePairCommits(): CochangeCommit[] {
     commit("ab3", ["src/billing/c.ts", "src/fulfillment/c.ts"]),
     commit("a1", ["src/billing/local.ts"]),
     commit("b1", ["src/fulfillment/local.ts"]),
-    commit("s1", ["src/support/local.ts"])
+    commit("s1", ["src/support/local.ts"]),
   ];
 }
 
@@ -757,7 +741,7 @@ function rotatingPairCommits(): CochangeCommit[] {
     commit("bc1", ["src/fulfillment/c.ts", "src/support/c.ts"]),
     commit("a1", ["src/billing/local.ts"]),
     commit("b1", ["src/fulfillment/local.ts"]),
-    commit("s1", ["src/support/local.ts"])
+    commit("s1", ["src/support/local.ts"]),
   ];
 }
 
@@ -768,7 +752,7 @@ function partiallyConcentratedCommits(): CochangeCommit[] {
     commit("ac1", ["src/billing/c.ts", "src/support/c.ts"]),
     commit("a1", ["src/billing/local.ts"]),
     commit("b1", ["src/fulfillment/local.ts"]),
-    commit("s1", ["src/support/local.ts"])
+    commit("s1", ["src/support/local.ts"]),
   ];
 }
 
@@ -780,7 +764,7 @@ function hubCommits(): CochangeCommit[] {
     commit("bs2", ["src/billing/b.ts", "src/support/b.ts"]),
     commit("fs1", ["src/fulfillment/c.ts", "src/support/c.ts"]),
     commit("a1", ["src/billing/local.ts"]),
-    commit("b1", ["src/fulfillment/local.ts"])
+    commit("b1", ["src/fulfillment/local.ts"]),
   ];
 }
 
@@ -790,7 +774,7 @@ function balancedPersistentPairCommits(): CochangeCommit[] {
     commit("ab2", ["src/billing/b.ts", "src/fulfillment/b.ts"]),
     commit("ab3", ["src/billing/c.ts", "src/fulfillment/c.ts"]),
     commit("a1", ["src/billing/local.ts"]),
-    commit("b1", ["src/fulfillment/local.ts"])
+    commit("b1", ["src/fulfillment/local.ts"]),
   ];
 }
 
@@ -799,7 +783,7 @@ function compareCommits(commits: CochangeCommit[]): ComparisonEnvelope {
   return {
     result: result.comparison,
     confidence: result.confidence,
-    unknowns: result.unknowns
+    unknowns: result.unknowns,
   };
 }
 
@@ -808,15 +792,15 @@ async function compareLocality(repoPath: string, modelPath = ELS_MODEL_PATH): Pr
     {
       repo: repoPath,
       model: modelPath,
-      policy: POLICY_PATH
+      policy: POLICY_PATH,
     },
-    { cwd: process.cwd() }
+    { cwd: process.cwd() },
   );
 
   return {
     result: response.result as LocalityComparisonResult,
     confidence: response.confidence,
-    unknowns: response.unknowns
+    unknowns: response.unknowns,
   };
 }
 
@@ -830,7 +814,7 @@ async function materializeGitFixture(tempRoots: string[], initialCommitMessage: 
 
 async function buildThreeContextRepo(
   tempRoots: string[],
-  initialCommitMessage: string
+  initialCommitMessage: string,
 ): Promise<{ repoPath: string; modelPath: string }> {
   const repoPath = await materializeGitFixture(tempRoots, initialCommitMessage);
   const modelPath = path.join(repoPath, "three-context-model.yaml");
@@ -847,18 +831,14 @@ async function buildThreeContextRepo(
       '      - "src/fulfillment/**"',
       "  - name: Support",
       "    pathGlobs:",
-      '      - "src/support/**"'
+      '      - "src/support/**"',
     ].join("\n"),
-    "utf8"
+    "utf8",
   );
   return { repoPath, modelPath };
 }
 
-async function appendAndCommit(
-  repoPath: string,
-  updates: Record<string, string>,
-  message: string
-): Promise<void> {
+async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {
   for (const [relativePath, content] of Object.entries(updates)) {
     const targetPath = path.join(repoPath, relativePath);
     await mkdir(path.dirname(targetPath), { recursive: true });
@@ -878,25 +858,23 @@ async function applySupportLocalityBaseline(repoPath: string): Promise<void> {
   await appendAndCommit(
     repoPath,
     {
-      "src/support/internal/support-service.ts":
-        "export const supportService = () => 'support-baseline';\n"
+      "src/support/internal/support-service.ts": "export const supportService = () => 'support-baseline';\n",
     },
-    "feat: add support context"
+    "feat: add support context",
   );
   await appendAndCommit(
     repoPath,
     {
-      "src/billing/internal/billing-service.ts": "\nexport const billingRepoLocal = 'billing-local';\n"
+      "src/billing/internal/billing-service.ts": "\nexport const billingRepoLocal = 'billing-local';\n",
     },
-    "feat: billing local baseline"
+    "feat: billing local baseline",
   );
   await appendAndCommit(
     repoPath,
     {
-      "src/fulfillment/internal/fulfillment-service.ts":
-        "\nexport const fulfillmentRepoLocal = 'fulfillment-local';\n"
+      "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRepoLocal = 'fulfillment-local';\n",
     },
-    "feat: fulfillment local baseline"
+    "feat: fulfillment local baseline",
   );
 }
 
@@ -905,28 +883,25 @@ async function applyStablePairPattern(repoPath: string, prefix: string): Promise
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}StableBillingOne = "${prefix}-ab1";\n`,
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}StableFulfillmentOne = "${prefix}-ab1";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}StableFulfillmentOne = "${prefix}-ab1";\n`,
     },
-    `feat: ${prefix} stable pair 1`
+    `feat: ${prefix} stable pair 1`,
   );
   await appendAndCommit(
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}StableBillingTwo = "${prefix}-ab2";\n`,
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}StableFulfillmentTwo = "${prefix}-ab2";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}StableFulfillmentTwo = "${prefix}-ab2";\n`,
     },
-    `feat: ${prefix} stable pair 2`
+    `feat: ${prefix} stable pair 2`,
   );
   await appendAndCommit(
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}StableBillingThree = "${prefix}-ab3";\n`,
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}StableFulfillmentThree = "${prefix}-ab3";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}StableFulfillmentThree = "${prefix}-ab3";\n`,
     },
-    `feat: ${prefix} stable pair 3`
+    `feat: ${prefix} stable pair 3`,
   );
 }
 
@@ -935,29 +910,25 @@ async function applyRotatingPairPattern(repoPath: string, prefix: string): Promi
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}BillingFulfillmentOne = "${prefix}-ab1";\n`,
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}FulfillmentBillingOne = "${prefix}-ab1";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}FulfillmentBillingOne = "${prefix}-ab1";\n`,
     },
-    `feat: ${prefix} rotating pair ab`
+    `feat: ${prefix} rotating pair ab`,
   );
   await appendAndCommit(
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}BillingSupportOne = "${prefix}-ac1";\n`,
-      "src/support/internal/support-service.ts":
-        `\nexport const ${prefix}SupportBillingOne = "${prefix}-ac1";\n`
+      "src/support/internal/support-service.ts": `\nexport const ${prefix}SupportBillingOne = "${prefix}-ac1";\n`,
     },
-    `feat: ${prefix} rotating pair ac`
+    `feat: ${prefix} rotating pair ac`,
   );
   await appendAndCommit(
     repoPath,
     {
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}FulfillmentSupportOne = "${prefix}-bc1";\n`,
-      "src/support/internal/support-service.ts":
-        `\nexport const ${prefix}SupportFulfillmentOne = "${prefix}-bc1";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}FulfillmentSupportOne = "${prefix}-bc1";\n`,
+      "src/support/internal/support-service.ts": `\nexport const ${prefix}SupportFulfillmentOne = "${prefix}-bc1";\n`,
     },
-    `feat: ${prefix} rotating pair bc`
+    `feat: ${prefix} rotating pair bc`,
   );
 }
 
@@ -966,28 +937,25 @@ async function applyPartiallyConcentratedPattern(repoPath: string, prefix: strin
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}BillingFulfillmentOne = "${prefix}-ab1";\n`,
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}FulfillmentBillingOne = "${prefix}-ab1";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}FulfillmentBillingOne = "${prefix}-ab1";\n`,
     },
-    `feat: ${prefix} concentrated pair 1`
+    `feat: ${prefix} concentrated pair 1`,
   );
   await appendAndCommit(
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}BillingFulfillmentTwo = "${prefix}-ab2";\n`,
-      "src/fulfillment/internal/fulfillment-service.ts":
-        `\nexport const ${prefix}FulfillmentBillingTwo = "${prefix}-ab2";\n`
+      "src/fulfillment/internal/fulfillment-service.ts": `\nexport const ${prefix}FulfillmentBillingTwo = "${prefix}-ab2";\n`,
     },
-    `feat: ${prefix} concentrated pair 2`
+    `feat: ${prefix} concentrated pair 2`,
   );
   await appendAndCommit(
     repoPath,
     {
       "src/billing/internal/billing-service.ts": `\nexport const ${prefix}BillingSupportOne = "${prefix}-ac1";\n`,
-      "src/support/internal/support-service.ts":
-        `\nexport const ${prefix}SupportBillingOne = "${prefix}-ac1";\n`
+      "src/support/internal/support-service.ts": `\nexport const ${prefix}SupportBillingOne = "${prefix}-ac1";\n`,
     },
-    `feat: ${prefix} concentrated spillover`
+    `feat: ${prefix} concentrated spillover`,
   );
 }
 
@@ -1001,7 +969,7 @@ async function commitOnBranchAndMerge(
   branchName: string,
   updates: Record<string, string>,
   commitMessage: string,
-  mergeMessage: string
+  mergeMessage: string,
 ): Promise<void> {
   const currentBranch = await getCurrentBranch(repoPath);
   await runGit(repoPath, ["checkout", "-b", branchName]);
@@ -1025,9 +993,7 @@ async function runGit(repoPath: string, args: string[]): Promise<void> {
 }
 
 async function runGitWithIdentity(repoPath: string, args: string[]): Promise<void> {
-  await execFile(
-    "git",
-    ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", ...args],
-    { cwd: repoPath }
-  );
+  await execFile("git", ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", ...args], {
+    cwd: repoPath,
+  });
 }

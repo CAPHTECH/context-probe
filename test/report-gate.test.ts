@@ -23,37 +23,40 @@ function metric(input: {
     components: input.components ?? {},
     confidence: input.confidence ?? 0.9,
     evidenceRefs: [],
-    unknowns: input.unknowns ?? []
+    unknowns: input.unknowns ?? [],
   };
 }
 
 describe("report and gate", () => {
   test("architecture markdown report separates APSI summary from supporting metrics and proxy signals", () => {
-    const report = renderMarkdownReport({
-      status: "warning",
-      result: {
-        domainId: "architecture_design",
-        metrics: [
-          metric({ metricId: "APSI", value: 0.61, unknowns: ["PCS is a proxy composite of DDS, BPS, and IPS."] }),
-          metric({ metricId: "QSF", value: 0.7 }),
-          metric({ metricId: "DDS", value: 0.82 }),
-          metric({ metricId: "BPS", value: 0.8 }),
-          metric({ metricId: "IPS", value: 0.76 }),
-          metric({ metricId: "OAS", value: 0.54, unknowns: ["OAS is partial."] }),
-          metric({ metricId: "EES", value: 0.66 }),
-          metric({ metricId: "CTI", value: 0.21 }),
-          metric({ metricId: "TIS", value: 0.58, unknowns: ["TIS is a bridge metric."] }),
-          metric({ metricId: "AELS", value: 0.63 })
-        ],
-        violations: []
+    const report = renderMarkdownReport(
+      {
+        status: "warning",
+        result: {
+          domainId: "architecture_design",
+          metrics: [
+            metric({ metricId: "APSI", value: 0.61, unknowns: ["PCS is a proxy composite of DDS, BPS, and IPS."] }),
+            metric({ metricId: "QSF", value: 0.7 }),
+            metric({ metricId: "DDS", value: 0.82 }),
+            metric({ metricId: "BPS", value: 0.8 }),
+            metric({ metricId: "IPS", value: 0.76 }),
+            metric({ metricId: "OAS", value: 0.54, unknowns: ["OAS is partial."] }),
+            metric({ metricId: "EES", value: 0.66 }),
+            metric({ metricId: "CTI", value: 0.21 }),
+            metric({ metricId: "TIS", value: 0.58, unknowns: ["TIS is a bridge metric."] }),
+            metric({ metricId: "AELS", value: 0.63 }),
+          ],
+          violations: [],
+        },
+        evidence: [],
+        confidence: 0.72,
+        unknowns: ["Telemetry observations are missing."],
+        diagnostics: [],
+        provenance: [],
+        version: "1.0",
       },
-      evidence: [],
-      confidence: 0.72,
-      unknowns: ["Telemetry observations are missing."],
-      diagnostics: [],
-      provenance: [],
-      version: "1.0"
-    }, "layered");
+      "layered",
+    );
 
     expect(report).toContain("## Architecture Summary");
     expect(report).toContain("APSI is a summary-only metric");
@@ -78,16 +81,16 @@ describe("report and gate", () => {
         metrics: [
           metric({ metricId: "DRF", value: 0.74 }),
           metric({ metricId: "ULI", value: 0.68 }),
-          metric({ metricId: "MCCS", value: 0.61 })
+          metric({ metricId: "MCCS", value: 0.61 }),
         ],
-        leakFindings: []
+        leakFindings: [],
       },
       evidence: [],
       confidence: 0.8,
       unknowns: [],
       diagnostics: [],
       provenance: [],
-      version: "1.0"
+      version: "1.0",
     });
 
     expect(report).toContain("## Metrics");
@@ -105,7 +108,7 @@ describe("report and gate", () => {
         domainId: "domain_design",
         metrics: [
           metric({ metricId: "ELS", value: 0.63, components: { CCL: 0.7, FS: 0.2, SCR: 0.4 } }),
-          metric({ metricId: "MCCS", value: 0.72 })
+          metric({ metricId: "MCCS", value: 0.72 }),
         ],
         pilot: {
           category: "application",
@@ -117,22 +120,22 @@ describe("report and gate", () => {
           overallGate: {
             reasons: ["real_repo_delta_range_above_threshold"],
             replacementVerdict: "no_go",
-            rolloutDisposition: "shadow_only"
+            rolloutDisposition: "shadow_only",
           },
           categoryGate: {
             reasons: [],
             replacementVerdict: "go",
-            rolloutDisposition: "replace"
-          }
+            rolloutDisposition: "replace",
+          },
         },
-        leakFindings: []
+        leakFindings: [],
       },
       evidence: [],
       confidence: 0.8,
       unknowns: [],
       diagnostics: [],
       provenance: [],
-      version: "1.0"
+      version: "1.0",
     });
 
     expect(report).toContain("## Pilot Rollout");
@@ -153,17 +156,15 @@ describe("report and gate", () => {
       status: "ok",
       result: {
         domainId: "domain_design",
-        metrics: [
-          metric({ metricId: "ELS", value: 0.63, components: { CCL: 0.7, FS: 0.2, SCR: 0.4 } })
-        ],
-        leakFindings: []
+        metrics: [metric({ metricId: "ELS", value: 0.63, components: { CCL: 0.7, FS: 0.2, SCR: 0.4 } })],
+        leakFindings: [],
       },
       evidence: [],
       confidence: 0.8,
       unknowns: [],
       diagnostics: [],
       provenance: [],
-      version: "1.0"
+      version: "1.0",
     });
 
     expect(report).not.toContain("## Pilot Rollout");
@@ -183,18 +184,18 @@ describe("report and gate", () => {
             metric({ metricId: "OAS", value: 0.74 }),
             metric({ metricId: "EES", value: 0.71 }),
             metric({ metricId: "CTI", value: 0.22 }),
-            metric({ metricId: "APSI", value: 0.4 })
-          ]
+            metric({ metricId: "APSI", value: 0.4 }),
+          ],
         },
         evidence: [],
         confidence: 0.82,
         unknowns: [],
         diagnostics: [],
         provenance: [],
-        version: "1.0"
+        version: "1.0",
       },
       DEFAULT_POLICY,
-      "default"
+      "default",
     );
 
     expect(gate.status).toBe("warning");
@@ -216,18 +217,18 @@ describe("report and gate", () => {
             metric({ metricId: "OAS", value: 0.74 }),
             metric({ metricId: "EES", value: 0.71 }),
             metric({ metricId: "CTI", value: 0.22 }),
-            metric({ metricId: "APSI", value: 0.39 })
-          ]
+            metric({ metricId: "APSI", value: 0.39 }),
+          ],
         },
         evidence: [],
         confidence: 0.82,
         unknowns: [],
         diagnostics: [],
         provenance: [],
-        version: "1.0"
+        version: "1.0",
       },
       DEFAULT_POLICY,
-      "default"
+      "default",
     );
 
     expect(gate.status).toBe("error");
@@ -240,17 +241,17 @@ describe("report and gate", () => {
         status: "ok",
         result: {
           domainId: "domain_design",
-          metrics: [metric({ metricId: "ELS", value: 0.63, components: { CCL: 0.7, FS: 0.2, SCR: 0.4 } })]
+          metrics: [metric({ metricId: "ELS", value: 0.63, components: { CCL: 0.7, FS: 0.2, SCR: 0.4 } })],
         },
         evidence: [],
         confidence: 0.82,
         unknowns: [],
         diagnostics: [],
         provenance: [],
-        version: "1.0"
+        version: "1.0",
       },
       DEFAULT_POLICY,
-      "default"
+      "default",
     );
     const withPilot = evaluateGate(
       {
@@ -268,24 +269,24 @@ describe("report and gate", () => {
             overallGate: {
               reasons: ["real_repo_delta_range_above_threshold"],
               replacementVerdict: "no_go",
-              rolloutDisposition: "shadow_only"
+              rolloutDisposition: "shadow_only",
             },
             categoryGate: {
               reasons: [],
               replacementVerdict: "go",
-              rolloutDisposition: "replace"
-            }
-          }
+              rolloutDisposition: "replace",
+            },
+          },
         },
         evidence: [],
         confidence: 0.82,
         unknowns: [],
         diagnostics: [],
         provenance: [],
-        version: "1.0"
+        version: "1.0",
       } as Parameters<typeof evaluateGate>[0],
       DEFAULT_POLICY,
-      "default"
+      "default",
     );
 
     expect(withPilot).toEqual(baseline);

@@ -29,9 +29,7 @@ export async function loadDomainModel(modelPath: string): Promise<DomainModel> {
   return model;
 }
 
-export async function loadArchitectureConstraints(
-  constraintsPath: string
-): Promise<ArchitectureConstraints> {
+export async function loadArchitectureConstraints(constraintsPath: string): Promise<ArchitectureConstraints> {
   const constraints = await readDataFile<ArchitectureConstraints>(constraintsPath);
   if (!Array.isArray(constraints.layers) || constraints.layers.length === 0) {
     throw new Error("Architecture constraints must contain at least one layer");

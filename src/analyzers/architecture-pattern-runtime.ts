@@ -1,7 +1,4 @@
-import type {
-  ArchitecturePatternFamily,
-  ArchitecturePatternRuntimeObservationSet
-} from "../core/contracts.js";
+import type { ArchitecturePatternFamily, ArchitecturePatternRuntimeObservationSet } from "../core/contracts.js";
 
 export type PatternRuntimeSource = "family" | "legacy" | "tis_bridge" | "neutral";
 
@@ -54,8 +51,8 @@ const FAMILY_SPECS: PatternRuntimeSpec[] = [
     families: ["layered", "clean", "hexagonal"],
     weights: {
       FailureContainmentScore: 0.6,
-      DependencyIsolationScore: 0.4
-    }
+      DependencyIsolationScore: 0.4,
+    },
   },
   {
     blockName: "serviceBasedRuntime",
@@ -63,8 +60,8 @@ const FAMILY_SPECS: PatternRuntimeSpec[] = [
     weights: {
       PartialFailureContainmentScore: 0.4,
       RetryAmplificationScore: 0.3,
-      SyncHopDepthScore: 0.3
-    }
+      SyncHopDepthScore: 0.3,
+    },
   },
   {
     blockName: "cqrsRuntime",
@@ -72,8 +69,8 @@ const FAMILY_SPECS: PatternRuntimeSpec[] = [
     weights: {
       ProjectionFreshnessScore: 0.4,
       ReplayDivergenceScore: 0.3,
-      StaleReadAcceptabilityScore: 0.3
-    }
+      StaleReadAcceptabilityScore: 0.3,
+    },
   },
   {
     blockName: "eventDrivenRuntime",
@@ -81,9 +78,9 @@ const FAMILY_SPECS: PatternRuntimeSpec[] = [
     weights: {
       DeadLetterHealthScore: 0.35,
       ConsumerLagScore: 0.35,
-      ReplayRecoveryScore: 0.3
-    }
-  }
+      ReplayRecoveryScore: 0.3,
+    },
+  },
 ];
 
 function clamp01(value: number): number {
@@ -120,7 +117,7 @@ function blockEntries(observations: ArchitecturePatternRuntimeObservationSet | u
 
 function weightedObservedAverage(
   signals: WeightedSignalSet,
-  weights: Record<string, number>
+  weights: Record<string, number>,
 ): {
   value: number;
   coverage: number;
@@ -152,7 +149,7 @@ function weightedObservedAverage(
     value: clamp01(value),
     coverage: clamp01(coverage),
     usedSignals,
-    missingSignals
+    missingSignals,
   };
 }
 
@@ -183,13 +180,13 @@ function resolveSelectedSpec(input: {
 
   if (providedBlocks.length > 1) {
     unknowns.push(
-      "Multiple pattern runtime blocks were provided, so PatternRuntime is approximated from the highest-priority block."
+      "Multiple pattern runtime blocks were provided, so PatternRuntime is approximated from the highest-priority block.",
     );
     const finding: PatternRuntimeFinding = {
       kind: "pattern_runtime_multiple_blocks",
       confidence: 0.66,
       note: "Multiple pattern runtime blocks were provided, so the highest-priority block was selected.",
-      source: "family"
+      source: "family",
     };
     if (declaredFamily) {
       finding.patternFamily = declaredFamily;
@@ -202,7 +199,7 @@ function resolveSelectedSpec(input: {
     if (exactMatch) {
       const result: SelectedPatternRuntimeSpec = {
         spec: declaredSpec,
-        block: exactMatch.value
+        block: exactMatch.value,
       };
       if (declaredFamily) {
         result.family = declaredFamily;
@@ -217,20 +214,18 @@ function resolveSelectedSpec(input: {
   }
   const selectedSpec = FAMILY_SPECS.find((entry) => entry.blockName === selected.blockName);
   if (declaredFamily && selectedSpec && !selectedSpec.families.includes(declaredFamily)) {
-    unknowns.push(
-      `patternFamily=${declaredFamily}, but PatternRuntime is being estimated from ${selected.blockName}.`
-    );
+    unknowns.push(`patternFamily=${declaredFamily}, but PatternRuntime is being estimated from ${selected.blockName}.`);
     findings.push({
       kind: "pattern_runtime_family_mismatch",
       confidence: 0.58,
       note: `patternFamily=${declaredFamily} is inconsistent with ${selected.blockName}.`,
       patternFamily: declaredFamily,
-      source: "family"
+      source: "family",
     });
   }
 
   const result: SelectedPatternRuntimeSpec = {
-    block: selected.value
+    block: selected.value,
   };
   if (selectedSpec) {
     result.spec = selectedSpec;
@@ -255,14 +250,14 @@ export function scorePatternRuntime(input: {
     const weighted = weightedObservedAverage(selected.block, selected.spec.weights);
     for (const signal of weighted.missingSignals) {
       unknowns.push(
-        `${selected.spec.blockName} is missing ${signal}, so PatternRuntime is only a partial approximation.`
+        `${selected.spec.blockName} is missing ${signal}, so PatternRuntime is only a partial approximation.`,
       );
       const finding: PatternRuntimeFinding = {
         kind: "pattern_runtime_signal_missing",
         confidence: 0.68,
         note: `${selected.spec.blockName} is missing ${signal}.`,
         signal,
-        source: "family"
+        source: "family",
       };
       if (selected.family) {
         finding.patternFamily = selected.family;
@@ -275,7 +270,7 @@ export function scorePatternRuntime(input: {
         kind: "pattern_runtime_legacy_overridden",
         confidence: 0.74,
         note: "The family-specific pattern runtime block was prioritized and the legacy score was treated as supplemental.",
-        source: "family"
+        source: "family",
       };
       if (selected.family) {
         finding.patternFamily = selected.family;
@@ -289,7 +284,7 @@ export function scorePatternRuntime(input: {
         weighted.coverage * 0.4 +
         (selected.family && selected.spec.families.includes(selected.family) ? 0.08 : 0) -
         mismatchPenalty -
-        multiplePenalty
+        multiplePenalty,
     );
     const result: PatternRuntimeResolution = {
       value: weighted.value,
@@ -298,7 +293,7 @@ export function scorePatternRuntime(input: {
       findings,
       source: "family",
       usedSignals: weighted.usedSignals,
-      missingSignals: weighted.missingSignals
+      missingSignals: weighted.missingSignals,
     };
     if (selected.family) {
       result.patternFamily = selected.family;
@@ -311,7 +306,7 @@ export function scorePatternRuntime(input: {
       kind: "pattern_runtime_legacy_used",
       confidence: 0.76,
       note: "The legacy pattern runtime score is being used as-is.",
-      source: "legacy"
+      source: "legacy",
     };
     if (observations.patternFamily) {
       finding.patternFamily = observations.patternFamily;
@@ -324,7 +319,7 @@ export function scorePatternRuntime(input: {
       findings,
       source: "legacy",
       usedSignals: [],
-      missingSignals: []
+      missingSignals: [],
     };
     if (observations.patternFamily) {
       result.patternFamily = observations.patternFamily;
@@ -338,7 +333,7 @@ export function scorePatternRuntime(input: {
       kind: "pattern_runtime_tis_bridge",
       confidence: 0.68,
       note: "Pattern runtime observations are missing, so the TIS bridge is being used for PatternRuntime.",
-      source: "tis_bridge"
+      source: "tis_bridge",
     };
     if (observations?.patternFamily) {
       finding.patternFamily = observations.patternFamily;
@@ -351,7 +346,7 @@ export function scorePatternRuntime(input: {
       findings,
       source: "tis_bridge",
       usedSignals: [],
-      missingSignals: []
+      missingSignals: [],
     };
     if (observations?.patternFamily) {
       result.patternFamily = observations.patternFamily;
@@ -364,7 +359,7 @@ export function scorePatternRuntime(input: {
     kind: "pattern_runtime_neutral",
     confidence: 0.62,
     note: "Pattern runtime observations are missing, so PatternRuntime is close to unobserved.",
-    source: "neutral"
+    source: "neutral",
   };
   if (observations?.patternFamily) {
     finding.patternFamily = observations.patternFamily;
@@ -377,7 +372,7 @@ export function scorePatternRuntime(input: {
     findings,
     source: "neutral",
     usedSignals: [],
-    missingSignals: []
+    missingSignals: [],
   };
   if (observations?.patternFamily) {
     result.patternFamily = observations.patternFamily;

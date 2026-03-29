@@ -23,8 +23,16 @@
   ],
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "check": "npm run check:ts && npm run check:biome && npm run check:deps && npm run check:knip",
+    "check:biome": "biome ci .",
+    "check:deps": "depcruise --config .dependency-cruiser.cjs src",
+    "check:knip": "knip --config knip.json",
+    "check:ts": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx src/cli.ts",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "lint:fix": "biome check --write .",
     "prepack": "npm run build",
     "prepublishOnly": "npm run check && npm test",
     "test": "vitest run",
@@ -39,7 +47,10 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
     "@types/node": "^24.0.0",
+    "dependency-cruiser": "^17.3.10",
+    "knip": "^6.1.0",
     "tsx": "^4.20.3",
     "vitest": "^3.2.4"
   }

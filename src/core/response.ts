@@ -5,7 +5,7 @@ import {
   type CommandStatus,
   type Evidence,
   OUTPUT_VERSION,
-  type ProvenanceRef
+  type ProvenanceRef,
 } from "./contracts.js";
 
 export function clampConfidence(value: number): number {
@@ -18,7 +18,7 @@ export function createEvidenceId(seed: string): string {
 
 export function createResponse<T>(
   result: T,
-  options?: Partial<Omit<CommandResponse<T>, "result" | "version">>
+  options?: Partial<Omit<CommandResponse<T>, "result" | "version">>,
 ): CommandResponse<T> {
   return {
     status: options?.status ?? "ok",
@@ -28,7 +28,7 @@ export function createResponse<T>(
     unknowns: options?.unknowns ?? [],
     diagnostics: options?.diagnostics ?? [],
     provenance: options?.provenance ?? [],
-    version: OUTPUT_VERSION
+    version: OUTPUT_VERSION,
   };
 }
 
@@ -50,23 +50,11 @@ export function confidenceFromSignals(signals: number[]): number {
   return clampConfidence(total / signals.length);
 }
 
-export function appendDiagnostic<T>(
-  response: CommandResponse<T>,
-  diagnostic: string,
-  status: CommandStatus = "warning"
-): CommandResponse<T> {
-  return {
-    ...response,
-    status: mergeStatus(response.status, status),
-    diagnostics: [...response.diagnostics, diagnostic]
-  };
-}
-
 export function toEvidence(
   statement: string,
   source: Record<string, unknown>,
   linkedEntities?: string[],
-  confidence = 1
+  confidence = 1,
 ): Evidence {
   return {
     evidenceId: createEvidenceId(`${statement}:${JSON.stringify(source)}`),
@@ -74,7 +62,7 @@ export function toEvidence(
     statement,
     confidence: clampConfidence(confidence),
     ...(linkedEntities ? { linkedEntities } : {}),
-    source
+    source,
   };
 }
 
@@ -82,6 +70,6 @@ export function toProvenance(path: string, note?: string, line?: number): Proven
   return {
     path,
     ...(note ? { note } : {}),
-    ...(line !== undefined ? { line } : {})
+    ...(line !== undefined ? { line } : {}),
   };
 }

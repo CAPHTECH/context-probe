@@ -7,10 +7,10 @@ import type {
   Evidence,
   ExtractionBackend,
   ExtractionProviderName,
-  ReviewResolutionLog
+  ReviewResolutionLog,
 } from "./contracts.js";
 
-export const SOURCE_ROOTS = new Set(["src", "lib", "app"]);
+const SOURCE_ROOTS = new Set(["src", "lib", "app"]);
 export const CONTRACT_MARKERS = new Set(["contract", "contracts", "api", "schema", "schemas", "dto", "dtos"]);
 export const INTERNAL_MARKERS = new Set(["internal", "impl", "private", "_internal"]);
 export const AGGREGATE_FILE_PATTERN = /aggregate/i;
@@ -43,7 +43,7 @@ export const LAYER_PRIORITY_HINTS = new Map<string, number>([
   ["infra", 3],
   ["infrastructure", 3],
   ["persistence", 3],
-  ["platform", 3]
+  ["platform", 3],
 ]);
 
 export interface ExtractionOptions {
@@ -117,7 +117,7 @@ export function createDefaultExtractionOptions(docsRoot: string, repoRoot: strin
     extractor: "heuristic",
     promptProfile: "default",
     fallback: "heuristic",
-    applyReviewLog: false
+    applyReviewLog: false,
   } as const;
 }
 
@@ -168,7 +168,7 @@ export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
       basePath,
       ...(sourceRoot ? { sourceRoot } : {}),
       ...(segment ? { segment } : {}),
-      files: []
+      files: [],
     };
     group.files.push(filePath);
     groups.set(key, group);
@@ -191,7 +191,7 @@ export function inferRootGroupName(group: SourceGroup): string {
 
 export function inferGroupNames(groups: SourceGroup[]): string[] {
   return makeUniqueNames(
-    groups.map((group) => (group.segment ? toPascalCase(group.segment) : inferRootGroupName(group)))
+    groups.map((group) => (group.segment ? toPascalCase(group.segment) : inferRootGroupName(group))),
   );
 }
 
@@ -201,7 +201,9 @@ export function collectMarkerGlobs(group: SourceGroup, markers: Set<string>): st
 
   for (const filePath of group.files) {
     const relative =
-      group.basePath && filePath.startsWith(`${group.basePath}/`) ? filePath.slice(group.basePath.length + 1) : filePath;
+      group.basePath && filePath.startsWith(`${group.basePath}/`)
+        ? filePath.slice(group.basePath.length + 1)
+        : filePath;
     const relativeParts = relative.split("/");
     for (const segment of relativeParts.slice(0, -1)) {
       if (markers.has(segment.toLowerCase())) {
@@ -232,12 +234,12 @@ export function mergeUnknowns(candidates: Array<{ unknowns: string[] }>, extras:
 export function averageConfidence(
   contextCandidates: Array<{ candidate: DomainContextCandidate }>,
   aggregateCandidates: Array<{ confidence: number }>,
-  extraSignals: number[]
+  extraSignals: number[],
 ): number {
   const signals = [
     ...contextCandidates.map((entry) => entry.candidate.confidence),
     ...aggregateCandidates.map((candidate) => candidate.confidence),
-    ...extraSignals
+    ...extraSignals,
   ];
   return signals.reduce((sum, signal) => sum + signal, 0) / Math.max(1, signals.length);
 }

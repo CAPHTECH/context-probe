@@ -19,7 +19,7 @@ const DEFAULT_IGNORES = [
   ".git",
   ".git/**",
   "**/.git",
-  "**/.git/**"
+  "**/.git/**",
 ];
 
 export function toPosixPath(input: string): string {
@@ -95,13 +95,4 @@ export async function readDataFile<T>(filePath: string): Promise<T> {
     return YAML.parse(content) as T;
   }
   return JSON.parse(content) as T;
-}
-
-export async function ensureDirectory(directoryPath: string): Promise<void> {
-  await fs.mkdir(directoryPath, { recursive: true });
-}
-
-export async function writeText(filePath: string, content: string): Promise<void> {
-  await ensureDirectory(path.dirname(filePath));
-  await fs.writeFile(filePath, content, "utf8");
 }

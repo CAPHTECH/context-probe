@@ -9,7 +9,7 @@ import type {
   ModelCodeLink,
   RuleCandidate,
   TermTraceLink,
-  TraceLinkOccurrence
+  TraceLinkOccurrence,
 } from "./contracts.js";
 import { matchGlobs } from "./io.js";
 import { toEvidence } from "./response.js";
@@ -22,7 +22,7 @@ const USE_CASE_SIGNALS = [
   /利用者/u,
   /\buse case\b/i,
   /\bscenario\b/i,
-  /\bacceptance\b/i
+  /\bacceptance\b/i,
 ];
 const SEPARATION_SIGNALS = [
   /ownership/u,
@@ -34,7 +34,7 @@ const SEPARATION_SIGNALS = [
   /別(?:責務|所有|境界)/u,
   /\bseparate\b/i,
   /\bseparation\b/i,
-  /\boundary\b/i
+  /\boundary\b/i,
 ];
 
 interface BoundarySignal {
@@ -91,7 +91,7 @@ function contextMentionPattern(name: string): RegExp | null {
   return null;
 }
 
-export function detectContextMentions(text: string, model: DomainModel): string[] {
+function detectContextMentions(text: string, model: DomainModel): string[] {
   return model.contexts
     .filter((context) => {
       const pattern = contextMentionPattern(context.name);
@@ -129,7 +129,7 @@ function hasSeparationSignal(text: string): boolean {
 
 export function buildFragmentContextMentions(fragments: Fragment[], model: DomainModel): Map<string, string[]> {
   return new Map(
-    fragments.map((fragment) => [fragment.fragmentId, unique(detectContextMentions(fragment.text, model))])
+    fragments.map((fragment) => [fragment.fragmentId, unique(detectContextMentions(fragment.text, model))]),
   );
 }
 
@@ -137,7 +137,7 @@ export function collectTermContexts(
   term: GlossaryTerm,
   link: TermTraceLink | undefined,
   fragmentContextMentions: Map<string, string[]>,
-  model: DomainModel
+  model: DomainModel,
 ): string[] {
   const contexts = new Set<string>();
 
@@ -166,7 +166,7 @@ export function collectStatementContexts(
   fragmentIds: string[],
   fragmentContextMentions: Map<string, string[]>,
   mappedTerms: Array<{ canonicalTerm: string; contexts: string[] }>,
-  model: DomainModel
+  model: DomainModel,
 ): string[] {
   const contexts = new Set<string>();
   const normalizedStatement = statement.toLowerCase();
@@ -205,12 +205,12 @@ function buildAttractionSignals(input: {
   const mappedTerms = input.terms
     .map((term) => ({
       term,
-      contexts: input.termContexts.get(term.termId) ?? []
+      contexts: input.termContexts.get(term.termId) ?? [],
     }))
     .filter((entry) => entry.contexts.length > 0);
   const termSummaries = mappedTerms.map((entry) => ({
     canonicalTerm: entry.term.canonicalTerm,
-    contexts: entry.contexts
+    contexts: entry.contexts,
   }));
   const signals: BoundarySignal[] = [];
 
@@ -221,7 +221,7 @@ function buildAttractionSignals(input: {
       contexts: entry.contexts,
       confidence: entry.term.confidence,
       fragmentIds: entry.term.fragmentIds,
-      linkedEntities: [entry.term.termId]
+      linkedEntities: [entry.term.termId],
     });
   }
 
@@ -231,7 +231,7 @@ function buildAttractionSignals(input: {
       rule.fragmentIds,
       input.fragmentContextMentions,
       termSummaries,
-      input.model
+      input.model,
     );
     if (contexts.length === 0) {
       continue;
@@ -242,7 +242,7 @@ function buildAttractionSignals(input: {
       contexts,
       confidence: rule.confidence,
       fragmentIds: rule.fragmentIds,
-      linkedEntities: [rule.ruleId]
+      linkedEntities: [rule.ruleId],
     });
   }
 
@@ -252,7 +252,7 @@ function buildAttractionSignals(input: {
       invariant.fragmentIds,
       input.fragmentContextMentions,
       termSummaries,
-      input.model
+      input.model,
     );
     if (contexts.length === 0) {
       continue;
@@ -263,7 +263,7 @@ function buildAttractionSignals(input: {
       contexts,
       confidence: invariant.confidence,
       fragmentIds: invariant.fragmentIds,
-      linkedEntities: [invariant.invariantId]
+      linkedEntities: [invariant.invariantId],
     });
   }
 
@@ -280,7 +280,7 @@ function buildAttractionSignals(input: {
       summary: fragment.text,
       contexts,
       confidence: 0.72,
-      fragmentIds: [fragment.fragmentId]
+      fragmentIds: [fragment.fragmentId],
     });
   }
 
@@ -305,8 +305,8 @@ export function computeBoundaryFitness(input: {
   const termContexts = new Map(
     input.terms.map((term) => [
       term.termId,
-      collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model)
-    ])
+      collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model),
+    ]),
   );
   const attractionSignals = buildAttractionSignals({
     terms: input.terms,
@@ -315,7 +315,7 @@ export function computeBoundaryFitness(input: {
     invariants: input.invariants,
     fragments: input.fragments,
     fragmentContextMentions,
-    model: input.model
+    model: input.model,
   });
 
   const localizedSignals = attractionSignals.filter((signal) => signal.contexts.length === 1);
@@ -327,7 +327,10 @@ export function computeBoundaryFitness(input: {
       ? 0.45
       : clamp01(
           weightedAttraction.reduce((sum, value) => sum + value, 0) /
-            Math.max(0.0001, attractionWeight.reduce((sum, value) => sum + value, 0))
+            Math.max(
+              0.0001,
+              attractionWeight.reduce((sum, value) => sum + value, 0),
+            ),
         );
 
   if (attractionSignals.length === 0) {
@@ -340,10 +343,15 @@ export function computeBoundaryFitness(input: {
   });
   const explicitSeparationScore = separationFragments.length > 0 ? 1 : 0.5;
   if (separationFragments.length === 0) {
-    unknowns.push("Explicit separation evidence such as ownership or security is limited, so part of R(P) is approximate.");
+    unknowns.push(
+      "Explicit separation evidence such as ownership or security is limited, so part of R(P) is approximate.",
+    );
   }
 
-  const modelCoverageScore = average(input.modelCodeLinks.map((link) => link.coverage), 0.55);
+  const modelCoverageScore = average(
+    input.modelCodeLinks.map((link) => link.coverage),
+    0.55,
+  );
   const leakRatio =
     input.contractUsage.applicableReferences === 0
       ? 0
@@ -357,10 +365,10 @@ export function computeBoundaryFitness(input: {
   }
 
   const documentSeparationScore =
-    attractionSignals.length === 0
-      ? 0.5
-      : clamp01(localizedSignals.length / Math.max(1, attractionSignals.length));
-  const R = clamp01(average([documentSeparationScore, explicitSeparationScore, codeBoundaryStrength, modelCoverageScore], 0.55));
+    attractionSignals.length === 0 ? 0.5 : clamp01(localizedSignals.length / Math.max(1, attractionSignals.length));
+  const R = clamp01(
+    average([documentSeparationScore, explicitSeparationScore, codeBoundaryStrength, modelCoverageScore], 0.55),
+  );
 
   const evidence: Evidence[] = [];
 
@@ -371,11 +379,11 @@ export function computeBoundaryFitness(input: {
         {
           kind: signal.kind,
           contexts: signal.contexts,
-          fragmentIds: signal.fragmentIds ?? []
+          fragmentIds: signal.fragmentIds ?? [],
         },
         signal.linkedEntities,
-        clamp01(signal.confidence)
-      )
+        clamp01(signal.confidence),
+      ),
     );
   }
   for (const signal of ambiguousSignals.slice(0, 4)) {
@@ -385,11 +393,11 @@ export function computeBoundaryFitness(input: {
         {
           kind: signal.kind,
           contexts: signal.contexts,
-          fragmentIds: signal.fragmentIds ?? []
+          fragmentIds: signal.fragmentIds ?? [],
         },
         signal.linkedEntities,
-        clamp01(Math.min(signal.confidence, 0.82))
-      )
+        clamp01(Math.min(signal.confidence, 0.82)),
+      ),
     );
   }
   for (const fragment of separationFragments.slice(0, 4)) {
@@ -399,19 +407,24 @@ export function computeBoundaryFitness(input: {
         {
           fragmentId: fragment.fragmentId,
           path: fragment.path,
-          contexts: fragmentContextMentions.get(fragment.fragmentId) ?? []
+          contexts: fragmentContextMentions.get(fragment.fragmentId) ?? [],
         },
         undefined,
-        0.84
-      )
+        0.84,
+      ),
     );
   }
 
   const confidenceSignals = [
-    attractionSignals.length > 0 ? average(attractionSignals.map((signal) => signal.confidence), 0.55) : 0.5,
+    attractionSignals.length > 0
+      ? average(
+          attractionSignals.map((signal) => signal.confidence),
+          0.55,
+        )
+      : 0.5,
     separationFragments.length > 0 ? 0.8 : 0.55,
     input.model.contexts.length >= 2 ? 0.85 : 0.35,
-    input.contractUsage.applicableReferences > 0 ? 0.85 : 0.6
+    input.contractUsage.applicableReferences > 0 ? 0.85 : 0.6,
   ];
 
   if (input.model.contexts.length < 2) {
@@ -432,7 +445,7 @@ export function computeBoundaryFitness(input: {
       localizedSignals: localizedSignals.length,
       ambiguousSignals: ambiguousSignals.length,
       explicitSeparationSignals: separationFragments.length,
-      mappedTerms: Array.from(termContexts.values()).filter((contexts) => contexts.length > 0).length
-    }
+      mappedTerms: Array.from(termContexts.values()).filter((contexts) => contexts.length > 0).length,
+    },
   };
 }

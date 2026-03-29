@@ -1,19 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-
-import type {
-  CommandContext,
-  CommandResponse,
-  DomainDesignScoreResult,
-  DomainDesignShadowRolloutBatchObservation,
-  DomainDesignShadowRolloutBatchResult,
-  DomainDesignShadowRolloutGateResult,
-  DomainDesignShadowRolloutObservation,
-  MarkdownReportResult,
-  MeasurementGateResult,
-  ReviewItem,
-  ReviewResolution
-} from "./core/contracts.js";
+import { detectDirectionViolations, scoreDependencyDirection } from "./analyzers/architecture.js";
+import {
+  resolveComplexitySourceConfig,
+  resolveDeliverySourceConfig,
+  resolveScenarioObservationSourceConfig,
+  resolveTelemetrySourceConfig,
+} from "./analyzers/architecture-source-loader.js";
+import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "./analyzers/code.js";
 import type { CommandArgs } from "./command-helpers.js";
 import {
   buildExtractionOptions,
@@ -46,45 +40,46 @@ import {
   requireDomainModel,
   requireShadowRolloutBatchSpec,
   requireShadowRolloutRegistry,
-  resolveSpecRelativePath
+  resolveSpecRelativePath,
 } from "./command-helpers.js";
 import { normalizeDocuments, registerArtifacts } from "./core/artifacts.js";
-import {
-  extractGlossary,
-  extractInvariants,
-  extractRules
-} from "./core/document-extractors.js";
+import type {
+  CommandContext,
+  CommandResponse,
+  DomainDesignScoreResult,
+  DomainDesignShadowRolloutBatchObservation,
+  DomainDesignShadowRolloutBatchResult,
+  DomainDesignShadowRolloutGateResult,
+  DomainDesignShadowRolloutObservation,
+  MarkdownReportResult,
+  MeasurementGateResult,
+  ReviewItem,
+  ReviewResolution,
+} from "./core/contracts.js";
+import { extractGlossary, extractInvariants, extractRules } from "./core/document-extractors.js";
 import {
   analyzeCochangePersistence,
   compareEvolutionLocalityModels,
   evaluateEvolutionLocalityObservationQuality,
   normalizeHistory,
-  scoreEvolutionLocality
+  scoreEvolutionLocality,
 } from "./core/history.js";
 import { readDataFile } from "./core/io.js";
 import { loadPolicyConfig } from "./core/policy.js";
-import { renderMarkdownReport, evaluateGate } from "./core/report.js";
-import { listReviewItems, resolveReviewItems } from "./core/review.js";
+import { evaluateGate, renderMarkdownReport } from "./core/report.js";
 import { confidenceFromSignals, createResponse, mergeStatus, toProvenance } from "./core/response.js";
+import { listReviewItems, resolveReviewItems } from "./core/review.js";
 import { scaffoldArchitectureConstraints, scaffoldDomainModel } from "./core/scaffold.js";
+import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import {
   batchToGateObservations,
   evaluateShadowRolloutGate,
   inferShadowRolloutModelSource,
   loadShadowRolloutRegistry,
   registryToGateObservations,
-  summarizeShadowRolloutBatchObservations
+  summarizeShadowRolloutBatchObservations,
 } from "./core/shadow-rollout.js";
-import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./core/trace.js";
-import { detectDirectionViolations, scoreDependencyDirection } from "./analyzers/architecture.js";
-import {
-  resolveComplexitySourceConfig,
-  resolveDeliverySourceConfig,
-  resolveScenarioObservationSourceConfig,
-  resolveTelemetrySourceConfig
-} from "./analyzers/architecture-source-loader.js";
-import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "./analyzers/code.js";
 import { DOMAIN_PACKS } from "./packs/index.js";
 
 export type CommandHandler = (args: CommandArgs, context: CommandContext) => Promise<CommandResponse<unknown>>;
@@ -116,7 +111,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const docsRoot = typeof args["docs-root"] === "string" ? getDocsRoot(args, context) : undefined;
     const scaffold = await scaffoldDomainModel({
       repoRoot,
-      ...(docsRoot ? { docsRoot, extractionOptions: await buildExtractionOptions(args, context) } : {})
+      ...(docsRoot ? { docsRoot, extractionOptions: await buildExtractionOptions(args, context) } : {}),
     });
     return createResponse(scaffold.result, {
       status: scaffold.unknowns.length > 0 ? "warning" : "ok",
@@ -126,8 +121,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
       diagnostics: scaffold.diagnostics,
       provenance: [
         toProvenance(repoRoot, "domain_model_scaffold"),
-        ...(docsRoot ? [toProvenance(docsRoot, "domain_model_scaffold_docs")] : [])
-      ]
+        ...(docsRoot ? [toProvenance(docsRoot, "domain_model_scaffold_docs")] : []),
+      ],
     });
   },
 
@@ -139,7 +134,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       confidence: glossary.confidence,
       unknowns: glossary.unknowns,
       diagnostics: glossary.diagnostics,
-      provenance: [toProvenance(getDocsRoot(args, context), "doc.extract_glossary")]
+      provenance: [toProvenance(getDocsRoot(args, context), "doc.extract_glossary")],
     });
   },
 
@@ -151,7 +146,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       confidence: rules.confidence,
       unknowns: rules.unknowns,
       diagnostics: rules.diagnostics,
-      provenance: [toProvenance(getDocsRoot(args, context), "doc.extract_rules")]
+      provenance: [toProvenance(getDocsRoot(args, context), "doc.extract_rules")],
     });
   },
 
@@ -163,7 +158,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       confidence: invariants.confidence,
       unknowns: invariants.unknowns,
       diagnostics: invariants.diagnostics,
-      provenance: [toProvenance(getDocsRoot(args, context), "doc.extract_invariants")]
+      provenance: [toProvenance(getDocsRoot(args, context), "doc.extract_invariants")],
     });
   },
 
@@ -174,13 +169,13 @@ export const COMMANDS: Record<string, CommandHandler> = {
       docsRoot: getDocsRoot(args, context),
       ...(typeof args.repo === "string" ? { repoRoot: getRootPath(args, context) } : {}),
       ...(codebase ? { codeFiles: codebase.scorableSourceFiles } : {}),
-      terms: glossary.terms
+      terms: glossary.terms,
     });
     return createResponse(
       {
         links,
         glossary: glossary.terms,
-        metadata: glossary.metadata
+        metadata: glossary.metadata,
       },
       {
         status: glossary.diagnostics.length > 0 ? "warning" : "ok",
@@ -188,8 +183,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         confidence: glossary.confidence,
         unknowns: glossary.unknowns,
         diagnostics: glossary.diagnostics,
-        provenance: [toProvenance(getDocsRoot(args, context), "trace.link_terms")]
-      }
+        provenance: [toProvenance(getDocsRoot(args, context), "trace.link_terms")],
+      },
     );
   },
 
@@ -198,11 +193,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const codebase = await parseCodebase(getRootPath(args, context));
     return createResponse(
       {
-        links: buildModelCodeLinks(model, codebase.scorableSourceFiles)
+        links: buildModelCodeLinks(model, codebase.scorableSourceFiles),
       },
       {
-        provenance: [toProvenance(getRootPath(args, context), "trace.link_model_to_code")]
-      }
+        provenance: [toProvenance(getRootPath(args, context), "trace.link_model_to_code")],
+      },
     );
   },
 
@@ -242,7 +237,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const quality = evaluateEvolutionLocalityObservationQuality(commits, model);
     return createResponse(analysis, {
       confidence: quality.confidence,
-      unknowns: quality.unknowns
+      unknowns: quality.unknowns,
     });
   },
 
@@ -253,7 +248,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const result = analyzeCochangePersistence(commits, model);
     return createResponse(result.analysis, {
       confidence: result.confidence,
-      unknowns: result.unknowns
+      unknowns: result.unknowns,
     });
   },
 
@@ -264,7 +259,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const result = compareEvolutionLocalityModels(commits, model);
     return createResponse(result.comparison, {
       confidence: result.confidence,
-      unknowns: result.unknowns
+      unknowns: result.unknowns,
     });
   },
 
@@ -282,7 +277,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       confidence: scaffold.confidence,
       unknowns: scaffold.unknowns,
       diagnostics: scaffold.diagnostics,
-      provenance: [toProvenance(repoRoot, "architecture_constraints_scaffold")]
+      provenance: [toProvenance(repoRoot, "architecture_constraints_scaffold")],
     });
   },
 
@@ -329,7 +324,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
         patternRuntimeRawObservations,
         patternRuntimeNormalizationProfile,
         complexityExport,
-        complexitySourceConfig
+        complexitySourceConfig,
       ] = await Promise.all([
         loadScenarioCatalogIfRequested(args, context),
         loadScenarioObservationsIfRequested(args, context),
@@ -351,7 +346,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
         loadPatternRuntimeRawObservationsIfRequested(args, context),
         loadPatternRuntimeNormalizationProfileIfRequested(args, context),
         loadComplexityExportIfRequested(args, context),
-        loadComplexitySourceConfigIfRequested(args, context)
+        loadComplexitySourceConfigIfRequested(args, context),
       ]);
 
       const usableTelemetryRaw = Boolean(telemetryRawObservations && telemetryNormalizationProfile);
@@ -379,7 +374,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
               toProvenance(scenarioObservationSource.configPath, "scenario_observation_source_config"),
               ...(scenarioObservationSource.resolvedPath
                 ? [toProvenance(scenarioObservationSource.resolvedPath, "scenario_observation_source_file")]
-                : [])
+                : []),
             ]
           : []),
         ...(telemetrySource
@@ -387,7 +382,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
               toProvenance(telemetrySource.configPath, "telemetry_source_config"),
               ...(telemetrySource.resolvedPath
                 ? [toProvenance(telemetrySource.resolvedPath, "telemetry_source_file")]
-                : [])
+                : []),
             ]
           : []),
         ...(deliverySource
@@ -395,7 +390,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
               toProvenance(deliverySource.configPath, "delivery_source_config"),
               ...(deliverySource.resolvedPath
                 ? [toProvenance(deliverySource.resolvedPath, "delivery_source_file")]
-                : [])
+                : []),
             ]
           : []),
         ...(complexitySource
@@ -403,9 +398,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
               toProvenance(complexitySource.configPath, "complexity_source_config"),
               ...(complexitySource.resolvedPath
                 ? [toProvenance(complexitySource.resolvedPath, "complexity_source_file")]
-                : [])
+                : []),
             ]
-          : [])
+          : []),
       ];
 
       return computeArchitectureScores({
@@ -440,7 +435,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
         deliverySourceRequested: Boolean(deliverySourceConfig),
         complexitySourceRequested: Boolean(complexitySourceConfig),
         patternRuntimeRawRequested: Boolean(patternRuntimeRawObservations),
-        patternRuntimeNormalizationProfileRequested: Boolean(patternRuntimeNormalizationProfile)
+        patternRuntimeNormalizationProfileRequested: Boolean(patternRuntimeNormalizationProfile),
       });
     }
     const model = await requireDomainModel(args, context);
@@ -473,10 +468,10 @@ export const COMMANDS: Record<string, CommandHandler> = {
               promptProfile: extractionOptions.promptProfile,
               fallback: extractionOptions.fallback,
               ...(extractionOptions.reviewLog ? { reviewLog: extractionOptions.reviewLog } : {}),
-              applyReviewLog: extractionOptions.applyReviewLog
-            }
+              applyReviewLog: extractionOptions.applyReviewLog,
+            },
           }
-        : {})
+        : {}),
     });
   },
 
@@ -487,9 +482,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
     }
 
     const {
-      ["pilot-persistence"]: _pilotPersistence,
-      ["rollout-category"]: _rolloutCategory,
-      ["shadow-rollout-registry"]: _shadowRolloutRegistry,
+      "pilot-persistence": _pilotPersistence,
+      "rollout-category": _rolloutCategory,
+      "shadow-rollout-registry": _shadowRolloutRegistry,
       registry: _registry,
       ...shadowArgs
     } = args;
@@ -498,9 +493,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
       {
         ...shadowArgs,
         domain: "domain_design",
-        "shadow-persistence": true
+        "shadow-persistence": true,
       },
-      context
+      context,
     )) as CommandResponse<DomainDesignScoreResult>;
 
     const elsMetric = scoreResponse.result.metrics.find((metric) => metric.metricId === "ELS");
@@ -511,18 +506,13 @@ export const COMMANDS: Record<string, CommandHandler> = {
       throw new Error("Shadow persistence payload is not available in the current domain score response");
     }
 
-    const tieTolerance =
-      typeof args["tie-tolerance"] === "string" ? Number.parseFloat(args["tie-tolerance"]) : 0.02;
+    const tieTolerance = typeof args["tie-tolerance"] === "string" ? Number.parseFloat(args["tie-tolerance"]) : 0.02;
     const safeTieTolerance = Number.isFinite(tieTolerance) && tieTolerance >= 0 ? tieTolerance : 0.02;
     const baselineElsValue = scoreResponse.result.pilot?.baselineElsValue ?? elsMetric.value;
     const policyDelta =
       scoreResponse.result.shadow.localityModels.persistenceCandidate.localityScore - baselineElsValue;
     const driftCategory =
-      Math.abs(policyDelta) <= safeTieTolerance
-        ? "aligned"
-        : policyDelta > 0
-          ? "candidate_higher"
-          : "candidate_lower";
+      Math.abs(policyDelta) <= safeTieTolerance ? "aligned" : policyDelta > 0 ? "candidate_higher" : "candidate_lower";
 
     return createResponse<DomainDesignShadowRolloutObservation>(
       {
@@ -534,10 +524,10 @@ export const COMMANDS: Record<string, CommandHandler> = {
           policyDelta,
           modelDelta: scoreResponse.result.shadow.localityModels.delta,
           driftCategory,
-          tieTolerance: safeTieTolerance
+          tieTolerance: safeTieTolerance,
         },
         history: scoreResponse.result.history,
-        crossContextReferences: scoreResponse.result.crossContextReferences
+        crossContextReferences: scoreResponse.result.crossContextReferences,
       },
       {
         status: scoreResponse.status,
@@ -545,8 +535,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         confidence: scoreResponse.confidence,
         unknowns: scoreResponse.unknowns,
         diagnostics: scoreResponse.diagnostics,
-        provenance: scoreResponse.provenance
-      }
+        provenance: scoreResponse.provenance,
+      },
     );
   },
 
@@ -561,7 +551,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const argPolicyPath =
       typeof args.policy === "string" ? new URL(args.policy, `file://${context.cwd}/`).pathname : undefined;
     const argTieTolerance = parseTieTolerance(
-      typeof args["tie-tolerance"] === "string" ? args["tie-tolerance"] : undefined
+      typeof args["tie-tolerance"] === "string" ? args["tie-tolerance"] : undefined,
     );
 
     const observations: DomainDesignShadowRolloutBatchObservation[] = [];
@@ -584,25 +574,27 @@ export const COMMANDS: Record<string, CommandHandler> = {
       }
 
       const tieTolerance =
-        parseTieTolerance(entry.tieTolerance) ??
-        parseTieTolerance(spec.tieTolerance) ??
-        argTieTolerance;
+        parseTieTolerance(entry.tieTolerance) ?? parseTieTolerance(spec.tieTolerance) ?? argTieTolerance;
 
       const response = (await observeShadowRollout(
         {
           repo: repoPath,
           model: modelPath,
           policy: resolvedPolicyInput,
-          ...(tieTolerance !== undefined ? { "tie-tolerance": String(tieTolerance) } : {})
+          ...(tieTolerance !== undefined ? { "tie-tolerance": String(tieTolerance) } : {}),
         },
-        context
+        context,
       )) as CommandResponse<DomainDesignShadowRolloutObservation>;
 
       const category = entry.category ?? "uncategorized";
       statuses.add(response.status);
       confidenceSignals.push(response.confidence);
-      response.unknowns.forEach((unknown) => unknowns.add(`${entry.repoId}: ${unknown}`));
-      response.diagnostics.forEach((diagnostic) => diagnostics.add(`${entry.repoId}: ${diagnostic}`));
+      response.unknowns.forEach((unknown) => {
+        unknowns.add(`${entry.repoId}: ${unknown}`);
+      });
+      response.diagnostics.forEach((diagnostic) => {
+        diagnostics.add(`${entry.repoId}: ${diagnostic}`);
+      });
 
       observations.push({
         repoId: entry.repoId,
@@ -614,44 +606,44 @@ export const COMMANDS: Record<string, CommandHandler> = {
         policyPath: resolvedPolicyInput,
         status: response.status,
         elsMetric: response.result.elsMetric.value,
-        persistenceLocalityScore:
-          response.result.shadow.localityModels.persistenceCandidate.localityScore,
+        persistenceLocalityScore: response.result.shadow.localityModels.persistenceCandidate.localityScore,
         policyDelta: response.result.observation.policyDelta,
         modelDelta: response.result.observation.modelDelta,
         driftCategory: response.result.observation.driftCategory,
-        relevantCommitCount:
-          response.result.shadow.localityModels.persistenceAnalysis.relevantCommitCount,
+        relevantCommitCount: response.result.shadow.localityModels.persistenceAnalysis.relevantCommitCount,
         confidence: response.confidence,
-        unknowns: response.unknowns
+        unknowns: response.unknowns,
       });
     }
 
     const categories = Array.from(
-      observations.reduce((groups, observation) => {
-        const existing = groups.get(observation.category) ?? [];
-        existing.push(observation);
-        groups.set(observation.category, existing);
-        return groups;
-      }, new Map<string, DomainDesignShadowRolloutBatchObservation[]>()).entries()
+      observations
+        .reduce((groups, observation) => {
+          const existing = groups.get(observation.category) ?? [];
+          existing.push(observation);
+          groups.set(observation.category, existing);
+          return groups;
+        }, new Map<string, DomainDesignShadowRolloutBatchObservation[]>())
+        .entries(),
     ).map(([category, categoryObservations]) => ({
       category,
       repoIds: categoryObservations.map((entry) => entry.repoId),
-      summary: summarizeShadowRolloutBatchObservations(categoryObservations)
+      summary: summarizeShadowRolloutBatchObservations(categoryObservations),
     }));
 
     return createResponse<DomainDesignShadowRolloutBatchResult>(
       {
         observations,
         categories,
-        overall: summarizeShadowRolloutBatchObservations(observations)
+        overall: summarizeShadowRolloutBatchObservations(observations),
       },
       {
         status: mergeStatus(...statuses),
         confidence: confidenceFromSignals(confidenceSignals),
         unknowns: Array.from(unknowns),
         diagnostics: Array.from(diagnostics),
-        provenance: [toProvenance(specPath, "shadow rollout batch spec")]
-      }
+        provenance: [toProvenance(specPath, "shadow rollout batch spec")],
+      },
     );
   },
 
@@ -662,14 +654,17 @@ export const COMMANDS: Record<string, CommandHandler> = {
     }
 
     if (typeof args["batch-spec"] === "string") {
-      const response = (await observeShadowRolloutBatch(args, context)) as CommandResponse<DomainDesignShadowRolloutBatchResult>;
+      const response = (await observeShadowRolloutBatch(
+        args,
+        context,
+      )) as CommandResponse<DomainDesignShadowRolloutBatchResult>;
       const evaluation = evaluateShadowRolloutGate(batchToGateObservations(response.result.observations));
 
       return createResponse<DomainDesignShadowRolloutGateResult>(
         {
           source: "batch_spec",
           batchSpecPath: new URL(args["batch-spec"], `file://${context.cwd}/`).pathname,
-          evaluation
+          evaluation,
         },
         {
           status: evaluation.rolloutDisposition === "replace" ? response.status : "warning",
@@ -677,8 +672,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
           confidence: response.confidence,
           unknowns: response.unknowns,
           diagnostics: response.diagnostics,
-          provenance: response.provenance
-        }
+          provenance: response.provenance,
+        },
       );
     }
 
@@ -689,25 +684,25 @@ export const COMMANDS: Record<string, CommandHandler> = {
       {
         source: "registry",
         registryPath,
-        evaluation
+        evaluation,
       },
       {
         status: evaluation.rolloutDisposition === "replace" ? "ok" : "warning",
-        provenance: [toProvenance(registryPath, "shadow rollout registry")]
-      }
+        provenance: [toProvenance(registryPath, "shadow rollout registry")],
+      },
     );
   },
 
   async "review.list_unknowns"(args, context) {
-    const inputPath = typeof args.input === "string" ? new URL(args.input, `file://${context.cwd}/`).pathname : undefined;
-    const sourceCommand =
-      typeof args["source-command"] === "string" ? COMMANDS[args["source-command"]] : undefined;
+    const inputPath =
+      typeof args.input === "string" ? new URL(args.input, `file://${context.cwd}/`).pathname : undefined;
+    const sourceCommand = typeof args["source-command"] === "string" ? COMMANDS[args["source-command"]] : undefined;
     const scoreCompute = COMMANDS["score.compute"];
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
     const response = inputPath
-      ? (await readDataFile<CommandResponse<unknown>>(inputPath))
+      ? await readDataFile<CommandResponse<unknown>>(inputPath)
       : sourceCommand
         ? await sourceCommand(args, context)
         : await scoreCompute(args, context);
@@ -720,37 +715,33 @@ export const COMMANDS: Record<string, CommandHandler> = {
         unknowns: response.unknowns,
         evidence: response.evidence,
         diagnostics: response.diagnostics,
-        provenance: response.provenance
-      }
+        provenance: response.provenance,
+      },
     );
   },
 
   async "review.resolve"(args, context) {
-    const reviewItemsPath = typeof args["review-items"] === "string"
-      ? new URL(args["review-items"], `file://${context.cwd}/`).pathname
-      : undefined;
-    const resolutionsPath = typeof args.resolutions === "string"
-      ? new URL(args.resolutions, `file://${context.cwd}/`).pathname
-      : undefined;
+    const reviewItemsPath =
+      typeof args["review-items"] === "string"
+        ? new URL(args["review-items"], `file://${context.cwd}/`).pathname
+        : undefined;
+    const resolutionsPath =
+      typeof args.resolutions === "string" ? new URL(args.resolutions, `file://${context.cwd}/`).pathname : undefined;
     if (!reviewItemsPath || !resolutionsPath) {
       throw new Error("`--review-items` and `--resolutions` are required");
     }
-    const reviewItemsPayload = await readDataFile<{ reviewItems?: ReviewItem[]; result?: { reviewItems?: ReviewItem[] } }>(
-      reviewItemsPath
-    );
+    const reviewItemsPayload = await readDataFile<{
+      reviewItems?: ReviewItem[];
+      result?: { reviewItems?: ReviewItem[] };
+    }>(reviewItemsPath);
     const reviewItems = reviewItemsPayload.reviewItems ?? reviewItemsPayload.result?.reviewItems ?? [];
-    const resolutions = await readDataFile<ReviewResolution[]>(
-      resolutionsPath
-    );
+    const resolutions = await readDataFile<ReviewResolution[]>(resolutionsPath);
     const resolutionLog = resolveReviewItems(reviewItems, resolutions);
-    return createResponse(
-      resolutionLog,
-      {
-        status: resolutionLog.overrides.length > 0 ? "warning" : "ok",
-        confidence: 0.9,
-        provenance: [toProvenance(reviewItemsPath, "review.resolve"), toProvenance(resolutionsPath, "review.resolve")]
-      }
-    );
+    return createResponse(resolutionLog, {
+      status: resolutionLog.overrides.length > 0 ? "warning" : "ok",
+      confidence: 0.9,
+      provenance: [toProvenance(reviewItemsPath, "review.resolve"), toProvenance(resolutionsPath, "review.resolve")],
+    });
   },
 
   async "report.generate"(args, context) {
@@ -759,19 +750,20 @@ export const COMMANDS: Record<string, CommandHandler> = {
       throw new Error("score.compute is not registered");
     }
     const response = (await scoreCompute(args, context)) as CommandResponse<
-      DomainDesignScoreResult | {
-        domainId: string;
-        metrics: Array<{
-          metricId: string;
-          value: number;
-          components: Record<string, number>;
-          confidence: number;
-          evidenceRefs: string[];
-          unknowns: string[];
-        }>;
-        leakFindings?: unknown[];
-        violations?: unknown[];
-      }
+      | DomainDesignScoreResult
+      | {
+          domainId: string;
+          metrics: Array<{
+            metricId: string;
+            value: number;
+            components: Record<string, number>;
+            confidence: number;
+            evidenceRefs: string[];
+            unknowns: string[];
+          }>;
+          leakFindings?: unknown[];
+          violations?: unknown[];
+        }
     >;
     const format = typeof args.format === "string" ? args.format : "json";
     if (format === "md") {
@@ -779,7 +771,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       return createResponse<MarkdownReportResult>(
         {
           format,
-          report: renderMarkdownReport(response, profileName)
+          report: renderMarkdownReport(response, profileName),
         },
         {
           status: response.status,
@@ -787,8 +779,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
           confidence: response.confidence,
           unknowns: response.unknowns,
           diagnostics: response.diagnostics,
-          provenance: response.provenance
-        }
+          provenance: response.provenance,
+        },
       );
     }
     return response;
@@ -800,30 +792,29 @@ export const COMMANDS: Record<string, CommandHandler> = {
       throw new Error("score.compute is not registered");
     }
     const response = (await scoreCompute(args, context)) as CommandResponse<
-      DomainDesignScoreResult | {
-        domainId: string;
-        metrics: Array<{
-          metricId: string;
-          value: number;
-          components: Record<string, number>;
-          confidence: number;
-          evidenceRefs: string[];
-          unknowns: string[];
-        }>;
-      }
+      | DomainDesignScoreResult
+      | {
+          domainId: string;
+          metrics: Array<{
+            metricId: string;
+            value: number;
+            components: Record<string, number>;
+            confidence: number;
+            evidenceRefs: string[];
+            unknowns: string[];
+          }>;
+        }
     >;
     const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
     const gate = evaluateGate(response, policyConfig, getProfile(args));
     const pilot =
-      response.result.domainId === "domain_design" && "pilot" in response.result
-        ? response.result.pilot
-        : undefined;
+      response.result.domainId === "domain_design" && "pilot" in response.result ? response.result.pilot : undefined;
     return createResponse<MeasurementGateResult>(
       {
         domainId: response.result.domainId as "domain_design" | "architecture_design",
         gate,
         metrics: response.result.metrics,
-        ...(pilot ? { pilot } : {})
+        ...(pilot ? { pilot } : {}),
       },
       {
         status: gate.status,
@@ -833,11 +824,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
         diagnostics: [
           ...response.diagnostics,
           ...(pilot ? [`Pilot locality source: ${pilot.localitySource} for category ${pilot.category}.`] : []),
-          `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`
-        ]
-      }
+          `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`,
+        ],
+      },
     );
-  }
+  },
 };
 
 export function listCommands(): string[] {
@@ -847,7 +838,7 @@ export function listCommands(): string[] {
 export async function maybeWriteOutput(
   response: CommandResponse<unknown>,
   args: Record<string, string | boolean>,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<void> {
   const output = typeof args.output === "string" ? new URL(args.output, `file://${context.cwd}/`).pathname : undefined;
   if (!output) {

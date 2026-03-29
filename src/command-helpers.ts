@@ -1,23 +1,22 @@
 import path from "node:path";
-
 import type {
   ArchitectureBoundaryMap,
   ArchitectureComplexityExportBundle,
   ArchitectureComplexitySourceConfig,
   ArchitectureConstraints,
+  ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
-  ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryRawObservationSet,
   ArchitectureDeliverySourceConfig,
-  ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeNormalizationProfile,
+  ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeRawObservationSet,
   ArchitectureScenarioCatalog,
   ArchitectureScenarioObservationSourceConfig,
+  ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTelemetryObservationSet,
-  ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryRawObservationSet,
   ArchitectureTelemetrySourceConfig,
   ArchitectureTopologyModel,
@@ -29,17 +28,11 @@ import type {
   ExtractionProviderName,
   ReviewResolutionLog,
   ScenarioObservationSet,
-  TopologyRuntimeObservationSet
+  TopologyRuntimeObservationSet,
 } from "./core/contracts.js";
 import { readDataFile } from "./core/io.js";
 import { loadArchitectureConstraints, loadDomainModel } from "./core/model.js";
 import type { loadShadowRolloutRegistry } from "./core/shadow-rollout.js";
-import {
-  resolveComplexitySourceConfig,
-  resolveDeliverySourceConfig,
-  resolveScenarioObservationSourceConfig,
-  resolveTelemetrySourceConfig
-} from "./analyzers/architecture-source-loader.js";
 
 export type CommandArgs = Record<string, string | boolean>;
 
@@ -53,7 +46,7 @@ export async function requireDomainModel(args: CommandArgs, context: CommandCont
 
 export async function requireArchitectureConstraints(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureConstraints> {
   const constraintsPath = typeof args.constraints === "string" ? args.constraints : undefined;
   if (!constraintsPath) {
@@ -64,9 +57,10 @@ export async function requireArchitectureConstraints(
 
 export async function requireShadowRolloutBatchSpec(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<{ spec: DomainDesignShadowRolloutBatchSpec; specPath: string }> {
-  const specPath = typeof args["batch-spec"] === "string" ? new URL(args["batch-spec"], `file://${context.cwd}/`).pathname : undefined;
+  const specPath =
+    typeof args["batch-spec"] === "string" ? new URL(args["batch-spec"], `file://${context.cwd}/`).pathname : undefined;
   if (!specPath) {
     throw new Error("`--batch-spec` is required");
   }
@@ -80,7 +74,7 @@ export async function requireShadowRolloutBatchSpec(
 export async function requireShadowRolloutRegistry(
   args: CommandArgs,
   context: CommandContext,
-  loadRegistry: typeof loadShadowRolloutRegistry
+  loadRegistry: typeof loadShadowRolloutRegistry,
 ): Promise<{ registry: DomainDesignShadowRolloutRegistry; registryPath: string }> {
   const registryPath =
     typeof args["shadow-rollout-registry"] === "string"
@@ -112,7 +106,7 @@ export function parseTieTolerance(value: string | number | undefined): number | 
 
 export async function loadScenarioCatalogIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureScenarioCatalog | undefined> {
   const scenarioCatalogPath =
     typeof args["scenario-catalog"] === "string"
@@ -126,7 +120,7 @@ export async function loadScenarioCatalogIfRequested(
 
 export async function loadScenarioObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ScenarioObservationSet | undefined> {
   const observationsPath =
     typeof args["scenario-observations"] === "string"
@@ -140,7 +134,7 @@ export async function loadScenarioObservationsIfRequested(
 
 export async function loadScenarioObservationSourceConfigIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<{ config: ArchitectureScenarioObservationSourceConfig; configPath: string } | undefined> {
   const configPath =
     typeof args["scenario-observation-source"] === "string"
@@ -155,7 +149,7 @@ export async function loadScenarioObservationSourceConfigIfRequested(
 
 export async function loadTopologyModelIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureTopologyModel | undefined> {
   const topologyPath =
     typeof args["topology-model"] === "string"
@@ -169,10 +163,12 @@ export async function loadTopologyModelIfRequested(
 
 export async function loadBoundaryMapIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureBoundaryMap | undefined> {
   const boundaryMapPath =
-    typeof args["boundary-map"] === "string" ? new URL(args["boundary-map"], `file://${context.cwd}/`).pathname : undefined;
+    typeof args["boundary-map"] === "string"
+      ? new URL(args["boundary-map"], `file://${context.cwd}/`).pathname
+      : undefined;
   if (!boundaryMapPath) {
     return undefined;
   }
@@ -181,7 +177,7 @@ export async function loadBoundaryMapIfRequested(
 
 export async function loadRuntimeObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<TopologyRuntimeObservationSet | undefined> {
   const runtimePath =
     typeof args["runtime-observations"] === "string"
@@ -195,7 +191,7 @@ export async function loadRuntimeObservationsIfRequested(
 
 export async function loadDeliveryObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureDeliveryObservationSet | undefined> {
   const deliveryPath =
     typeof args["delivery-observations"] === "string"
@@ -209,7 +205,7 @@ export async function loadDeliveryObservationsIfRequested(
 
 export async function loadDeliveryRawObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureDeliveryRawObservationSet | undefined> {
   const deliveryRawPath =
     typeof args["delivery-raw-observations"] === "string"
@@ -223,7 +219,7 @@ export async function loadDeliveryRawObservationsIfRequested(
 
 export async function loadDeliveryExportIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureDeliveryExportBundle | undefined> {
   const deliveryExportPath =
     typeof args["delivery-export"] === "string"
@@ -237,7 +233,7 @@ export async function loadDeliveryExportIfRequested(
 
 export async function loadDeliveryNormalizationProfileIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureDeliveryNormalizationProfile | undefined> {
   const normalizationPath =
     typeof args["delivery-normalization-profile"] === "string"
@@ -251,7 +247,7 @@ export async function loadDeliveryNormalizationProfileIfRequested(
 
 export async function loadDeliverySourceConfigIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<{ config: ArchitectureDeliverySourceConfig; configPath: string } | undefined> {
   const configPath =
     typeof args["delivery-source"] === "string"
@@ -266,7 +262,7 @@ export async function loadDeliverySourceConfigIfRequested(
 
 export async function loadTelemetryObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureTelemetryObservationSet | undefined> {
   const telemetryPath =
     typeof args["telemetry-observations"] === "string"
@@ -280,7 +276,7 @@ export async function loadTelemetryObservationsIfRequested(
 
 export async function loadTelemetryRawObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureTelemetryRawObservationSet | undefined> {
   const telemetryRawPath =
     typeof args["telemetry-raw-observations"] === "string"
@@ -294,7 +290,7 @@ export async function loadTelemetryRawObservationsIfRequested(
 
 export async function loadTelemetryExportIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureTelemetryExportBundle | undefined> {
   const telemetryExportPath =
     typeof args["telemetry-export"] === "string"
@@ -308,7 +304,7 @@ export async function loadTelemetryExportIfRequested(
 
 export async function loadTelemetryNormalizationProfileIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureTelemetryNormalizationProfile | undefined> {
   const normalizationPath =
     typeof args["telemetry-normalization-profile"] === "string"
@@ -322,7 +318,7 @@ export async function loadTelemetryNormalizationProfileIfRequested(
 
 export async function loadTelemetrySourceConfigIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<{ config: ArchitectureTelemetrySourceConfig; configPath: string } | undefined> {
   const configPath =
     typeof args["telemetry-source"] === "string"
@@ -337,7 +333,7 @@ export async function loadTelemetrySourceConfigIfRequested(
 
 export async function loadPatternRuntimeObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitecturePatternRuntimeObservationSet | undefined> {
   const runtimePath =
     typeof args["pattern-runtime-observations"] === "string"
@@ -351,7 +347,7 @@ export async function loadPatternRuntimeObservationsIfRequested(
 
 export async function loadPatternRuntimeRawObservationsIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitecturePatternRuntimeRawObservationSet | undefined> {
   const runtimeRawPath =
     typeof args["pattern-runtime-raw-observations"] === "string"
@@ -365,7 +361,7 @@ export async function loadPatternRuntimeRawObservationsIfRequested(
 
 export async function loadPatternRuntimeNormalizationProfileIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitecturePatternRuntimeNormalizationProfile | undefined> {
   const normalizationPath =
     typeof args["pattern-runtime-normalization-profile"] === "string"
@@ -379,7 +375,7 @@ export async function loadPatternRuntimeNormalizationProfileIfRequested(
 
 export async function loadComplexityExportIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ArchitectureComplexityExportBundle | undefined> {
   const complexityExportPath =
     typeof args["complexity-export"] === "string"
@@ -393,7 +389,7 @@ export async function loadComplexityExportIfRequested(
 
 export async function loadComplexitySourceConfigIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<{ config: ArchitectureComplexitySourceConfig; configPath: string } | undefined> {
   const configPath =
     typeof args["complexity-source"] === "string"
@@ -420,33 +416,31 @@ export function getProfile(args: CommandArgs): string {
   return typeof args.profile === "string" ? args.profile : "default";
 }
 
-export function getExtractor(args: CommandArgs): ExtractionBackend {
+function getExtractor(args: CommandArgs): ExtractionBackend {
   return args.extractor === "cli" ? "cli" : "heuristic";
 }
 
-export function getProvider(args: CommandArgs): ExtractionProviderName | undefined {
+function getProvider(args: CommandArgs): ExtractionProviderName | undefined {
   if (args.provider === "codex" || args.provider === "claude") {
     return args.provider;
   }
   return undefined;
 }
 
-export function getPromptProfile(args: CommandArgs): string {
+function getPromptProfile(args: CommandArgs): string {
   return typeof args["prompt-profile"] === "string" ? args["prompt-profile"] : "default";
 }
 
-export function getFallback(args: CommandArgs): "heuristic" | "none" {
+function getFallback(args: CommandArgs): "heuristic" | "none" {
   return args.fallback === "none" ? "none" : "heuristic";
 }
 
-export async function loadReviewLogIfRequested(
+async function loadReviewLogIfRequested(
   args: CommandArgs,
-  context: CommandContext
+  context: CommandContext,
 ): Promise<ReviewResolutionLog | undefined> {
   const reviewLogPath =
-    typeof args["review-log"] === "string"
-      ? new URL(args["review-log"], `file://${context.cwd}/`).pathname
-      : undefined;
+    typeof args["review-log"] === "string" ? new URL(args["review-log"], `file://${context.cwd}/`).pathname : undefined;
   if (!reviewLogPath) {
     return undefined;
   }
@@ -466,26 +460,6 @@ export async function buildExtractionOptions(args: CommandArgs, context: Command
     promptProfile: getPromptProfile(args),
     fallback: getFallback(args),
     ...(reviewLog ? { reviewLog } : {}),
-    applyReviewLog: args["apply-review-log"] === true
+    applyReviewLog: args["apply-review-log"] === true,
   } as const;
-}
-
-export async function resolveOptionalScenarioSource(args: CommandArgs, context: CommandContext) {
-  const sourceConfig = await loadScenarioObservationSourceConfigIfRequested(args, context);
-  return sourceConfig ? resolveScenarioObservationSourceConfig(sourceConfig) : undefined;
-}
-
-export async function resolveOptionalTelemetrySource(args: CommandArgs, context: CommandContext) {
-  const sourceConfig = await loadTelemetrySourceConfigIfRequested(args, context);
-  return sourceConfig ? resolveTelemetrySourceConfig(sourceConfig) : undefined;
-}
-
-export async function resolveOptionalDeliverySource(args: CommandArgs, context: CommandContext) {
-  const sourceConfig = await loadDeliverySourceConfigIfRequested(args, context);
-  return sourceConfig ? resolveDeliverySourceConfig(sourceConfig) : undefined;
-}
-
-export async function resolveOptionalComplexitySource(args: CommandArgs, context: CommandContext) {
-  const sourceConfig = await loadComplexitySourceConfigIfRequested(args, context);
-  return sourceConfig ? resolveComplexitySourceConfig(sourceConfig) : undefined;
 }

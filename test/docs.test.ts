@@ -34,15 +34,15 @@ describe("document extraction", () => {
   test("extracts glossary and rules from docs", async () => {
     const glossary = await COMMANDS["doc.extract_glossary"]!(
       {
-        "docs-root": "docs"
+        "docs-root": "docs",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const rules = await COMMANDS["doc.extract_rules"]!(
       {
-        "docs-root": "docs"
+        "docs-root": "docs",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect((glossary.result as { terms: unknown[] }).terms.length).toBeGreaterThan(0);

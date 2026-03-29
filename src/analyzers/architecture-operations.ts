@@ -1,9 +1,9 @@
 import type {
   ArchitecturePatternFamily,
   ArchitecturePatternRuntimeObservationSet,
-  ArchitectureTelemetryObservationSet
+  ArchitectureTelemetryObservationSet,
 } from "../core/contracts.js";
-import { scorePatternRuntime, type PatternRuntimeSource } from "./architecture-pattern-runtime.js";
+import { type PatternRuntimeSource, scorePatternRuntime } from "./architecture-pattern-runtime.js";
 
 export interface OperationalAdequacyFinding {
   kind:
@@ -48,10 +48,7 @@ function average(values: number[], fallback: number): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function weightedAverage(
-  entries: Array<{ value: number | undefined; weight: number }>,
-  fallback: number
-): number {
+function weightedAverage(entries: Array<{ value: number | undefined; weight: number }>, fallback: number): number {
   const observed = entries.filter((entry) => entry.value !== undefined && Number.isFinite(entry.value));
   if (observed.length === 0) {
     return fallback;
@@ -85,26 +82,26 @@ export function scoreOperationalAdequacy(input: {
       {
         component: "LatencyScore" as const,
         weight: 0.45,
-        value: band.LatencyScore
+        value: band.LatencyScore,
       },
       {
         component: "ErrorScore" as const,
         weight: 0.35,
-        value: band.ErrorScore
+        value: band.ErrorScore,
       },
       {
         component: "SaturationScore" as const,
         weight: 0.2,
-        value: band.SaturationScore
-      }
+        value: band.SaturationScore,
+      },
     ];
     const bandCoverage = signalEntries.reduce((sum, entry) => sum + (entry.value !== undefined ? entry.weight : 0), 0);
     const bandScore = weightedAverage(
       signalEntries.map((entry) => ({
         value: entry.value,
-        weight: entry.weight
+        weight: entry.weight,
       })),
-      0.5
+      0.5,
     );
     const trafficWeight = Math.max(0, band.trafficWeight);
 
@@ -121,7 +118,7 @@ export function scoreOperationalAdequacy(input: {
         bandId: band.bandId,
         component: entry.component,
         confidence: 0.66,
-        note: `${band.bandId} is missing ${entry.component}.`
+        note: `${band.bandId} is missing ${entry.component}.`,
       });
     }
 
@@ -130,7 +127,7 @@ export function scoreOperationalAdequacy(input: {
         kind: "weak_common_ops",
         bandId: band.bandId,
         confidence: 0.8,
-        note: `${band.bandId} has a low common-operations score (${bandScore.toFixed(3)}), so runtime behavior is unstable.`
+        note: `${band.bandId} has a low common-operations score (${bandScore.toFixed(3)}), so runtime behavior is unstable.`,
       });
     }
   }
@@ -146,9 +143,7 @@ export function scoreOperationalAdequacy(input: {
 
   const patternRuntimeScore = scorePatternRuntime({
     ...(input.patternRuntime ? { observations: input.patternRuntime } : {}),
-    ...(input.topologyIsolationBridge !== undefined
-      ? { topologyIsolationBridge: input.topologyIsolationBridge }
-      : {})
+    ...(input.topologyIsolationBridge !== undefined ? { topologyIsolationBridge: input.topologyIsolationBridge } : {}),
   });
   const patternRuntimeSourceConfidence = patternRuntimeScore.confidence;
   const PatternRuntime = patternRuntimeScore.value;
@@ -162,7 +157,7 @@ export function scoreOperationalAdequacy(input: {
       const mapped: OperationalAdequacyFinding = {
         kind,
         confidence: finding.confidence,
-        note: finding.note
+        note: finding.note,
       };
       if (finding.patternFamily) {
         mapped.patternFamily = finding.patternFamily;
@@ -174,7 +169,7 @@ export function scoreOperationalAdequacy(input: {
         mapped.source = finding.source;
       }
       return mapped;
-    })
+    }),
   );
 
   if (PatternRuntime < 0.6) {
@@ -183,7 +178,7 @@ export function scoreOperationalAdequacy(input: {
       confidence: 0.78,
       note: `PatternRuntime is low at ${PatternRuntime.toFixed(3)}, so pattern-specific runtime adequacy is weak.`,
       ...(patternRuntimeScore.patternFamily ? { patternFamily: patternRuntimeScore.patternFamily } : {}),
-      source: patternRuntimeScore.source
+      source: patternRuntimeScore.source,
     });
   }
 
@@ -197,12 +192,12 @@ export function scoreOperationalAdequacy(input: {
         [
           bands.length > 0 ? 0.82 : 0.35,
           bands.length > 0 ? 0.45 + weightedBandCoverage * 0.4 : 0.35,
-          patternRuntimeSourceConfidence
+          patternRuntimeSourceConfidence,
         ],
-        0.35
-      )
+        0.35,
+      ),
     ),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }

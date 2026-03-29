@@ -8,9 +8,9 @@ import type {
   ContractUsageReport,
   DomainModel,
   FileDependency,
-  ParsedSourceFile
+  ParsedSourceFile,
 } from "../core/contracts.js";
-import { matchGlobs, listFiles, readDataFile, readText, relativePath } from "../core/io.js";
+import { listFiles, matchGlobs, readDataFile, readText, relativePath } from "../core/io.js";
 
 const ECMASCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]);
 const DART_EXTENSION = ".dart";
@@ -57,14 +57,14 @@ function resolveWithCandidates(root: string, specifier: string, candidates: stri
     if (fileExists(candidate)) {
       return {
         target: relativePath(root, candidate),
-        targetKind: "file"
+        targetKind: "file",
       };
     }
   }
 
   return {
     target: specifier,
-    targetKind: "missing"
+    targetKind: "missing",
   };
 }
 
@@ -85,7 +85,7 @@ function resolveEcmaModule(root: string, fromFile: string, specifier: string): R
     path.join(absoluteBase, "index.ts"),
     path.join(absoluteBase, "index.tsx"),
     path.join(absoluteBase, "index.js"),
-    path.join(absoluteBase, "index.jsx")
+    path.join(absoluteBase, "index.jsx"),
   ];
 
   if (extension === ".js" || extension === ".jsx" || extension === ".mjs" || extension === ".cjs") {
@@ -97,7 +97,7 @@ function resolveEcmaModule(root: string, fromFile: string, specifier: string): R
       path.join(withoutExtension, "index.ts"),
       path.join(withoutExtension, "index.tsx"),
       path.join(withoutExtension, "index.mts"),
-      path.join(withoutExtension, "index.cts")
+      path.join(withoutExtension, "index.cts"),
     );
   }
 
@@ -117,7 +117,7 @@ async function loadDartPackageContext(root: string): Promise<DartPackageContext>
     }
     return {
       packageName: pubspec.name.trim(),
-      packageRoot: path.join(root, "lib")
+      packageRoot: path.join(root, "lib"),
     };
   } catch {
     return {};
@@ -128,7 +128,7 @@ function resolveDartModule(
   root: string,
   fromFile: string,
   specifier: string,
-  packageContext: DartPackageContext
+  packageContext: DartPackageContext,
 ): ResolveResult {
   if (specifier.startsWith("dart:")) {
     return { target: specifier, targetKind: "external" };
@@ -150,9 +150,7 @@ function resolveDartModule(
       return { target: specifier, targetKind: "external" };
     }
     const packageBase = path.join(packageContext.packageRoot, packagePath);
-    const candidates = path.extname(packageBase)
-      ? [packageBase]
-      : [packageBase, `${packageBase}.dart`];
+    const candidates = path.extname(packageBase) ? [packageBase] : [packageBase, `${packageBase}.dart`];
     return resolveWithCandidates(root, specifier, candidates);
   }
 
@@ -161,9 +159,7 @@ function resolveDartModule(
   }
 
   const absoluteBase = path.resolve(path.dirname(fromFile), specifier);
-  const candidates = path.extname(absoluteBase)
-    ? [absoluteBase]
-    : [absoluteBase, `${absoluteBase}.dart`];
+  const candidates = path.extname(absoluteBase) ? [absoluteBase] : [absoluteBase, `${absoluteBase}.dart`];
   return resolveWithCandidates(root, specifier, candidates);
 }
 
@@ -190,7 +186,7 @@ function parseEcmaSourceFile(root: string, absolutePath: string, relative: strin
       target: resolved.target,
       specifier,
       targetKind: resolved.targetKind,
-      kind: ts.isImportDeclaration(node) ? "import" : "export"
+      kind: ts.isImportDeclaration(node) ? "import" : "export",
     });
   });
 
@@ -198,7 +194,7 @@ function parseEcmaSourceFile(root: string, absolutePath: string, relative: strin
     path: relative,
     imports,
     language: inferSourceLanguage(relative),
-    generated: false
+    generated: false,
   };
 }
 
@@ -207,7 +203,7 @@ function parseDartSourceFile(
   absolutePath: string,
   relative: string,
   source: string,
-  packageContext: DartPackageContext
+  packageContext: DartPackageContext,
 ): ParsedSourceFile {
   const sanitized = stripComments(source);
   const imports: FileDependency[] = [];
@@ -226,7 +222,7 @@ function parseDartSourceFile(
       target: resolved.target,
       specifier,
       targetKind: resolved.targetKind,
-      kind: directive as FileDependency["kind"]
+      kind: directive as FileDependency["kind"],
     });
   }
 
@@ -235,7 +231,7 @@ function parseDartSourceFile(
     imports,
     language: "dart",
     generated: isGeneratedDartFile(relative) || libraryRole === "part",
-    libraryRole
+    libraryRole,
   };
 }
 
@@ -269,7 +265,7 @@ export async function parseCodebase(root: string): Promise<CodebaseAnalysis> {
     files,
     dependencies,
     sourceFiles,
-    scorableSourceFiles
+    scorableSourceFiles,
   };
 }
 
@@ -280,7 +276,7 @@ export function getScorableDependencies(codebase: CodebaseAnalysis): FileDepende
 
 function classifyContext(
   filePath: string,
-  model: DomainModel
+  model: DomainModel,
 ): { context?: string; classification: "contract" | "internal" | "unclassified" } {
   for (const context of model.contexts) {
     if (!matchGlobs(filePath, context.pathGlobs)) {
@@ -297,10 +293,7 @@ function classifyContext(
   return { classification: "unclassified" };
 }
 
-export function detectContractUsage(
-  codebase: CodebaseAnalysis,
-  model: DomainModel
-): ContractUsageReport {
+export function detectContractUsage(codebase: CodebaseAnalysis, model: DomainModel): ContractUsageReport {
   let applicableReferences = 0;
   let compliantReferences = 0;
   const findings: ContractUsageReport["findings"] = [];
@@ -320,7 +313,7 @@ export function detectContractUsage(
       target: dependency.target,
       sourceContext: sourceInfo.context,
       targetContext: targetInfo.context,
-      targetClassification: targetInfo.classification
+      targetClassification: targetInfo.classification,
     });
   }
 
@@ -328,14 +321,11 @@ export function detectContractUsage(
     adherence: applicableReferences === 0 ? 1 : compliantReferences / applicableReferences,
     applicableReferences,
     compliantReferences,
-    findings
+    findings,
   };
 }
 
-export function detectBoundaryLeaks(
-  codebase: CodebaseAnalysis,
-  model: DomainModel
-): BoundaryLeakFinding[] {
+export function detectBoundaryLeaks(codebase: CodebaseAnalysis, model: DomainModel): BoundaryLeakFinding[] {
   const findings: BoundaryLeakFinding[] = [];
 
   for (const dependency of getScorableDependencies(codebase).filter((entry) => entry.targetKind === "file")) {
@@ -355,7 +345,7 @@ export function detectBoundaryLeaks(
       violationType: "direct_internal_type_reference",
       sourceSymbol: path.basename(dependency.source),
       targetSymbol: path.basename(dependency.target),
-      path: dependency.source
+      path: dependency.source,
     });
   }
 

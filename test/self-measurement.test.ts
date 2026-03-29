@@ -3,11 +3,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
-import {
-  cleanupTemporaryRepo,
-  createTemporaryWorkspace,
-  initializeTemporaryGitRepo
-} from "./helpers.js";
+import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitRepo } from "./helpers.js";
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const MODEL_ENTRY = "config/self-measurement/domain-model.yaml";
@@ -33,9 +29,9 @@ describe("self measurement", () => {
         repo: repoPath,
         model: path.join(repoPath, MODEL_ENTRY),
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(domainResponse.status).not.toBe("error");
@@ -44,9 +40,7 @@ describe("self measurement", () => {
       crossContextReferences: number;
       history: unknown;
     };
-    expect(domainResult.metrics.map((metric) => metric.metricId)).toEqual(
-      expect.arrayContaining(["MCCS", "ELS"])
-    );
+    expect(domainResult.metrics.map((metric) => metric.metricId)).toEqual(expect.arrayContaining(["MCCS", "ELS"]));
     expect(domainResult.crossContextReferences).toBeGreaterThan(0);
     expect(domainResult.history).not.toBeNull();
     expect(domainResponse.unknowns).toContain("Git history is still thin, so ELS is provisional.");
@@ -56,9 +50,9 @@ describe("self measurement", () => {
         repo: repoPath,
         constraints: path.join(repoPath, CONSTRAINTS_ENTRY),
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(architectureResponse.status).not.toBe("error");
@@ -67,21 +61,19 @@ describe("self measurement", () => {
       violations: unknown[];
     };
     expect(architectureResult.metrics.map((metric) => metric.metricId)).toEqual(
-      expect.arrayContaining(["QSF", "DDS", "BPS", "IPS", "TIS", "OAS", "CTI", "AELS", "EES", "APSI"])
+      expect.arrayContaining(["QSF", "DDS", "BPS", "IPS", "TIS", "OAS", "CTI", "AELS", "EES", "APSI"]),
     );
     expect(Array.isArray(architectureResult.violations)).toBe(true);
     expect(architectureResponse.unknowns).toContain("No scenario catalog was provided, so QSF is unobserved.");
+    expect(architectureResponse.unknowns).toContain("No topology model was provided, so TIS is close to unobserved.");
     expect(architectureResponse.unknowns).toContain(
-      "No topology model was provided, so TIS is close to unobserved."
+      "No telemetry observations were provided, so CommonOps is using the neutral value 0.5.",
     );
     expect(architectureResponse.unknowns).toContain(
-      "No telemetry observations were provided, so CommonOps is using the neutral value 0.5."
+      "No pattern runtime observations were provided, so PatternRuntime is using the TIS bridge.",
     );
     expect(architectureResponse.unknowns).toContain(
-      "No pattern runtime observations were provided, so PatternRuntime is using the TIS bridge."
-    );
-    expect(architectureResponse.unknowns).toContain(
-      "No delivery observations were provided, so Delivery is using the neutral value 0.5."
+      "No delivery observations were provided, so Delivery is using the neutral value 0.5.",
     );
     expect(architectureResponse.unknowns).toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
   }, 20000);
@@ -94,9 +86,9 @@ describe("self measurement", () => {
         repo: repoPath,
         model: path.join(repoPath, MODEL_ENTRY),
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("warning");

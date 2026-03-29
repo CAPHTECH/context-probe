@@ -6,11 +6,7 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
-import {
-  cleanupTemporaryRepo,
-  createTemporaryWorkspace,
-  initializeTemporaryGitRepo
-} from "./helpers.js";
+import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitRepo } from "./helpers.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -20,18 +16,36 @@ const DELIVERY_COLLECTOR = path.resolve("scripts/collectors/architecture/deliver
 const COMPLEXITY_COLLECTOR = path.resolve("scripts/collectors/architecture/complexity-snapshot-to-cti.mjs");
 const SCENARIO_COLLECTOR = path.resolve("scripts/collectors/architecture/scenario-actualization-to-qsf.mjs");
 
-const COLLECTOR_TELEMETRY_GOOD = path.resolve("fixtures/validation/collectors/architecture/telemetry-good-golden-signals.json");
-const COLLECTOR_TELEMETRY_BAD = path.resolve("fixtures/validation/collectors/architecture/telemetry-bad-golden-signals.json");
-const COLLECTOR_TELEMETRY_THIN = path.resolve("fixtures/validation/collectors/architecture/telemetry-thin-golden-signals.json");
+const COLLECTOR_TELEMETRY_GOOD = path.resolve(
+  "fixtures/validation/collectors/architecture/telemetry-good-golden-signals.json",
+);
+const COLLECTOR_TELEMETRY_BAD = path.resolve(
+  "fixtures/validation/collectors/architecture/telemetry-bad-golden-signals.json",
+);
+const COLLECTOR_TELEMETRY_THIN = path.resolve(
+  "fixtures/validation/collectors/architecture/telemetry-thin-golden-signals.json",
+);
 const COLLECTOR_DELIVERY_GOOD = path.resolve("fixtures/validation/collectors/architecture/delivery-good-dora.json");
 const COLLECTOR_DELIVERY_BAD = path.resolve("fixtures/validation/collectors/architecture/delivery-bad-dora.json");
 const COLLECTOR_DELIVERY_THIN = path.resolve("fixtures/validation/collectors/architecture/delivery-thin-dora.json");
-const COLLECTOR_COMPLEXITY_GOOD = path.resolve("fixtures/validation/collectors/architecture/complexity-good-snapshot.json");
-const COLLECTOR_COMPLEXITY_BAD = path.resolve("fixtures/validation/collectors/architecture/complexity-bad-snapshot.json");
-const COLLECTOR_COMPLEXITY_THIN = path.resolve("fixtures/validation/collectors/architecture/complexity-thin-snapshot.json");
-const COLLECTOR_SCENARIO_GOOD = path.resolve("fixtures/validation/collectors/architecture/scenario-good-benchmark-summary.json");
-const COLLECTOR_SCENARIO_BAD = path.resolve("fixtures/validation/collectors/architecture/scenario-bad-benchmark-summary.json");
-const COLLECTOR_SCENARIO_THIN = path.resolve("fixtures/validation/collectors/architecture/scenario-thin-incident-summary.json");
+const COLLECTOR_COMPLEXITY_GOOD = path.resolve(
+  "fixtures/validation/collectors/architecture/complexity-good-snapshot.json",
+);
+const COLLECTOR_COMPLEXITY_BAD = path.resolve(
+  "fixtures/validation/collectors/architecture/complexity-bad-snapshot.json",
+);
+const COLLECTOR_COMPLEXITY_THIN = path.resolve(
+  "fixtures/validation/collectors/architecture/complexity-thin-snapshot.json",
+);
+const COLLECTOR_SCENARIO_GOOD = path.resolve(
+  "fixtures/validation/collectors/architecture/scenario-good-benchmark-summary.json",
+);
+const COLLECTOR_SCENARIO_BAD = path.resolve(
+  "fixtures/validation/collectors/architecture/scenario-bad-benchmark-summary.json",
+);
+const COLLECTOR_SCENARIO_THIN = path.resolve(
+  "fixtures/validation/collectors/architecture/scenario-thin-incident-summary.json",
+);
 
 const TIS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/tis/constraints.yaml");
 const TIS_REPO = path.resolve("fixtures/validation/scoring/tis/repo");
@@ -63,13 +77,13 @@ describe("architecture reference collectors", () => {
     expect(output.bands[0]).toMatchObject({
       bandId: "low",
       trafficWeight: 0.2,
-      latencyP95: 210
+      latencyP95: 210,
     });
     expect(output.patternRuntime).toMatchObject({
       patternFamily: "microservices",
       serviceBasedRuntime: {
-        PartialFailureContainmentScore: 0.9
-      }
+        PartialFailureContainmentScore: 0.9,
+      },
     });
   });
 
@@ -82,7 +96,7 @@ describe("architecture reference collectors", () => {
       deployFrequency: 18,
       recoveryTime: 1.5,
       changeFailRate: 0.08,
-      reworkRate: 0.06
+      reworkRate: 0.06,
     });
   });
 
@@ -95,7 +109,7 @@ describe("architecture reference collectors", () => {
       deployableCount: 2,
       pipelineCount: 2,
       onCallSurface: 2,
-      runCostPerBusinessTransaction: 1
+      runCostPerBusinessTransaction: 1,
     });
   });
 
@@ -107,12 +121,12 @@ describe("architecture reference collectors", () => {
     expect(benchmarkOutput.observations[0]).toMatchObject({
       scenarioId: "S-001",
       observed: 280,
-      source: "benchmark_summary"
+      source: "benchmark_summary",
     });
     expect(incidentOutput.observations).toHaveLength(1);
     expect(incidentOutput.observations[0]).toMatchObject({
       scenarioId: "S-001",
-      source: "incident_review_summary"
+      source: "incident_review_summary",
     });
   });
 
@@ -121,19 +135,19 @@ describe("architecture reference collectors", () => {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(TELEMETRY_COLLECTOR)} ${shellQuote(COLLECTOR_TELEMETRY_GOOD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(TELEMETRY_COLLECTOR)} ${shellQuote(COLLECTOR_TELEMETRY_GOOD)}`,
     });
     const badSource = await writeSourceConfig(tempRoots, "telemetry-bad-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(TELEMETRY_COLLECTOR)} ${shellQuote(COLLECTOR_TELEMETRY_BAD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(TELEMETRY_COLLECTOR)} ${shellQuote(COLLECTOR_TELEMETRY_BAD)}`,
     });
     const thinSource = await writeSourceConfig(tempRoots, "telemetry-thin-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(TELEMETRY_COLLECTOR)} ${shellQuote(COLLECTOR_TELEMETRY_THIN)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(TELEMETRY_COLLECTOR)} ${shellQuote(COLLECTOR_TELEMETRY_THIN)}`,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -143,9 +157,9 @@ describe("architecture reference collectors", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-source": goodSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -154,9 +168,9 @@ describe("architecture reference collectors", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-source": badSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -165,9 +179,9 @@ describe("architecture reference collectors", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-source": thinSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(goodResponse, "OAS").value).toBeGreaterThan(getMetric(badResponse, "OAS").value);
@@ -179,19 +193,19 @@ describe("architecture reference collectors", () => {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(SCENARIO_COLLECTOR)} ${shellQuote(COLLECTOR_SCENARIO_GOOD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(SCENARIO_COLLECTOR)} ${shellQuote(COLLECTOR_SCENARIO_GOOD)}`,
     });
     const badSource = await writeSourceConfig(tempRoots, "scenario-bad-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(SCENARIO_COLLECTOR)} ${shellQuote(COLLECTOR_SCENARIO_BAD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(SCENARIO_COLLECTOR)} ${shellQuote(COLLECTOR_SCENARIO_BAD)}`,
     });
     const thinSource = await writeSourceConfig(tempRoots, "scenario-thin-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(SCENARIO_COLLECTOR)} ${shellQuote(COLLECTOR_SCENARIO_THIN)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(SCENARIO_COLLECTOR)} ${shellQuote(COLLECTOR_SCENARIO_THIN)}`,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -201,9 +215,9 @@ describe("architecture reference collectors", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observation-source": goodSource
+        "scenario-observation-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -212,9 +226,9 @@ describe("architecture reference collectors", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observation-source": badSource
+        "scenario-observation-source": badSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -223,9 +237,9 @@ describe("architecture reference collectors", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observation-source": thinSource
+        "scenario-observation-source": thinSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(goodResponse, "QSF").value).toBeGreaterThan(getMetric(badResponse, "QSF").value);
@@ -237,19 +251,19 @@ describe("architecture reference collectors", () => {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(COMPLEXITY_COLLECTOR)} ${shellQuote(COLLECTOR_COMPLEXITY_GOOD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(COMPLEXITY_COLLECTOR)} ${shellQuote(COLLECTOR_COMPLEXITY_GOOD)}`,
     });
     const badSource = await writeSourceConfig(tempRoots, "complexity-bad-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(COMPLEXITY_COLLECTOR)} ${shellQuote(COLLECTOR_COMPLEXITY_BAD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(COMPLEXITY_COLLECTOR)} ${shellQuote(COLLECTOR_COMPLEXITY_BAD)}`,
     });
     const thinSource = await writeSourceConfig(tempRoots, "complexity-thin-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(COMPLEXITY_COLLECTOR)} ${shellQuote(COLLECTOR_COMPLEXITY_THIN)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(COMPLEXITY_COLLECTOR)} ${shellQuote(COLLECTOR_COMPLEXITY_THIN)}`,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -258,9 +272,9 @@ describe("architecture reference collectors", () => {
         constraints: CTI_BAD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-source": goodSource
+        "complexity-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -268,9 +282,9 @@ describe("architecture reference collectors", () => {
         constraints: CTI_GOOD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-source": badSource
+        "complexity-source": badSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -278,13 +292,16 @@ describe("architecture reference collectors", () => {
         constraints: CTI_BAD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-source": thinSource
+        "complexity-source": thinSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(goodResponse, "CTI").value).toBeLessThan(getMetric(badResponse, "CTI").value);
-    expect(getMetric(thinResponse, "CTI").unknowns.some((entry) => entry.includes("on-call")) || thinResponse.unknowns.length > 0).toBe(true);
+    expect(
+      getMetric(thinResponse, "CTI").unknowns.some((entry) => entry.includes("on-call")) ||
+        thinResponse.unknowns.length > 0,
+    ).toBe(true);
   });
 
   test("score.compute accepts delivery collector command sources end-to-end", async () => {
@@ -294,52 +311,58 @@ describe("architecture reference collectors", () => {
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingCollectorLocalOne = 'billing-collector-local-1';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingCollectorLocalOne = 'billing-collector-local-1';\n",
       },
-      "feat: collector local 1"
+      "feat: collector local 1",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCollectorLocalOne = 'fulfillment-collector-local-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentCollectorLocalOne = 'fulfillment-collector-local-1';\n",
       },
-      "feat: collector local 2"
+      "feat: collector local 2",
     );
 
     await appendAndCommit(
       badRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingCollectorCrossOne = 'billing-collector-cross-1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCollectorCrossOne = 'fulfillment-collector-cross-1';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingCollectorCrossOne = 'billing-collector-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentCollectorCrossOne = 'fulfillment-collector-cross-1';\n",
       },
-      "feat: collector cross 1"
+      "feat: collector cross 1",
     );
     await appendAndCommit(
       badRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingCollectorCrossTwo = 'billing-collector-cross-2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCollectorCrossTwo = 'fulfillment-collector-cross-2';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingCollectorCrossTwo = 'billing-collector-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentCollectorCrossTwo = 'fulfillment-collector-cross-2';\n",
       },
-      "feat: collector cross 2"
+      "feat: collector cross 2",
     );
 
     const goodSource = await writeSourceConfig(tempRoots, "delivery-good-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(DELIVERY_COLLECTOR)} ${shellQuote(COLLECTOR_DELIVERY_GOOD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DELIVERY_COLLECTOR)} ${shellQuote(COLLECTOR_DELIVERY_GOOD)}`,
     });
     const badSource = await writeSourceConfig(tempRoots, "delivery-bad-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(DELIVERY_COLLECTOR)} ${shellQuote(COLLECTOR_DELIVERY_BAD)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DELIVERY_COLLECTOR)} ${shellQuote(COLLECTOR_DELIVERY_BAD)}`,
     });
     const thinSource = await writeSourceConfig(tempRoots, "delivery-thin-source.json", {
       version: "1.0",
       sourceType: "command",
       cwd: process.cwd(),
-      command: `${shellQuote(process.execPath)} ${shellQuote(DELIVERY_COLLECTOR)} ${shellQuote(COLLECTOR_DELIVERY_THIN)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DELIVERY_COLLECTOR)} ${shellQuote(COLLECTOR_DELIVERY_THIN)}`,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -350,9 +373,9 @@ describe("architecture reference collectors", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-source": goodSource,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -362,9 +385,9 @@ describe("architecture reference collectors", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-source": badSource,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -374,9 +397,9 @@ describe("architecture reference collectors", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-source": thinSource,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(goodResponse, "EES").value).toBeGreaterThan(getMetric(badResponse, "EES").value);
@@ -397,7 +420,11 @@ async function writeSourceConfig(tempRoots: string[], fileName: string, payload:
   return targetPath;
 }
 
-async function materializeGitFixture(entry: string, tempRoots: string[], initialCommitMessage: string): Promise<string> {
+async function materializeGitFixture(
+  entry: string,
+  tempRoots: string[],
+  initialCommitMessage: string,
+): Promise<string> {
   const tempRoot = await createTemporaryWorkspace([entry]);
   tempRoots.push(tempRoot);
   const repoPath = path.join(tempRoot, entry);
@@ -415,16 +442,8 @@ async function appendAndCommit(repoPath: string, updates: Record<string, string>
   await execFile("git", ["add", "."], { cwd: repoPath });
   await execFile(
     "git",
-    [
-      "-c",
-      "user.email=tester@example.com",
-      "-c",
-      "user.name=Context Probe Tester",
-      "commit",
-      "-m",
-      message
-    ],
-    { cwd: repoPath }
+    ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", "commit", "-m", message],
+    { cwd: repoPath },
   );
 }
 
@@ -432,10 +451,7 @@ function shellQuote(value: string): string {
   return JSON.stringify(value);
 }
 
-function getMetric(
-  response: Awaited<ReturnType<NonNullable<typeof COMMANDS["score.compute"]>>>,
-  metricId: string
-) {
+function getMetric(response: Awaited<ReturnType<NonNullable<(typeof COMMANDS)["score.compute"]>>>, metricId: string) {
   const result = response.result as {
     metrics: Array<{
       metricId: string;

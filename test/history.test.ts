@@ -4,7 +4,7 @@ import type { CochangeCommit, DomainModel } from "../src/core/contracts.js";
 import {
   analyzeCochangePersistence,
   compareEvolutionLocalityModels,
-  evaluateEvolutionLocalityObservationQuality
+  evaluateEvolutionLocalityObservationQuality,
 } from "../src/core/history.js";
 
 const MODEL: DomainModel = {
@@ -12,15 +12,15 @@ const MODEL: DomainModel = {
   contexts: [
     { name: "billing", pathGlobs: ["src/billing/**"] },
     { name: "fulfillment", pathGlobs: ["src/fulfillment/**"] },
-    { name: "support", pathGlobs: ["src/support/**"] }
-  ]
+    { name: "support", pathGlobs: ["src/support/**"] },
+  ],
 };
 
 function commit(hash: string, files: string[]): CochangeCommit {
   return {
     hash,
     subject: hash,
-    files
+    files,
   };
 }
 
@@ -28,7 +28,7 @@ describe("history analysis", () => {
   test("reports thin locality evidence from relevant history rather than default confidence", () => {
     const quality = evaluateEvolutionLocalityObservationQuality(
       [commit("c1", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts"])],
-      MODEL
+      MODEL,
     );
 
     expect(quality.confidence).toBeLessThan(1);
@@ -46,19 +46,17 @@ describe("history analysis", () => {
         commit("c1", ["src/support/ticket.ts"]),
         commit("c2", ["src/support/escalation.ts"]),
         commit("c3", ["src/support/queue.ts"]),
-        commit("c4", ["src/support/triage.ts"])
+        commit("c4", ["src/support/triage.ts"]),
       ],
-      MODEL
+      MODEL,
     );
 
     expect(result.analysis.pairWeights[0]).toMatchObject({
       left: "billing",
       right: "fulfillment",
-      rawCount: 2
+      rawCount: 2,
     });
-    expect(result.analysis.pairWeights[0]?.jaccard).toBeGreaterThan(
-      result.analysis.pairWeights[1]?.jaccard ?? 0
-    );
+    expect(result.analysis.pairWeights[0]?.jaccard).toBeGreaterThan(result.analysis.pairWeights[1]?.jaccard ?? 0);
   });
 
   test("summarizes stable clusters and handles identical filtration weights", () => {
@@ -67,9 +65,9 @@ describe("history analysis", () => {
         commit("ab1", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts"]),
         commit("ab2", ["src/billing/pricing.ts", "src/fulfillment/picker.ts"]),
         commit("ab3", ["src/billing/refund.ts", "src/fulfillment/carrier.ts"]),
-        commit("abc1", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts", "src/support/ticket.ts"])
+        commit("abc1", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts", "src/support/ticket.ts"]),
       ],
-      MODEL
+      MODEL,
     );
 
     expect(stableResult.analysis.stableChangeClusters[0]?.contexts).toEqual(["billing", "fulfillment"]);
@@ -82,9 +80,9 @@ describe("history analysis", () => {
       [
         commit("ab", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts"]),
         commit("ac", ["src/billing/pricing.ts", "src/support/ticket.ts"]),
-        commit("bc", ["src/fulfillment/picker.ts", "src/support/escalation.ts"])
+        commit("bc", ["src/fulfillment/picker.ts", "src/support/escalation.ts"]),
       ],
-      MODEL
+      MODEL,
     );
 
     expect(equalWeightResult.analysis.pairWeights).toHaveLength(3);
@@ -96,22 +94,22 @@ describe("history analysis", () => {
       [
         commit("b1", ["src/billing/invoice.ts"]),
         commit("f1", ["src/fulfillment/shipment.ts"]),
-        commit("b2", ["src/billing/pricing.ts"])
+        commit("b2", ["src/billing/pricing.ts"]),
       ],
-      MODEL
+      MODEL,
     );
     const coupled = compareEvolutionLocalityModels(
       [
         commit("ab1", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts"]),
         commit("ab2", ["src/billing/pricing.ts", "src/fulfillment/picker.ts"]),
-        commit("ab3", ["src/billing/refund.ts", "src/fulfillment/carrier.ts"])
+        commit("ab3", ["src/billing/refund.ts", "src/fulfillment/carrier.ts"]),
       ],
-      MODEL
+      MODEL,
     );
 
     expect(localized.comparison.els.score).toBeGreaterThan(coupled.comparison.els.score);
     expect(localized.comparison.persistenceCandidate.localityScore).toBeGreaterThan(
-      coupled.comparison.persistenceCandidate.localityScore
+      coupled.comparison.persistenceCandidate.localityScore,
     );
     expect(coupled.comparison.persistenceCandidate.strongestPair?.jaccard).toBeGreaterThan(0.9);
   });
@@ -125,9 +123,9 @@ describe("history analysis", () => {
         commit("bs2", ["src/billing/pricing.ts", "src/support/escalation.ts"]),
         commit("fs1", ["src/fulfillment/picker.ts", "src/support/queue.ts"]),
         commit("b1", ["src/billing/refund.ts"]),
-        commit("f1", ["src/fulfillment/shipment.ts"])
+        commit("f1", ["src/fulfillment/shipment.ts"]),
       ],
-      MODEL
+      MODEL,
     );
     const balancedCoupling = compareEvolutionLocalityModels(
       [
@@ -135,16 +133,16 @@ describe("history analysis", () => {
         commit("ab2", ["src/billing/pricing.ts", "src/fulfillment/picker.ts"]),
         commit("ab3", ["src/billing/refund.ts", "src/fulfillment/carrier.ts"]),
         commit("b1", ["src/billing/credit.ts"]),
-        commit("f1", ["src/fulfillment/tracking.ts"])
+        commit("f1", ["src/fulfillment/tracking.ts"]),
       ],
-      MODEL
+      MODEL,
     );
 
     expect(hubHeavy.comparison.persistenceCandidate.localityScore).toBeGreaterThan(
-      balancedCoupling.comparison.persistenceCandidate.localityScore
+      balancedCoupling.comparison.persistenceCandidate.localityScore,
     );
     expect(hubHeavy.comparison.persistenceCandidate.strongestPair?.jaccard ?? 0).toBeLessThan(
-      balancedCoupling.comparison.persistenceCandidate.strongestPair?.jaccard ?? 1
+      balancedCoupling.comparison.persistenceCandidate.strongestPair?.jaccard ?? 1,
     );
   });
 
@@ -153,7 +151,7 @@ describe("history analysis", () => {
       commit("ab1", ["src/billing/invoice.ts", "src/fulfillment/shipment.ts"]),
       commit("ab2", ["src/billing/pricing.ts", "src/fulfillment/picker.ts"]),
       commit("s1", ["src/support/ticket.ts"]),
-      commit("bs1", ["src/billing/refund.ts", "src/support/escalation.ts"])
+      commit("bs1", ["src/billing/refund.ts", "src/support/escalation.ts"]),
     ];
     const forward = compareEvolutionLocalityModels(commits, MODEL);
     const reversed = compareEvolutionLocalityModels([...commits].reverse(), MODEL);

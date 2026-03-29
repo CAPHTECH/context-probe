@@ -1,12 +1,6 @@
 export const OUTPUT_VERSION = "1.0";
 
 export type CommandStatus = "ok" | "warning" | "error";
-export type ScanMode =
-  | "full_scan"
-  | "diff_scan"
-  | "candidate_compare"
-  | "baseline_compare"
-  | "trend";
 
 export interface ProvenanceRef {
   artifactId?: string;
@@ -335,12 +329,7 @@ export interface TelemetryNormalizationRule {
 
 export interface ArchitectureTelemetryNormalizationProfile {
   version: string;
-  signals: Partial<
-    Record<
-      "LatencyScore" | "ErrorScore" | "SaturationScore",
-      TelemetryNormalizationRule
-    >
-  >;
+  signals: Partial<Record<"LatencyScore" | "ErrorScore" | "SaturationScore", TelemetryNormalizationRule>>;
 }
 
 export type ArchitecturePatternFamily =
@@ -431,7 +420,9 @@ export interface ArchitecturePatternRuntimeNormalizationProfile {
   cqrsRuntime?: Partial<
     Record<"ProjectionFreshness" | "ReplayDivergence" | "StaleReadAcceptability", TelemetryNormalizationRule>
   >;
-  eventDrivenRuntime?: Partial<Record<"DeadLetterHealth" | "ConsumerLag" | "ReplayRecovery", TelemetryNormalizationRule>>;
+  eventDrivenRuntime?: Partial<
+    Record<"DeadLetterHealth" | "ConsumerLag" | "ReplayRecovery", TelemetryNormalizationRule>
+  >;
 }
 
 export interface ArchitectureConstraints {

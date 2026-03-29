@@ -1,6 +1,11 @@
 import path from "node:path";
 
-import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition, ParsedSourceFile } from "../core/contracts.js";
+import type {
+  ArchitectureConstraints,
+  CodebaseAnalysis,
+  LayerDefinition,
+  ParsedSourceFile,
+} from "../core/contracts.js";
 import { matchGlobs } from "../core/io.js";
 
 const CONTRACT_DIRECTORY_SIGNAL = /(^|\/)(contracts?|dtos?|schemas?|protocols?|interfaces?|apis?)(\/|$)/i;
@@ -10,7 +15,7 @@ const DART_DOMAIN_LAYER_SIGNAL = /\bdomain\b/i;
 
 export function classifyArchitectureLayer(
   filePath: string,
-  constraints: ArchitectureConstraints
+  constraints: ArchitectureConstraints,
 ): LayerDefinition | undefined {
   return constraints.layers.find((layer) => matchGlobs(filePath, layer.globs));
 }
@@ -62,13 +67,13 @@ export function collectContractFilePaths(options: {
       return true;
     }
     if (layer && isContractLayer(layer)) {
-    return true;
-  }
-  return isDartDomainFallbackContract({
+      return true;
+    }
+    return isDartDomainFallbackContract({
       parsedFile,
       layer,
       allowDartDomainFallback: options.allowDartDomainFallback ?? false,
-      explicitContractLayerExists
+      explicitContractLayerExists,
     });
   });
 }

@@ -1,6 +1,6 @@
 import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition } from "../core/contracts.js";
-import { classifyArchitectureLayer } from "./contract-files.js";
 import { getScorableDependencies } from "./code.js";
+import { classifyArchitectureLayer } from "./contract-files.js";
 
 export interface PurityFinding {
   kind: "adapter_leak" | "framework_contamination" | "shared_internal_component";
@@ -22,7 +22,8 @@ export interface BoundaryPurityScore {
   findings: PurityFinding[];
 }
 
-const FRAMEWORK_SIGNAL = /(infrastructure|infra|adapter|adapters|framework|frameworks|controller|controllers|gateway|gateways|schema|logger|http|web|ui)/i;
+const FRAMEWORK_SIGNAL =
+  /(infrastructure|infra|adapter|adapters|framework|frameworks|controller|controllers|gateway|gateways|schema|logger|http|web|ui)/i;
 const INTERNAL_SIGNAL = /(internal|infra|infrastructure|adapter|adapters|schema|logger|gateway|gateways)/i;
 const SHARED_FRAMEWORK_LAYER_SIGNAL = /(shared|common|platform|core|foundation|theme|ui)/i;
 
@@ -55,14 +56,14 @@ function clamp01(value: number): number {
 
 export function scoreBoundaryPurity(
   codebase: CodebaseAnalysis,
-  constraints: ArchitectureConstraints
+  constraints: ArchitectureConstraints,
 ): BoundaryPurityScore {
   const unknowns: string[] = [];
   const findings: PurityFinding[] = [];
   const classifiedFiles = codebase.scorableSourceFiles
     .map((filePath) => ({
       path: filePath,
-      layer: classifyLayer(filePath, constraints)
+      layer: classifyLayer(filePath, constraints),
     }))
     .filter((entry): entry is { path: string; layer: LayerDefinition } => Boolean(entry.layer));
   const classifiedEdges = getScorableDependencies(codebase)
@@ -70,19 +71,21 @@ export function scoreBoundaryPurity(
     .map((dependency) => ({
       dependency,
       sourceLayer: classifyLayer(dependency.source, constraints),
-      targetLayer: classifyLayer(dependency.target, constraints)
+      targetLayer: classifyLayer(dependency.target, constraints),
     }))
     .filter(
-      (entry): entry is {
+      (
+        entry,
+      ): entry is {
         dependency: CodebaseAnalysis["dependencies"][number];
         sourceLayer: LayerDefinition;
         targetLayer: LayerDefinition;
-      } => Boolean(entry.sourceLayer && entry.targetLayer)
+      } => Boolean(entry.sourceLayer && entry.targetLayer),
     );
   const maxRank = constraints.layers.reduce((current, layer) => Math.max(current, layer.rank), 0);
 
   const adapterCandidates = classifiedEdges.filter(({ dependency, targetLayer }) =>
-    isFrameworkish(dependency.target, targetLayer.name)
+    isFrameworkish(dependency.target, targetLayer.name),
   );
   const adapterLeaks = adapterCandidates.filter(({ sourceLayer, targetLayer }) => sourceLayer.rank < targetLayer.rank);
   const ALR = adapterCandidates.length === 0 ? 0 : adapterLeaks.length / adapterCandidates.length;
@@ -98,8 +101,8 @@ export function scoreBoundaryPurity(
       sourceLayer: sourceLayer.name,
       targetLayer: targetLayer.name,
       confidence: 0.92,
-      note: `${sourceLayer.name} depends directly on a framework/adapter-like target in ${targetLayer.name}.`
-    }))
+      note: `${sourceLayer.name} depends directly on a framework/adapter-like target in ${targetLayer.name}.`,
+    })),
   );
 
   const frameworkishFiles = classifiedFiles.filter(({ path, layer }) => isFrameworkish(path, layer.name));
@@ -115,8 +118,8 @@ export function scoreBoundaryPurity(
       path,
       sourceLayer: layer.name,
       confidence: 0.86,
-      note: `${layer.name} contains framework/adapter-like implementation details.`
-    }))
+      note: `${layer.name} contains framework/adapter-like implementation details.`,
+    })),
   );
 
   const internalTargetMap = new Map<
@@ -132,7 +135,7 @@ export function scoreBoundaryPurity(
     }
     const entry = internalTargetMap.get(dependency.target) ?? {
       targetLayer: targetLayer.name,
-      sourceLayers: new Set<string>()
+      sourceLayers: new Set<string>(),
     };
     entry.sourceLayers.add(sourceLayer.name);
     internalTargetMap.set(dependency.target, entry);
@@ -140,8 +143,7 @@ export function scoreBoundaryPurity(
 
   const internalTargets = Array.from(internalTargetMap.entries());
   const sharedInternalTargets = internalTargets.filter(([, entry]) => entry.sourceLayers.size > 1);
-  const SICR =
-    internalTargets.length === 0 ? 0 : sharedInternalTargets.length / Math.max(1, internalTargets.length);
+  const SICR = internalTargets.length === 0 ? 0 : sharedInternalTargets.length / Math.max(1, internalTargets.length);
   if (internalTargets.length === 0) {
     unknowns.push("There are too few internal components to judge sharing, so SICR evidence is limited.");
   }
@@ -152,8 +154,8 @@ export function scoreBoundaryPurity(
       target: path,
       targetLayer: entry.targetLayer,
       confidence: 0.88,
-      note: `${path} is shared by multiple layers (${Array.from(entry.sourceLayers).join(", ")}).`
-    }))
+      note: `${path} is shared by multiple layers (${Array.from(entry.sourceLayers).join(", ")}).`,
+    })),
   );
 
   const confidence = clamp01(
@@ -162,10 +164,10 @@ export function scoreBoundaryPurity(
         classifiedEdges.length > 0 ? 0.85 : 0.5,
         adapterCandidates.length > 0 ? 0.82 : 0.6,
         frameworkishFiles.length > 0 ? 0.8 : 0.58,
-        internalTargets.length > 0 ? 0.8 : 0.58
+        internalTargets.length > 0 ? 0.8 : 0.58,
       ],
-      0.6
-    )
+      0.6,
+    ),
   );
 
   return {
@@ -174,6 +176,6 @@ export function scoreBoundaryPurity(
     SICR,
     confidence,
     unknowns: Array.from(new Set(unknowns)),
-    findings
+    findings,
   };
 }

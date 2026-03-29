@@ -6,7 +6,7 @@ import type {
   ReviewItem,
   ReviewResolution,
   ReviewResolutionLog,
-  RuleCandidate
+  RuleCandidate,
 } from "./contracts.js";
 
 type ReviewableEntity = GlossaryTerm | RuleCandidate | InvariantCandidate;
@@ -45,7 +45,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
         summary: `${summary} has low confidence`,
         confidence: entity.confidence,
         evidenceRefs,
-        targetEntityId
+        targetEntityId,
       });
     }
     entity.unknowns.forEach((unknown, unknownIndex) => {
@@ -55,7 +55,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
         summary: unknown,
         confidence: entity.confidence,
         evidenceRefs,
-        targetEntityId
+        targetEntityId,
       });
     });
     if (isGlossaryTerm(entity) && entity.collision) {
@@ -65,7 +65,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
         summary: `${entity.canonicalTerm} may have a collision`,
         confidence: entity.confidence,
         evidenceRefs,
-        targetEntityId
+        targetEntityId,
       });
     }
   });
@@ -82,7 +82,7 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
       reason: "unknown",
       summary: unknown,
       confidence: response.confidence,
-      evidenceRefs
+      evidenceRefs,
     });
   });
 
@@ -107,7 +107,7 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
           reason: "low_confidence",
           summary: `${metric.metricId} has low confidence`,
           confidence: metric.confidence,
-          evidenceRefs
+          evidenceRefs,
         });
       }
     }
@@ -116,13 +116,10 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
   return reviewItems;
 }
 
-export function resolveReviewItems(
-  reviewItems: ReviewItem[],
-  resolutions: ReviewResolution[]
-): ReviewResolutionLog {
+export function resolveReviewItems(reviewItems: ReviewItem[], resolutions: ReviewResolution[]): ReviewResolutionLog {
   const resolvedItems: ResolvedReviewItem[] = reviewItems.map((reviewItem) => ({
     ...reviewItem,
-    resolution: resolutions.find((resolution) => resolution.reviewItemId === reviewItem.reviewItemId) ?? null
+    resolution: resolutions.find((resolution) => resolution.reviewItemId === reviewItem.reviewItemId) ?? null,
   }));
 
   const overrides = resolvedItems.flatMap((reviewItem) => {
@@ -134,21 +131,21 @@ export function resolveReviewItems(
       {
         targetEntityId: reviewItem.targetEntityId,
         patch,
-        reason: reviewItem.reason
-      }
+        reason: reviewItem.reason,
+      },
     ];
   });
 
   return {
     reviewItems: resolvedItems,
-    overrides
+    overrides,
   };
 }
 
 export function applyReviewOverrides<T extends object>(
   items: T[],
   log: ReviewResolutionLog | undefined,
-  idKey: keyof T
+  idKey: keyof T,
 ): T[] {
   if (!log) {
     return items;
@@ -165,7 +162,7 @@ export function applyReviewOverrides<T extends object>(
     }
     return {
       ...(item as object),
-      ...patch
+      ...patch,
     } as T;
   });
 }

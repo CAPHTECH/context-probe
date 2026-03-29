@@ -1,7 +1,4 @@
-import type {
-  ArchitectureTopologyModel,
-  TopologyRuntimeObservationSet
-} from "../core/contracts.js";
+import type { ArchitectureTopologyModel, TopologyRuntimeObservationSet } from "../core/contracts.js";
 
 export interface TopologyIsolationFinding {
   kind: "shared_dependency" | "weak_failure_isolation" | "weak_runtime_containment";
@@ -46,7 +43,7 @@ export function scoreTopologyIsolation(input: {
       SDR: 0.6,
       confidence: 0.25,
       unknowns: ["No topology model was provided, so TIS is close to unobserved."],
-      findings: []
+      findings: [],
     };
   }
 
@@ -72,8 +69,8 @@ export function scoreTopologyIsolation(input: {
       source: edge.source,
       target: edge.target,
       confidence: 0.86,
-      note: `There is a shared dependency between ${edge.source} and ${edge.target}.`
-    }))
+      note: `There is a shared dependency between ${edge.source} and ${edge.target}.`,
+    })),
   );
 
   const staticFi = clamp01(1 - crossBoundarySyncEdges.length / Math.max(1, syncEdges.length || 1));
@@ -81,7 +78,12 @@ export function scoreTopologyIsolation(input: {
     .map((entry) => entry.failureContainmentRatio)
     .filter((value): value is number => value !== undefined);
   const FI =
-    runtimeFiSignals.length > 0 ? average(runtimeFiSignals.map((value) => clamp01(value)), staticFi) : staticFi;
+    runtimeFiSignals.length > 0
+      ? average(
+          runtimeFiSignals.map((value) => clamp01(value)),
+          staticFi,
+        )
+      : staticFi;
   if (runtimeFiSignals.length === 0) {
     unknowns.push("Runtime observations for failure containment are missing, so FI is using a static proxy.");
   }
@@ -91,8 +93,8 @@ export function scoreTopologyIsolation(input: {
       source: edge.source,
       target: edge.target,
       confidence: 0.8,
-      note: `The synchronous dependency from ${edge.source} to ${edge.target} crosses an isolation boundary.`
-    }))
+      note: `The synchronous dependency from ${edge.source} to ${edge.target} crosses an isolation boundary.`,
+    })),
   );
 
   const boundaryNodeCounts = new Map<string, number>();
@@ -103,13 +105,19 @@ export function scoreTopologyIsolation(input: {
     }
     boundaryNodeCounts.set(boundary, (boundaryNodeCounts.get(boundary) ?? 0) + 1);
   }
-  const maxBoundarySize = boundaryNodeCounts.size === 0 ? topology.nodes.length : Math.max(...boundaryNodeCounts.values());
+  const maxBoundarySize =
+    boundaryNodeCounts.size === 0 ? topology.nodes.length : Math.max(...boundaryNodeCounts.values());
   const staticRc = clamp01(1 - (maxBoundarySize - 1) / Math.max(1, topology.nodes.length - 1 || 1));
   const runtimeRcSignals = observations
     .map((entry) => entry.runtimeContainment)
     .filter((value): value is number => value !== undefined);
   const RC =
-    runtimeRcSignals.length > 0 ? average(runtimeRcSignals.map((value) => clamp01(value)), staticRc) : staticRc;
+    runtimeRcSignals.length > 0
+      ? average(
+          runtimeRcSignals.map((value) => clamp01(value)),
+          staticRc,
+        )
+      : staticRc;
   if (runtimeRcSignals.length === 0) {
     unknowns.push("Runtime containment observations are missing, so RC is using a static proxy.");
   }
@@ -121,7 +129,7 @@ export function scoreTopologyIsolation(input: {
       kind: "weak_runtime_containment",
       nodeId: boundary,
       confidence: 0.72,
-      note: `Nodes are concentrated in ${boundary}, so runtime containment may be weak.`
+      note: `Nodes are concentrated in ${boundary}, so runtime containment may be weak.`,
     });
   }
 
@@ -138,12 +146,12 @@ export function scoreTopologyIsolation(input: {
         [
           topology.nodes.length > 0 ? 0.82 : 0.25,
           topology.edges.length > 0 ? 0.8 : 0.4,
-          observations.length > 0 ? 0.86 : 0.55
+          observations.length > 0 ? 0.86 : 0.55,
         ],
-        0.45
-      )
+        0.45,
+      ),
     ),
     unknowns: Array.from(new Set(unknowns)),
-    findings
+    findings,
   };
 }

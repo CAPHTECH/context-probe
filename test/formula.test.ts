@@ -7,7 +7,7 @@ describe("evaluateFormula", () => {
     const value = evaluateFormula("0.50*MRP + 0.25*(1-BLR) + 0.25*CLA", {
       MRP: 0.75,
       BLR: 0.25,
-      CLA: 0.5
+      CLA: 0.5,
     });
 
     expect(value).toBeCloseTo(0.6875, 5);

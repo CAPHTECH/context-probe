@@ -4,16 +4,9 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
-import {
-  type ArchitectureConstraintsScaffoldResult,
-  type DomainModelScaffoldResult
-} from "../src/core/contracts.js";
+import type { ArchitectureConstraintsScaffoldResult, DomainModelScaffoldResult } from "../src/core/contracts.js";
 import { loadArchitectureConstraints, loadDomainModel } from "../src/core/model.js";
-import {
-  cleanupTemporaryRepo,
-  createTemporaryWorkspace,
-  initializeTemporaryGitRepo
-} from "./helpers.js";
+import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitRepo } from "./helpers.js";
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const AFS_GOOD_ENTRY = "fixtures/validation/scoring/afs/good";
@@ -34,9 +27,9 @@ describe("scaffold commands", () => {
     const response = await COMMANDS["model.scaffold"]!(
       {
         repo,
-        "docs-root": docs
+        "docs-root": docs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("ok");
@@ -44,16 +37,13 @@ describe("scaffold commands", () => {
     expect(result.model.contexts.map((context) => context.name)).toEqual(["Billing", "Fulfillment"]);
     expect(result.model.aggregates?.map((aggregate) => aggregate.name)).toEqual([
       "BillingAggregate",
-      "FulfillmentAggregate"
+      "FulfillmentAggregate",
     ]);
 
     const modelPath = path.join(workspace, "scaffolded-model.yaml");
     await writeFile(modelPath, result.yaml, "utf8");
     const loaded = await loadDomainModel(modelPath);
-    expect(loaded.aggregates?.map((aggregate) => aggregate.name)).toEqual([
-      "BillingAggregate",
-      "FulfillmentAggregate"
-    ]);
+    expect(loaded.aggregates?.map((aggregate) => aggregate.name)).toEqual(["BillingAggregate", "FulfillmentAggregate"]);
   });
 
   test("constraints.scaffold returns loadable YAML", async () => {
@@ -62,9 +52,9 @@ describe("scaffold commands", () => {
 
     const response = await COMMANDS["constraints.scaffold"]!(
       {
-        repo: path.resolve("fixtures/architecture/sample-repo")
+        repo: path.resolve("fixtures/architecture/sample-repo"),
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("warning");
@@ -89,12 +79,12 @@ describe("scaffold commands", () => {
     await writeFile(
       path.join(repoRoot, "src/billing/internal/invoice-aggregate.ts"),
       "export class InvoiceAggregate {\n  total = 0;\n}\n",
-      "utf8"
+      "utf8",
     );
     await writeFile(
       path.join(repoRoot, "src/billing/internal/ledger-aggregate.ts"),
       "export class LedgerAggregate {\n  total = 0;\n}\n",
-      "utf8"
+      "utf8",
     );
     await writeFile(
       path.join(docsRoot, "aggregate.md"),
@@ -104,9 +94,9 @@ describe("scaffold commands", () => {
         "`Invoice` is a Billing aggregate.",
         "`Ledger` is a Billing aggregate.",
         "Billing context では Invoice と Ledger の残高が常に一致していなければならない。",
-        "Invoice と Ledger は同じ transaction で更新されなければならない。"
+        "Invoice と Ledger は同じ transaction で更新されなければならない。",
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
 
     await initializeTemporaryGitRepo(repoRoot, "feat: init explicit aggregates");
@@ -116,26 +106,26 @@ describe("scaffold commands", () => {
     await writeFile(
       proxyModelPath,
       [
-        "version: \"1.0\"",
+        'version: "1.0"',
         "contexts:",
         "  - name: Billing",
         "    pathGlobs:",
-        "      - \"src/billing/**\"",
+        '      - "src/billing/**"',
         "    internalGlobs:",
-        "      - \"src/billing/internal/**\""
+        '      - "src/billing/internal/**"',
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
     await writeFile(
       explicitModelPath,
       [
-        "version: \"1.0\"",
+        'version: "1.0"',
         "contexts:",
         "  - name: Billing",
         "    pathGlobs:",
-        "      - \"src/billing/**\"",
+        '      - "src/billing/**"',
         "    internalGlobs:",
-        "      - \"src/billing/internal/**\"",
+        '      - "src/billing/internal/**"',
         "aggregates:",
         "  - name: InvoiceAggregate",
         "    context: Billing",
@@ -144,9 +134,9 @@ describe("scaffold commands", () => {
         "  - name: LedgerAggregate",
         "    context: Billing",
         "    aliases:",
-        "      - Ledger"
+        "      - Ledger",
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
 
     const proxyResponse = await COMMANDS["score.compute"]!(
@@ -155,9 +145,9 @@ describe("scaffold commands", () => {
         model: proxyModelPath,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": docsRoot
+        "docs-root": docsRoot,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const explicitResponse = await COMMANDS["score.compute"]!(
       {
@@ -165,9 +155,9 @@ describe("scaffold commands", () => {
         model: explicitModelPath,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": docsRoot
+        "docs-root": docsRoot,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const proxyAfs = getMetric(proxyResponse, "AFS");
@@ -177,18 +167,15 @@ describe("scaffold commands", () => {
     expect(explicitAfs.components.SIC ?? 0).toBeLessThan(proxyAfs.components.SIC ?? 0);
     expect(explicitAfs.components.XTC ?? 0).toBeGreaterThan(proxyAfs.components.XTC ?? 0);
     expect(proxyAfs.unknowns).toContain(
-      "No aggregate definitions were found, so context is being used as an aggregate proxy."
+      "No aggregate definitions were found, so context is being used as an aggregate proxy.",
     );
     expect(explicitAfs.unknowns).not.toContain(
-      "No aggregate definitions were found, so context is being used as an aggregate proxy."
+      "No aggregate definitions were found, so context is being used as an aggregate proxy.",
     );
   }, 20000);
 });
 
-function getMetric(
-  response: Awaited<ReturnType<NonNullable<typeof COMMANDS["score.compute"]>>>,
-  metricId: string
-) {
+function getMetric(response: Awaited<ReturnType<NonNullable<(typeof COMMANDS)["score.compute"]>>>, metricId: string) {
   const result = response.result as {
     metrics: Array<{
       metricId: string;

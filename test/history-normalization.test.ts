@@ -7,9 +7,9 @@ import type { PolicyConfig } from "../src/core/contracts.js";
 const POLICY: PolicyConfig = {
   profiles: {
     default: {
-      domains: {}
-    }
-  }
+      domains: {},
+    },
+  },
 };
 
 describe("history normalization", () => {
@@ -25,15 +25,15 @@ describe("history normalization", () => {
         "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n" +
         "__COMMIT__\ndef456\nfeat: rename sample\nR100\tsrc/old.ts\tsrc/new.ts\n" +
         "__COMMIT__\nghi789\nfeat: copy sample\nC100\tsrc/original.ts\tsrc/copied.ts\n",
-      stderr: ""
+      stderr: "",
     }));
     const execFileMock = vi.fn();
     Object.assign(execFileMock, {
-      [promisify.custom]: execFilePromisified
+      [promisify.custom]: execFilePromisified,
     });
 
     vi.doMock("node:child_process", () => ({
-      execFile: execFileMock
+      execFile: execFileMock,
     }));
 
     const { normalizeHistory } = await import("../src/core/history.js");
@@ -54,8 +54,8 @@ describe("history normalization", () => {
     expect(options).toEqual(
       expect.objectContaining({
         cwd: "/tmp/example-repo",
-        maxBuffer: 64 * 1024 * 1024
-      })
+        maxBuffer: 64 * 1024 * 1024,
+      }),
     );
   });
 });

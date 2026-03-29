@@ -1,3 +1,6 @@
+import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
+import { computeAggregateFitness } from "./aggregate-fitness.js";
+import { computeBoundaryFitness } from "./boundary-fitness.js";
 import type {
   CochangeAnalysis,
   CommandResponse,
@@ -11,24 +14,21 @@ import type {
   PolicyConfig,
   ReviewResolutionLog,
   RuleCandidate,
-  TermTraceLink
+  TermTraceLink,
 } from "./contracts.js";
-import { computeAggregateFitness } from "./aggregate-fitness.js";
-import { computeBoundaryFitness } from "./boundary-fitness.js";
 import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
 import { evaluateFormula } from "./formula.js";
 import {
   compareEvolutionLocalityModels,
   evaluateEvolutionLocalityObservationQuality,
   normalizeHistory,
-  scoreEvolutionLocality
+  scoreEvolutionLocality,
 } from "./history.js";
 import { getDomainPolicy } from "./policy.js";
 import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
 import { listReviewItems } from "./review.js";
-import { dedupeEvidence, average, clamp01, computeLeakRatio, toMetricScore } from "./scoring-shared.js";
+import { average, clamp01, computeLeakRatio, dedupeEvidence, toMetricScore } from "./scoring-shared.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./trace.js";
-import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../analyzers/code.js";
 
 const USE_CASE_SIGNALS = [
   /ユースケース/u,
@@ -38,7 +38,7 @@ const USE_CASE_SIGNALS = [
   /利用者/u,
   /\buse case\b/i,
   /\bscenario\b/i,
-  /\bacceptance\b/i
+  /\bacceptance\b/i,
 ];
 const CONSTRAINT_SIGNALS = [
   /なければならない/u,
@@ -54,7 +54,7 @@ const CONSTRAINT_SIGNALS = [
   /辿れる/u,
   /反映(?:される|されている)/u,
   /付与(?:される|されている)/u,
-  /表示(?:される|されている)/u
+  /表示(?:される|されている)/u,
 ];
 
 function persistenceCandidateToMetricComponents(candidate: {
@@ -67,7 +67,7 @@ function persistenceCandidateToMetricComponents(candidate: {
     persistentCouplingPenalty: candidate.persistentCouplingPenalty,
     clusterPenalty: candidate.clusterPenalty,
     pairPenalty: candidate.pairPenalty,
-    coherencePenalty: candidate.coherencePenalty
+    coherencePenalty: candidate.coherencePenalty,
   };
 }
 
@@ -85,7 +85,7 @@ function computeUliComponents(terms: Awaited<ReturnType<typeof extractGlossary>>
       GC: 0,
       AE: 1,
       TC: 1,
-      TL: 0
+      TL: 0,
     };
   }
 
@@ -102,7 +102,7 @@ function computeUliComponents(terms: Awaited<ReturnType<typeof extractGlossary>>
     GC: glossaryCovered / totalTerms,
     AE: computeAliasEntropy(aliasCount, totalTerms),
     TC: collisionTerms / totalTerms,
-    TL: tracedTerms / totalTerms
+    TL: tracedTerms / totalTerms,
   };
 }
 
@@ -110,19 +110,19 @@ function buildReviewItemsForCandidates(
   key: "rules" | "invariants",
   candidates: RuleCandidate[] | InvariantCandidate[],
   responseConfidence: number,
-  responseUnknowns: string[]
+  responseUnknowns: string[],
 ) {
   return listReviewItems({
     status: "ok",
     result: {
-      [key]: candidates
+      [key]: candidates,
     },
     evidence: candidates.flatMap((candidate) => candidate.evidence),
     confidence: responseConfidence,
     unknowns: responseUnknowns,
     diagnostics: [],
     provenance: [],
-    version: "1.0"
+    version: "1.0",
   });
 }
 
@@ -130,33 +130,35 @@ function computeDrfComponents(
   fragments: Fragment[],
   rules: RuleCandidate[],
   invariants: InvariantCandidate[],
-  reviewItemCount: number
+  reviewItemCount: number,
 ) {
-  const proseFragments = fragments.filter((fragment) => fragment.kind === "paragraph" && fragment.text.trim().length > 0);
+  const proseFragments = fragments.filter(
+    (fragment) => fragment.kind === "paragraph" && fragment.text.trim().length > 0,
+  );
   const totalCandidates = rules.length + invariants.length;
   const allCandidates = [...rules, ...invariants];
   const coveredFragments = new Set(allCandidates.flatMap((candidate) => candidate.fragmentIds)).size;
   const signalFragments = proseFragments.filter((fragment) =>
-    CONSTRAINT_SIGNALS.some((pattern) => pattern.test(fragment.text))
+    CONSTRAINT_SIGNALS.some((pattern) => pattern.test(fragment.text)),
   ).length;
   const useCaseFragments = proseFragments.filter((fragment) =>
-    USE_CASE_SIGNALS.some((pattern) => pattern.test(fragment.text))
+    USE_CASE_SIGNALS.some((pattern) => pattern.test(fragment.text)),
   ).length;
   const ambiguousCandidates = allCandidates.filter((candidate) => candidate.unknowns.length > 0).length;
   const lowConfidenceCandidates = allCandidates.filter((candidate) => candidate.confidence < 0.75).length;
   const ambiguityRate = totalCandidates === 0 ? 1 : ambiguousCandidates / totalCandidates;
   const lowConfidenceRate = totalCandidates === 0 ? 1 : lowConfidenceCandidates / totalCandidates;
   const reviewDensity = clamp01(reviewItemCount / Math.max(1, totalCandidates * 2));
-  const averageConfidence = average(allCandidates.map((candidate) => candidate.confidence), 0.45);
+  const averageConfidence = average(
+    allCandidates.map((candidate) => candidate.confidence),
+    0.45,
+  );
 
   const SC =
     proseFragments.length === 0
       ? 0
       : clamp01((0.7 * useCaseFragments) / proseFragments.length + (0.3 * coveredFragments) / proseFragments.length);
-  const RC =
-    signalFragments === 0
-      ? 0
-      : clamp01((coveredFragments / signalFragments) * (1 - 0.5 * ambiguityRate));
+  const RC = signalFragments === 0 ? 0 : clamp01((coveredFragments / signalFragments) * (1 - 0.5 * ambiguityRate));
   const IV = clamp01(0.6 * ambiguityRate + 0.4 * lowConfidenceRate);
   const RA = clamp01((1 - reviewDensity) * 0.6 + averageConfidence * 0.4);
 
@@ -168,7 +170,7 @@ function computeDrfComponents(
     proseFragments: proseFragments.length,
     useCaseFragments,
     signalFragments,
-    totalCandidates
+    totalCandidates,
   };
 }
 
@@ -204,7 +206,7 @@ export async function computeDomainDesignScores(options: {
         promptProfile: options.extraction?.promptProfile ?? "default",
         fallback: options.extraction?.fallback ?? "heuristic",
         ...(options.extraction?.reviewLog ? { reviewLog: options.extraction.reviewLog } : {}),
-        applyReviewLog: options.extraction?.applyReviewLog ?? false
+        applyReviewLog: options.extraction?.applyReviewLog ?? false,
       } as const)
     : null;
   let glossaryResultCache: Awaited<ReturnType<typeof extractGlossary>> | undefined;
@@ -248,7 +250,7 @@ export async function computeDomainDesignScores(options: {
         docsRoot: options.docsRoot,
         repoRoot: repoPath,
         terms: glossary.terms,
-        codeFiles: codebase.scorableSourceFiles
+        codeFiles: codebase.scorableSourceFiles,
       });
     }
     return termTraceLinksCache;
@@ -263,11 +265,11 @@ export async function computeDomainDesignScores(options: {
       `${finding.sourceContext} -> ${finding.targetContext} internal leak`,
       {
         path: finding.path,
-        violationType: finding.violationType
+        violationType: finding.violationType,
       },
       [finding.findingId],
-      0.95
-    )
+      0.95,
+    ),
   );
   const diagnostics: string[] = [];
   const unknowns: string[] = [];
@@ -282,7 +284,7 @@ export async function computeDomainDesignScores(options: {
   let historySignals = {
     CCL: 0,
     FS: 0,
-    SCR: 0
+    SCR: 0,
   };
   let historyConfidence = 0;
   let shadow: DomainDesignScoreResult["shadow"] | undefined;
@@ -296,7 +298,7 @@ export async function computeDomainDesignScores(options: {
     historySignals = {
       CCL: history.crossContextChangeLocality,
       FS: history.featureScatter,
-      SCR: history.surpriseCouplingRatio
+      SCR: history.surpriseCouplingRatio,
     };
     historyConfidence = historyQuality.confidence;
     unknowns.push(...historyQuality.unknowns);
@@ -304,7 +306,7 @@ export async function computeDomainDesignScores(options: {
       const localityModels = compareEvolutionLocalityModels(commits, model);
       shadowLocalityConfidence = localityModels.confidence;
       shadow = {
-        localityModels: localityModels.comparison
+        localityModels: localityModels.comparison,
       };
       unknowns.push(...localityModels.unknowns);
     }
@@ -312,14 +314,14 @@ export async function computeDomainDesignScores(options: {
     history = null;
     historyConfidence = 0.2;
     diagnostics.push(
-      error instanceof Error ? `Skipped history analysis: ${error.message}` : "Skipped history analysis"
+      error instanceof Error ? `Skipped history analysis: ${error.message}` : "Skipped history analysis",
     );
     unknowns.push("Git information required for history analysis is missing.");
     if (requiresLocalityComparison) {
       const fallbackLocalityModels = compareEvolutionLocalityModels([], model);
       shadowLocalityConfidence = fallbackLocalityModels.confidence;
       shadow = {
-        localityModels: fallbackLocalityModels.comparison
+        localityModels: fallbackLocalityModels.comparison,
       };
       unknowns.push(...fallbackLocalityModels.unknowns);
       unknowns.push("Locality comparison fell back to the baseline ELS because Git history is unavailable.");
@@ -329,7 +331,7 @@ export async function computeDomainDesignScores(options: {
   const mccsComponents = {
     MRP: mrp,
     BLR: leakRatio,
-    CLA: cla
+    CLA: cla,
   };
   const elsComponents = historySignals;
   const scores = [];
@@ -344,20 +346,20 @@ export async function computeDomainDesignScores(options: {
           "invariants",
           invariantsResult.invariants,
           invariantsResult.confidence,
-          invariantsResult.unknowns
-        )
+          invariantsResult.unknowns,
+        ),
       ];
       const drfComponents = computeDrfComponents(
         rulesResult.fragments,
         rulesResult.rules,
         invariantsResult.invariants,
-        reviewItems.length
+        reviewItems.length,
       );
       const drfUnknowns = [
         ...rulesResult.unknowns,
         ...invariantsResult.unknowns,
         "SC is an approximation based on use-case signals.",
-        "IV is an approximation based on review burden."
+        "IV is an approximation based on review burden.",
       ];
 
       if (drfComponents.totalCandidates === 0) {
@@ -369,7 +371,7 @@ export async function computeDomainDesignScores(options: {
 
       const drfEvidence = dedupeEvidence([
         ...rulesResult.rules.flatMap((rule) => rule.evidence),
-        ...invariantsResult.invariants.flatMap((invariant) => invariant.evidence)
+        ...invariantsResult.invariants.flatMap((invariant) => invariant.evidence),
       ]);
       additionalEvidence.push(...drfEvidence);
       diagnostics.push(...rulesResult.diagnostics, ...invariantsResult.diagnostics);
@@ -382,16 +384,16 @@ export async function computeDomainDesignScores(options: {
             SC: drfComponents.SC,
             RC: drfComponents.RC,
             IV: drfComponents.IV,
-            RA: drfComponents.RA
+            RA: drfComponents.RA,
           },
           drfEvidence.map((entry) => entry.evidenceId),
           confidenceFromSignals([
             rulesResult.confidence,
             invariantsResult.confidence,
-            drfComponents.useCaseFragments > 0 ? 0.8 : 0.55
+            drfComponents.useCaseFragments > 0 ? 0.8 : 0.55,
           ]),
-          drfUnknowns
-        )
+          drfUnknowns,
+        ),
       );
     }
   }
@@ -420,11 +422,11 @@ export async function computeDomainDesignScores(options: {
             `${link.canonicalTerm} is not traced to code`,
             {
               termId: link.termId,
-              docsRoot: options.docsRoot
+              docsRoot: options.docsRoot,
             },
             [link.termId],
-            0.8
-          )
+            0.8,
+          ),
         );
       additionalEvidence.push(...termEvidence, ...traceGapEvidence);
 
@@ -434,13 +436,9 @@ export async function computeDomainDesignScores(options: {
           evaluateFormula(policy.metrics.ULI.formula, uliComponents),
           uliComponents,
           [...termEvidence, ...traceGapEvidence].map((entry) => entry.evidenceId),
-          confidenceFromSignals([
-            glossary.confidence,
-            averageTraceConfidence,
-            glossary.terms.length > 0 ? 0.85 : 0.4
-          ]),
-          uliUnknowns
-        )
+          confidenceFromSignals([glossary.confidence, averageTraceConfidence, glossary.terms.length > 0 ? 0.85 : 0.4]),
+          uliUnknowns,
+        ),
       );
 
       diagnostics.push(...glossary.diagnostics);
@@ -454,7 +452,7 @@ export async function computeDomainDesignScores(options: {
         getGlossaryResult(),
         getRulesResult(),
         getInvariantsResult(),
-        getTermTraceLinks()
+        getTermTraceLinks(),
       ]);
       const bfsResult = computeBoundaryFitness({
         model,
@@ -465,7 +463,7 @@ export async function computeDomainDesignScores(options: {
         invariants: invariantsResult.invariants,
         contractUsage,
         leakFindings,
-        modelCodeLinks: buildModelCodeLinks(model, codebase.scorableSourceFiles)
+        modelCodeLinks: buildModelCodeLinks(model, codebase.scorableSourceFiles),
       });
 
       additionalEvidence.push(...bfsResult.evidence);
@@ -475,16 +473,16 @@ export async function computeDomainDesignScores(options: {
           "BFS",
           evaluateFormula(policy.metrics.BFS.formula, {
             A: bfsResult.A,
-            R: bfsResult.R
+            R: bfsResult.R,
           }),
           {
             A: bfsResult.A,
-            R: bfsResult.R
+            R: bfsResult.R,
           },
           bfsResult.evidence.map((entry) => entry.evidenceId),
           bfsResult.confidence,
-          bfsResult.unknowns
-        )
+          bfsResult.unknowns,
+        ),
       );
     }
   }
@@ -495,14 +493,14 @@ export async function computeDomainDesignScores(options: {
       const [glossary, invariantsResult, links] = await Promise.all([
         getGlossaryResult(),
         getInvariantsResult(),
-        getTermTraceLinks()
+        getTermTraceLinks(),
       ]);
       const afsResult = computeAggregateFitness({
         model,
         fragments: invariantsResult.fragments,
         terms: glossary.terms,
         links,
-        invariants: invariantsResult.invariants
+        invariants: invariantsResult.invariants,
       });
 
       additionalEvidence.push(...afsResult.evidence);
@@ -512,16 +510,16 @@ export async function computeDomainDesignScores(options: {
           "AFS",
           evaluateFormula(policy.metrics.AFS.formula, {
             SIC: afsResult.SIC,
-            XTC: afsResult.XTC
+            XTC: afsResult.XTC,
           }),
           {
             SIC: afsResult.SIC,
-            XTC: afsResult.XTC
+            XTC: afsResult.XTC,
           },
           afsResult.evidence.map((entry) => entry.evidenceId),
           afsResult.confidence,
-          afsResult.unknowns
-        )
+          afsResult.unknowns,
+        ),
       );
     }
   }
@@ -535,8 +533,8 @@ export async function computeDomainDesignScores(options: {
         confidenceFromSignals([0.9, mccsConfidence, 0.9]),
         contractUsage.applicableReferences > 0
           ? []
-          : ["No cross-context references were observed, so MCCS should be interpreted carefully."]
-      )
+          : ["No cross-context references were observed, so MCCS should be interpreted carefully."],
+      ),
     );
   }
   if (policy.metrics.ELS) {
@@ -547,8 +545,8 @@ export async function computeDomainDesignScores(options: {
         elsComponents,
         [],
         historyConfidence,
-        history ? [] : ["History analysis did not complete, so ELS confidence is low."]
-      )
+        history ? [] : ["History analysis did not complete, so ELS confidence is low."],
+      ),
     );
   }
 
@@ -563,12 +561,10 @@ export async function computeDomainDesignScores(options: {
     }
 
     const categoryGate = options.pilotGateEvaluation.categories.find(
-      (entry) => entry.category === options.pilotPersistenceCategory
+      (entry) => entry.category === options.pilotPersistenceCategory,
     );
     if (!categoryGate) {
-      throw new Error(
-        `No shadow rollout category gate is registered for \`${options.pilotPersistenceCategory}\``
-      );
+      throw new Error(`No shadow rollout category gate is registered for \`${options.pilotPersistenceCategory}\``);
     }
 
     const baselineElsValue = elsMetric.value;
@@ -595,8 +591,8 @@ export async function computeDomainDesignScores(options: {
       elsMetric.unknowns = Array.from(
         new Set([
           ...elsMetric.unknowns,
-          `ELS fully reflects persistence_candidate pilot output for category \`${options.pilotPersistenceCategory}\` and exposes persistence-derived locality metadata.`
-        ])
+          `ELS fully reflects persistence_candidate pilot output for category \`${options.pilotPersistenceCategory}\` and exposes persistence-derived locality metadata.`,
+        ]),
       );
     }
 
@@ -610,13 +606,13 @@ export async function computeDomainDesignScores(options: {
       overallGate: {
         reasons: options.pilotGateEvaluation.reasons,
         replacementVerdict: options.pilotGateEvaluation.replacementVerdict,
-        rolloutDisposition: options.pilotGateEvaluation.rolloutDisposition
+        rolloutDisposition: options.pilotGateEvaluation.rolloutDisposition,
       },
       categoryGate: {
         reasons: categoryGate.gate.reasons,
         replacementVerdict: categoryGate.gate.replacementVerdict,
-        rolloutDisposition: categoryGate.gate.rolloutDisposition
-      }
+        rolloutDisposition: categoryGate.gate.rolloutDisposition,
+      },
     };
   }
 
@@ -628,7 +624,7 @@ export async function computeDomainDesignScores(options: {
       history,
       crossContextReferences: contractUsage.applicableReferences,
       ...(shadow ? { shadow } : {}),
-      ...(pilot ? { pilot } : {})
+      ...(pilot ? { pilot } : {}),
     },
     {
       status: diagnostics.length > 0 ? "warning" : "ok",
@@ -638,8 +634,8 @@ export async function computeDomainDesignScores(options: {
       diagnostics,
       provenance: [
         toProvenance(repoPath, "domain_design"),
-        ...(options.docsRoot ? [toProvenance(options.docsRoot, "domain_design_docs")] : [])
-      ]
-    }
+        ...(options.docsRoot ? [toProvenance(options.docsRoot, "domain_design_docs")] : []),
+      ],
+    },
   );
 }

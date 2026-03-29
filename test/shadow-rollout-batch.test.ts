@@ -40,22 +40,18 @@ describe("shadow rollout batch observation", () => {
     await appendAndCommit(
       scatteredRepo,
       {
-        "src/billing/contracts/invoice-contract.ts":
-          "\nexport interface ShadowScatteredInvoiceOne { id: string; }\n",
-        "src/fulfillment/internal/fulfillment-service.ts":
-          "\nexport const shadowScatteredOne = 'scattered-1';\n"
+        "src/billing/contracts/invoice-contract.ts": "\nexport interface ShadowScatteredInvoiceOne { id: string; }\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const shadowScatteredOne = 'scattered-1';\n",
       },
-      "feat: scattered cross-context 1"
+      "feat: scattered cross-context 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
-        "src/billing/contracts/invoice-contract.ts":
-          "\nexport interface ShadowScatteredInvoiceTwo { id: string; }\n",
-        "src/fulfillment/internal/fulfillment-service.ts":
-          "\nexport const shadowScatteredTwo = 'scattered-2';\n"
+        "src/billing/contracts/invoice-contract.ts": "\nexport interface ShadowScatteredInvoiceTwo { id: string; }\n",
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const shadowScatteredTwo = 'scattered-2';\n",
       },
-      "feat: scattered cross-context 2"
+      "feat: scattered cross-context 2",
     );
 
     await cp(FIXTURE_MODEL, copiedModelPath);
@@ -76,16 +72,16 @@ describe("shadow rollout batch observation", () => {
         '    label: "Scattered"',
         '    category: "risky"',
         `    repo: "${scatteredRepo}"`,
-        '    model: "./model.yaml"'
+        '    model: "./model.yaml"',
       ].join("\n"),
-      "utf8"
+      "utf8",
     );
 
     const response = (await COMMANDS["score.observe_shadow_rollout_batch"]!(
       {
-        "batch-spec": batchSpecPath
+        "batch-spec": batchSpecPath,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     )) as CommandResponse<DomainDesignShadowRolloutBatchResult>;
 
     const result = response.result;
@@ -104,7 +100,11 @@ describe("shadow rollout batch observation", () => {
     expect(baseline?.policyPath).toBe(copiedPolicyPath);
     expect(scattered?.modelPath).toBe(copiedModelPath);
     expect(scattered?.policyPath).toBe(copiedPolicyPath);
-    expect(result.overall.driftCounts.aligned + result.overall.driftCounts.candidateHigher + result.overall.driftCounts.candidateLower).toBe(2);
+    expect(
+      result.overall.driftCounts.aligned +
+        result.overall.driftCounts.candidateHigher +
+        result.overall.driftCounts.candidateLower,
+    ).toBe(2);
 
     const expectedWeightedAverage =
       ((baseline?.policyDelta ?? 0) * (baseline?.relevantCommitCount ?? 0) +
@@ -113,33 +113,23 @@ describe("shadow rollout batch observation", () => {
 
     expect(result.overall.averageDelta).toBeCloseTo(
       ((baseline?.policyDelta ?? 0) + (scattered?.policyDelta ?? 0)) / 2,
-      12
+      12,
     );
     expect(result.overall.weightedAverageDelta).toBeCloseTo(expectedWeightedAverage, 12);
-    expect(result.overall.minDelta).toBeCloseTo(
-      Math.min(baseline?.policyDelta ?? 0, scattered?.policyDelta ?? 0),
-      12
-    );
-    expect(result.overall.maxDelta).toBeCloseTo(
-      Math.max(baseline?.policyDelta ?? 0, scattered?.policyDelta ?? 0),
-      12
-    );
+    expect(result.overall.minDelta).toBeCloseTo(Math.min(baseline?.policyDelta ?? 0, scattered?.policyDelta ?? 0), 12);
+    expect(result.overall.maxDelta).toBeCloseTo(Math.max(baseline?.policyDelta ?? 0, scattered?.policyDelta ?? 0), 12);
     expect(result.overall.deltaRange).toBeCloseTo(
       Math.max(baseline?.policyDelta ?? 0, scattered?.policyDelta ?? 0) -
         Math.min(baseline?.policyDelta ?? 0, scattered?.policyDelta ?? 0),
-      12
+      12,
     );
     expect(response.provenance).toContainEqual(
-      expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" })
+      expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" }),
     );
   }, 20000);
 });
 
-async function appendAndCommit(
-  repoPath: string,
-  updates: Record<string, string>,
-  message: string
-): Promise<void> {
+async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {
   for (const [relativePath, content] of Object.entries(updates)) {
     await appendFile(path.join(repoPath, relativePath), content, "utf8");
   }

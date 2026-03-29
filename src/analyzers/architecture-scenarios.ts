@@ -1,8 +1,4 @@
-import type {
-  ArchitectureScenarioCatalog,
-  ScenarioDirection,
-  ScenarioObservationSet
-} from "../core/contracts.js";
+import type { ArchitectureScenarioCatalog, ScenarioDirection, ScenarioObservationSet } from "../core/contracts.js";
 
 export interface QualityScenarioFinding {
   scenarioId: string;
@@ -59,12 +55,12 @@ export function scoreQualityScenarioFit(input: {
       averageNormalizedScore: 0,
       confidence: 0.2,
       unknowns: ["No scenario catalog was provided, so QSF is unobserved."],
-      findings: []
+      findings: [],
     };
   }
 
   const observationById = new Map(
-    (input.observations?.observations ?? []).map((observation) => [observation.scenarioId, observation])
+    (input.observations?.observations ?? []).map((observation) => [observation.scenarioId, observation]),
   );
   const findings: QualityScenarioFinding[] = [];
   const unknowns: string[] = [];
@@ -81,7 +77,7 @@ export function scoreQualityScenarioFit(input: {
         scenarioId: scenario.scenarioId,
         confidence: 0.5,
         source: "catalog",
-        note: `${scenario.scenarioId} has priority <= 0.`
+        note: `${scenario.scenarioId} has priority <= 0.`,
       });
       continue;
     }
@@ -92,7 +88,7 @@ export function scoreQualityScenarioFit(input: {
         scenarioId: scenario.scenarioId,
         confidence: 0.45,
         source: "catalog",
-        note: `${scenario.scenarioId} cannot be fully reflected in QSF because no observed value was provided.`
+        note: `${scenario.scenarioId} cannot be fully reflected in QSF because no observed value was provided.`,
       });
       continue;
     }
@@ -101,7 +97,7 @@ export function scoreQualityScenarioFit(input: {
       direction: scenario.direction,
       observed: observation.observed,
       target: scenario.target,
-      worstAcceptable: scenario.worstAcceptable
+      worstAcceptable: scenario.worstAcceptable,
     });
     observedPriority += scenario.priority;
     weightedScore += scenario.priority * normalized;
@@ -112,7 +108,7 @@ export function scoreQualityScenarioFit(input: {
       normalized,
       observed: observation.observed,
       source: "observation",
-      note: `${scenario.scenarioId} has a normalized score of ${normalized.toFixed(3)}.`
+      note: `${scenario.scenarioId} has a normalized score of ${normalized.toFixed(3)}.`,
     });
   }
 
@@ -133,12 +129,12 @@ export function scoreQualityScenarioFit(input: {
         [
           input.catalog.scenarios.length > 0 ? 0.85 : 0.2,
           weightedCoverage > 0 ? 0.82 : 0.35,
-          normalizedScores.length > 0 ? 0.88 : 0.3
+          normalizedScores.length > 0 ? 0.88 : 0.3,
         ],
-        0.4
-      )
+        0.4,
+      ),
     ),
     unknowns: Array.from(new Set(unknowns)),
-    findings
+    findings,
   };
 }

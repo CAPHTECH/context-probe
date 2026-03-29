@@ -11,7 +11,7 @@ import type {
   ArchitectureScenarioObservationSourceConfig,
   ArchitectureTelemetryExportBundle,
   ArchitectureTelemetrySourceConfig,
-  ScenarioObservationSet
+  ScenarioObservationSet,
 } from "../core/contracts.js";
 import { readDataFile } from "../core/io.js";
 
@@ -72,9 +72,9 @@ async function resolveSourceConfig<T>(input: {
           confidence: 0.86,
           note: `Loaded canonical input from the file source in ${input.label} source config.`,
           sourceType: "file",
-          sourcePath: resolvedPath
-        }
-      ]
+          sourcePath: resolvedPath,
+        },
+      ],
     };
   }
 
@@ -85,7 +85,7 @@ async function resolveSourceConfig<T>(input: {
     const resolvedCwd = config.cwd ? resolveFromBase(baseDir, config.cwd) : baseDir;
     const { stdout } = await exec(config.command, {
       cwd: resolvedCwd,
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 10 * 1024 * 1024,
     });
     const trimmed = stdout.trim();
     if (!trimmed) {
@@ -98,7 +98,7 @@ async function resolveSourceConfig<T>(input: {
       throw new Error(
         `${input.label} command source must return JSON on stdout: ${
           error instanceof Error ? error.message : "parse error"
-        }`
+        }`,
       );
     }
     return {
@@ -117,9 +117,9 @@ async function resolveSourceConfig<T>(input: {
           note: `Loaded canonical input from the command source in ${input.label} source config.`,
           sourceType: "command",
           command: config.command,
-          cwd: resolvedCwd
-        }
-      ]
+          cwd: resolvedCwd,
+        },
+      ],
     };
   }
 
@@ -132,7 +132,7 @@ export async function resolveTelemetrySourceConfig(input: {
 }): Promise<ResolvedCanonicalSource<ArchitectureTelemetryExportBundle>> {
   return resolveSourceConfig<ArchitectureTelemetryExportBundle>({
     ...input,
-    label: "telemetry"
+    label: "telemetry",
   });
 }
 
@@ -142,7 +142,7 @@ export async function resolveDeliverySourceConfig(input: {
 }): Promise<ResolvedCanonicalSource<ArchitectureDeliveryExportBundle>> {
   return resolveSourceConfig<ArchitectureDeliveryExportBundle>({
     ...input,
-    label: "delivery"
+    label: "delivery",
   });
 }
 
@@ -152,7 +152,7 @@ export async function resolveComplexitySourceConfig(input: {
 }): Promise<ResolvedCanonicalSource<ArchitectureComplexityExportBundle>> {
   return resolveSourceConfig<ArchitectureComplexityExportBundle>({
     ...input,
-    label: "complexity"
+    label: "complexity",
   });
 }
 
@@ -162,6 +162,6 @@ export async function resolveScenarioObservationSourceConfig(input: {
 }): Promise<ResolvedCanonicalSource<ScenarioObservationSet>> {
   return resolveSourceConfig<ScenarioObservationSet>({
     ...input,
-    label: "scenario observation"
+    label: "scenario observation",
   });
 }

@@ -13,7 +13,7 @@ export function toMetricScore(
   components: Record<string, number>,
   evidenceRefs: string[],
   confidence: number,
-  unknowns: string[]
+  unknowns: string[],
 ): MetricScore {
   return {
     metricId,
@@ -21,7 +21,7 @@ export function toMetricScore(
     components,
     confidence,
     evidenceRefs,
-    unknowns
+    unknowns,
   };
 }
 
@@ -38,7 +38,7 @@ export function average(values: number[], fallback: number): number {
 
 export function weightedAverage(
   entries: Array<{ value: number | undefined; weight: number }>,
-  fallback: number
+  fallback: number,
 ): number {
   const observed = entries.filter((entry) => entry.value !== undefined && Number.isFinite(entry.value));
   if (observed.length === 0) {

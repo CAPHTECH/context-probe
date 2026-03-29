@@ -4,13 +4,13 @@ import { promisify } from "node:util";
 import type {
   CochangeAnalysis,
   CochangeCommit,
-  CochangePersistenceCandidateScore,
   CochangePairWeight,
   CochangePersistenceAnalysis,
+  CochangePersistenceCandidateScore,
   CochangeStabilityCluster,
   DomainModel,
   EvolutionLocalityModelComparison,
-  PolicyConfig
+  PolicyConfig,
 } from "./contracts.js";
 import { matchGlobs, toPosixPath } from "./io.js";
 
@@ -51,30 +51,39 @@ function parseChangedPath(entry: string): string | null {
     return null;
   }
 
-  const parts = normalized.split("\t").map((value) => value.trim()).filter(Boolean);
+  const parts = normalized
+    .split("\t")
+    .map((value) => value.trim())
+    .filter(Boolean);
   if (parts.length === 0) {
     return null;
   }
   if (parts.length === 1) {
-    return toPosixPath(parts[0]!);
+    const onlyPath = parts[0];
+    return onlyPath ? toPosixPath(onlyPath) : null;
   }
 
-  const status = parts[0]!;
+  const status = parts[0];
+  if (!status) {
+    return null;
+  }
   if (status.startsWith("R") || status.startsWith("C")) {
-    return toPosixPath(parts[parts.length - 1]!);
+    const renamedPath = parts.at(-1);
+    return renamedPath ? toPosixPath(renamedPath) : null;
   }
 
-  return toPosixPath(parts[1]!);
+  const nextPath = parts[1];
+  return nextPath ? toPosixPath(nextPath) : null;
 }
 
 export async function normalizeHistory(
   repoPath: string,
   policyConfig: PolicyConfig,
-  profileName: string
+  profileName: string,
 ): Promise<CochangeCommit[]> {
   const profile = policyConfig.profiles[profileName];
   const ignoreCommitPatterns = (profile?.history_filters?.ignore_commit_patterns ?? []).map(
-    (pattern) => new RegExp(pattern)
+    (pattern) => new RegExp(pattern),
   );
   const ignorePaths = profile?.history_filters?.ignore_paths ?? [];
 
@@ -83,12 +92,15 @@ export async function normalizeHistory(
     ["-C", repoPath, "log", "--no-merges", "--find-renames", "--name-status", "--pretty=format:__COMMIT__%n%H%n%s"],
     {
       cwd: repoPath,
-      maxBuffer: GIT_LOG_MAX_BUFFER_BYTES
-    }
+      maxBuffer: GIT_LOG_MAX_BUFFER_BYTES,
+    },
   );
 
   const commits: CochangeCommit[] = [];
-  const blocks = stdout.split("__COMMIT__\n").map((block) => block.trim()).filter(Boolean);
+  const blocks = stdout
+    .split("__COMMIT__\n")
+    .map((block) => block.trim())
+    .filter(Boolean);
 
   for (const block of blocks) {
     const [hash, subject = "", ...files] = block.split("\n");
@@ -111,7 +123,7 @@ export async function normalizeHistory(
     commits.push({
       hash,
       subject,
-      files: uniqueFiles
+      files: uniqueFiles,
     });
   }
 
@@ -125,8 +137,8 @@ function contextualizeCommits(commits: CochangeCommit[], model: DomainModel): Co
       contexts: unique(
         commit.files
           .map((filePath) => classifyContext(filePath, model))
-          .filter((value): value is string => Boolean(value))
-      ).sort()
+          .filter((value): value is string => Boolean(value)),
+      ).sort(),
     }))
     .filter((entry) => entry.contexts.length > 0);
 }
@@ -156,7 +168,7 @@ function buildHistoryObservationQuality(input: {
 
   const confidenceSignals = [
     input.relevantCommitCount === 0 ? 0.25 : input.relevantCommitCount < 3 ? 0.6 : 0.85,
-    input.contextsSeen.length < 2 ? 0.35 : 0.85
+    input.contextsSeen.length < 2 ? 0.35 : 0.85,
   ];
   if (input.pairWeightCount !== undefined) {
     if (input.relevantCommitCount > 0) {
@@ -169,26 +181,23 @@ function buildHistoryObservationQuality(input: {
 
   return {
     confidence: clamp01(average(confidenceSignals, 0.45)),
-    unknowns: unique(unknowns)
+    unknowns: unique(unknowns),
   };
 }
 
 export function evaluateEvolutionLocalityObservationQuality(
   commits: CochangeCommit[],
-  model: DomainModel
+  model: DomainModel,
 ): HistoryObservationQuality {
   const contextualized = contextualizeCommits(commits, model);
   const contextsSeen = unique(contextualized.flatMap((commit) => commit.contexts)).sort();
   return buildHistoryObservationQuality({
     relevantCommitCount: contextualized.length,
-    contextsSeen
+    contextsSeen,
   });
 }
 
-export function scoreEvolutionLocality(
-  commits: CochangeCommit[],
-  model: DomainModel
-): CochangeAnalysis {
+export function scoreEvolutionLocality(commits: CochangeCommit[], model: DomainModel): CochangeAnalysis {
   const relevant = contextualizeCommits(commits, model);
 
   if (relevant.length === 0) {
@@ -200,7 +209,7 @@ export function scoreEvolutionLocality(
       surpriseCouplingRatio: 0,
       crossContextChangeLocality: 0,
       featureScatter: 0,
-      contextsSeen: []
+      contextsSeen: [],
     };
   }
 
@@ -210,8 +219,7 @@ export function scoreEvolutionLocality(
   const averageContextsPerCommit = totalContextTouches / relevant.length;
   const contextsSeen = unique(relevant.flatMap((entry) => entry.contexts)).sort();
   const maxContexts = Math.max(1, contextsSeen.length);
-  const featureScatter =
-    maxContexts <= 1 ? 0 : Math.min(1, (averageContextsPerCommit - 1) / (maxContexts - 1));
+  const featureScatter = maxContexts <= 1 ? 0 : Math.min(1, (averageContextsPerCommit - 1) / (maxContexts - 1));
   const surpriseCouplingRatio = crossContextCommits / relevant.length;
   const crossContextChangeLocality = localCommits / relevant.length;
 
@@ -223,7 +231,7 @@ export function scoreEvolutionLocality(
     surpriseCouplingRatio,
     crossContextChangeLocality,
     featureScatter,
-    contextsSeen
+    contextsSeen,
   };
 }
 
@@ -231,7 +239,7 @@ function computeEvolutionLocalityScore(analysis: CochangeAnalysis): number {
   return clamp01(
     0.4 * analysis.crossContextChangeLocality +
       0.3 * (1 - analysis.featureScatter) +
-      0.3 * (1 - analysis.surpriseCouplingRatio)
+      0.3 * (1 - analysis.surpriseCouplingRatio),
   );
 }
 
@@ -246,8 +254,11 @@ function buildPairWeights(relevant: ContextualizedCommit[]): CochangePairWeight[
 
     for (let index = 0; index < commit.contexts.length; index += 1) {
       for (let next = index + 1; next < commit.contexts.length; next += 1) {
-        const left = commit.contexts[index]!;
-        const right = commit.contexts[next]!;
+        const left = commit.contexts[index];
+        const right = commit.contexts[next];
+        if (!left || !right) {
+          continue;
+        }
         const key = `${left}::${right}`;
         pairCount.set(key, (pairCount.get(key) ?? 0) + 1);
       }
@@ -264,7 +275,7 @@ function buildPairWeights(relevant: ContextualizedCommit[]): CochangePairWeight[
         left,
         right,
         rawCount,
-        jaccard: denominator === 0 ? 0 : clamp01(rawCount / denominator)
+        jaccard: denominator === 0 ? 0 : clamp01(rawCount / denominator),
       };
     })
     .sort(
@@ -272,7 +283,7 @@ function buildPairWeights(relevant: ContextualizedCommit[]): CochangePairWeight[
         right.jaccard - left.jaccard ||
         right.rawCount - left.rawCount ||
         left.left.localeCompare(right.left) ||
-        left.right.localeCompare(right.right)
+        left.right.localeCompare(right.right),
     );
 }
 
@@ -280,11 +291,7 @@ function componentKey(contexts: string[]): string {
   return contexts.join("::");
 }
 
-function connectedComponents(
-  contextsSeen: string[],
-  pairWeights: CochangePairWeight[],
-  threshold: number
-): string[][] {
+function connectedComponents(contextsSeen: string[], pairWeights: CochangePairWeight[], threshold: number): string[][] {
   if (contextsSeen.length === 0) {
     return [];
   }
@@ -294,13 +301,21 @@ function connectedComponents(
 
   const find = (value: string): string => {
     let current = value;
-    while (parent.get(current) !== current) {
-      current = parent.get(current)!;
+    while (true) {
+      const parentValue = parent.get(current);
+      if (!parentValue || parentValue === current) {
+        break;
+      }
+      current = parentValue;
     }
 
     let compress = value;
-    while (parent.get(compress) !== current) {
-      const next = parent.get(compress)!;
+    while (true) {
+      const parentValue = parent.get(compress);
+      if (!parentValue || parentValue === current) {
+        break;
+      }
+      const next = parentValue;
       parent.set(compress, current);
       compress = next;
     }
@@ -346,7 +361,7 @@ function connectedComponents(
 
 function deriveStableClusters(
   contextsSeen: string[],
-  pairWeights: CochangePairWeight[]
+  pairWeights: CochangePairWeight[],
 ): {
   stableChangeClusters: CochangeStabilityCluster[];
   naturalSplitLevels: number[];
@@ -358,7 +373,7 @@ function deriveStableClusters(
       stableChangeClusters: [],
       naturalSplitLevels: [],
       noiseRatio: 0,
-      hasWeightRange: true
+      hasWeightRange: true,
     };
   }
 
@@ -375,7 +390,7 @@ function deriveStableClusters(
       if (!active.has(key)) {
         active.set(key, {
           contexts: members,
-          birth: threshold
+          birth: threshold,
         });
       }
     }
@@ -388,7 +403,7 @@ function deriveStableClusters(
         contexts: entry.contexts,
         birth: entry.birth,
         death: threshold,
-        stability: clamp01(entry.birth - threshold)
+        stability: clamp01(entry.birth - threshold),
       });
       active.delete(key);
     }
@@ -399,7 +414,7 @@ function deriveStableClusters(
       contexts: entry.contexts,
       birth: entry.birth,
       death: 0,
-      stability: clamp01(entry.birth)
+      stability: clamp01(entry.birth),
     });
   }
 
@@ -408,16 +423,18 @@ function deriveStableClusters(
       (left, right) =>
         right.stability - left.stability ||
         right.contexts.length - left.contexts.length ||
-        componentKey(left.contexts).localeCompare(componentKey(right.contexts))
+        componentKey(left.contexts).localeCompare(componentKey(right.contexts)),
     )
     .slice(0, 5);
-  const naturalSplitLevels = unique(stableChangeClusters.map((cluster) => cluster.birth)).sort((left, right) => right - left);
+  const naturalSplitLevels = unique(stableChangeClusters.map((cluster) => cluster.birth)).sort(
+    (left, right) => right - left,
+  );
 
   return {
     stableChangeClusters,
     naturalSplitLevels,
     noiseRatio: computeNoiseRatio(completed),
-    hasWeightRange: thresholds.length > 1
+    hasWeightRange: thresholds.length > 1,
   };
 }
 
@@ -437,20 +454,20 @@ function computeNoiseRatio(stableChangeClusters: CochangeStabilityCluster[]): nu
 
 export function analyzeCochangePersistence(
   commits: CochangeCommit[],
-  model: DomainModel
+  model: DomainModel,
 ): { analysis: CochangePersistenceAnalysis; confidence: number; unknowns: string[] } {
   const relevant = contextualizeCommits(commits, model);
   const contextsSeen = unique(relevant.flatMap((commit) => commit.contexts)).sort();
   const pairWeights = buildPairWeights(relevant);
   const { stableChangeClusters, naturalSplitLevels, noiseRatio, hasWeightRange } = deriveStableClusters(
     contextsSeen,
-    pairWeights
+    pairWeights,
   );
   const quality = buildHistoryObservationQuality({
     relevantCommitCount: relevant.length,
     contextsSeen,
     pairWeightCount: pairWeights.length,
-    hasWeightRange
+    hasWeightRange,
   });
 
   return {
@@ -460,17 +477,14 @@ export function analyzeCochangePersistence(
       pairWeights,
       stableChangeClusters,
       naturalSplitLevels,
-      noiseRatio
+      noiseRatio,
     },
     confidence: quality.confidence,
-    unknowns: quality.unknowns
+    unknowns: quality.unknowns,
   };
 }
 
-function computeClusterPenalty(
-  strongestCluster: CochangeStabilityCluster | null,
-  contextCount: number
-): number {
+function computeClusterPenalty(strongestCluster: CochangeStabilityCluster | null, contextCount: number): number {
   if (!strongestCluster || contextCount < 2) {
     return 0;
   }
@@ -478,9 +492,9 @@ function computeClusterPenalty(
   return clamp01(strongestCluster.stability * spanFactor);
 }
 
-export function scorePersistenceLocalityCandidate(
+function scorePersistenceLocalityCandidate(
   commits: CochangeCommit[],
-  model: DomainModel
+  model: DomainModel,
 ): {
   analysis: CochangePersistenceAnalysis;
   candidate: CochangePersistenceCandidateScore;
@@ -499,10 +513,10 @@ export function scorePersistenceLocalityCandidate(
         strongestCluster: null,
         clusterPenalty: 0,
         pairPenalty: 0,
-        coherencePenalty: 0
+        coherencePenalty: 0,
       },
       confidence: result.confidence,
-      unknowns: result.unknowns
+      unknowns: result.unknowns,
     };
   }
   const strongestPair = result.analysis.pairWeights[0] ?? null;
@@ -510,9 +524,7 @@ export function scorePersistenceLocalityCandidate(
   const clusterPenalty = computeClusterPenalty(strongestCluster, result.analysis.contextsSeen.length);
   const pairPenalty = strongestPair?.jaccard ?? 0;
   const coherencePenalty = strongestPair ? clamp01((1 - result.analysis.noiseRatio) * pairPenalty) : 0;
-  const persistentCouplingPenalty = clamp01(
-    0.6 * clusterPenalty + 0.3 * pairPenalty + 0.1 * coherencePenalty
-  );
+  const persistentCouplingPenalty = clamp01(0.6 * clusterPenalty + 0.3 * pairPenalty + 0.1 * coherencePenalty);
 
   return {
     analysis: result.analysis,
@@ -523,16 +535,16 @@ export function scorePersistenceLocalityCandidate(
       strongestCluster,
       clusterPenalty,
       pairPenalty,
-      coherencePenalty
+      coherencePenalty,
     },
     confidence: result.confidence,
-    unknowns: result.unknowns
+    unknowns: result.unknowns,
   };
 }
 
 export function compareEvolutionLocalityModels(
   commits: CochangeCommit[],
-  model: DomainModel
+  model: DomainModel,
 ): {
   comparison: EvolutionLocalityModelComparison;
   confidence: number;
@@ -549,14 +561,14 @@ export function compareEvolutionLocalityModels(
         components: {
           CCL: elsAnalysis.crossContextChangeLocality,
           FS: elsAnalysis.featureScatter,
-          SCR: elsAnalysis.surpriseCouplingRatio
-        }
+          SCR: elsAnalysis.surpriseCouplingRatio,
+        },
       },
       persistenceCandidate: persistence.candidate,
       persistenceAnalysis: persistence.analysis,
-      delta: persistence.candidate.localityScore - elsScore
+      delta: persistence.candidate.localityScore - elsScore,
     },
     confidence: persistence.confidence,
-    unknowns: persistence.unknowns
+    unknowns: persistence.unknowns,
   };
 }

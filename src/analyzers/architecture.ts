@@ -23,7 +23,7 @@ function classifyLayer(filePath: string, constraints: ArchitectureConstraints) {
 
 export function detectDirectionViolations(
   codebase: CodebaseAnalysis,
-  constraints: ArchitectureConstraints
+  constraints: ArchitectureConstraints,
 ): DirectionViolation[] {
   const violations: DirectionViolation[] = [];
   for (const dependency of getScorableDependencies(codebase).filter((entry) => entry.targetKind === "file")) {
@@ -37,7 +37,7 @@ export function detectDirectionViolations(
         source: dependency.source,
         target: dependency.target,
         sourceLayer: sourceLayer.name,
-        targetLayer: targetLayer.name
+        targetLayer: targetLayer.name,
       });
     }
   }
@@ -46,7 +46,7 @@ export function detectDirectionViolations(
 
 export function scoreDependencyDirection(
   codebase: CodebaseAnalysis,
-  constraints: ArchitectureConstraints
+  constraints: ArchitectureConstraints,
 ): DependencyDirectionScore {
   const scorableDependencies = getScorableDependencies(codebase);
   const classifiedEdges = scorableDependencies.filter((entry) => {
@@ -66,6 +66,6 @@ export function scoreDependencyDirection(
     LRC: 1 - illegalRatio,
     APM: classifiedCoverage,
     applicableEdges,
-    violations
+    violations,
   };
 }

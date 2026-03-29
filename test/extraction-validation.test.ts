@@ -9,7 +9,7 @@ import { COMMANDS } from "../src/commands.js";
 const VALIDATION_ROOT = path.resolve("fixtures/validation/extraction");
 const PROVIDER_STUBS = {
   codex: path.resolve("test/fixtures/stubs/codex-stub.mjs"),
-  claude: path.resolve("test/fixtures/stubs/claude-stub.mjs")
+  claude: path.resolve("test/fixtures/stubs/claude-stub.mjs"),
 } as const;
 
 interface ValidationExpectation {
@@ -57,7 +57,9 @@ describe("extraction validation harness", () => {
 
       if (validationCase.expectation.glossary) {
         const response = await COMMANDS["doc.extract_glossary"]!(baseArgs, { cwd: process.cwd() });
-        const terms = (response.result as { terms: Array<{ canonicalTerm: string }> }).terms.map((term) => term.canonicalTerm);
+        const terms = (response.result as { terms: Array<{ canonicalTerm: string }> }).terms.map(
+          (term) => term.canonicalTerm,
+        );
         expect(terms).toEqual(expect.arrayContaining(validationCase.expectation.glossary.mustInclude));
         validationCase.expectation.glossary.mustExclude.forEach((term) => {
           expect(terms).not.toContain(term);
@@ -67,7 +69,7 @@ describe("extraction validation harness", () => {
       if (validationCase.expectation.rules) {
         const response = await COMMANDS["doc.extract_rules"]!(baseArgs, { cwd: process.cwd() });
         const statements = (response.result as { rules: Array<{ statement: string }> }).rules.map((rule) =>
-          normalizeText(rule.statement)
+          normalizeText(rule.statement),
         );
         validationCase.expectation.rules.mustInclude.forEach((expected) => {
           expect(statements.some((statement) => statement.includes(normalizeText(expected)))).toBe(true);
@@ -80,7 +82,7 @@ describe("extraction validation harness", () => {
       if (validationCase.expectation.invariants) {
         const response = await COMMANDS["doc.extract_invariants"]!(baseArgs, { cwd: process.cwd() });
         const statements = (response.result as { invariants: Array<{ statement: string }> }).invariants.map(
-          (invariant) => normalizeText(invariant.statement)
+          (invariant) => normalizeText(invariant.statement),
         );
         validationCase.expectation.invariants.mustInclude.forEach((expected) => {
           expect(statements.some((statement) => statement.includes(normalizeText(expected)))).toBe(true);
@@ -92,9 +94,11 @@ describe("extraction validation harness", () => {
 
       if (validationCase.expectation.trace) {
         const response = await COMMANDS["trace.link_terms"]!(baseArgs, { cwd: process.cwd() });
-        const links = (response.result as {
-          links: Array<{ canonicalTerm: string; coverage: { documentHits: number; codeHits: number } }>;
-        }).links;
+        const links = (
+          response.result as {
+            links: Array<{ canonicalTerm: string; coverage: { documentHits: number; codeHits: number } }>;
+          }
+        ).links;
         validationCase.expectation.trace.mustLinkToCode?.forEach((term) => {
           const link = links.find((entry) => entry.canonicalTerm === term);
           expect(link?.coverage.codeHits ?? 0).toBeGreaterThan(0);
@@ -110,9 +114,9 @@ describe("extraction validation harness", () => {
         const reviewResponse = await COMMANDS["review.list_unknowns"]!(
           {
             ...baseArgs,
-            "source-command": validationCase.expectation.review.sourceCommand
+            "source-command": validationCase.expectation.review.sourceCommand,
           },
-          { cwd: process.cwd() }
+          { cwd: process.cwd() },
         );
         const reviewItems = (reviewResponse.result as { reviewItems: Array<{ reason: string }> }).reviewItems;
         const reasons = reviewItems.map((item) => item.reason);
@@ -131,14 +135,14 @@ async function loadValidationCases() {
       .map(async (entry) => {
         const casePath = path.join(VALIDATION_ROOT, entry.name);
         const expectation = JSON.parse(
-          await readFile(path.join(casePath, "expectations.json"), "utf8")
+          await readFile(path.join(casePath, "expectations.json"), "utf8"),
         ) as ValidationExpectation;
         return {
           name: entry.name,
           path: casePath,
-          expectation
+          expectation,
         };
-      })
+      }),
   );
   return cases.sort((left, right) => left.name.localeCompare(right.name));
 }
@@ -146,7 +150,7 @@ async function loadValidationCases() {
 function buildBaseArgs(casePath: string, expectation: ValidationExpectation): Record<string, string | boolean> {
   const args: Record<string, string | boolean> = {
     "docs-root": casePath,
-    extractor: expectation.extractor.backend
+    extractor: expectation.extractor.backend,
   };
   const repoPath = path.join(casePath, "repo");
   if (expectation.trace || hasRepoDirectory(casePath)) {

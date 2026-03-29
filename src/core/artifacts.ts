@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { Artifact, Fragment } from "./contracts.js";
 import { hashText, isDocumentFile, isSourceFile, listFiles, readText, relativePath } from "./io.js";
 
@@ -27,7 +25,7 @@ export async function registerArtifacts(root: string): Promise<Artifact[]> {
       path: relativePath(root, filePath),
       size: content.length,
       hash: hashText(content),
-      collectedAt: new Date().toISOString()
+      collectedAt: new Date().toISOString(),
     });
   }
   return artifacts;
@@ -37,7 +35,9 @@ export async function normalizeDocuments(root: string): Promise<Fragment[]> {
   const files = await listFiles(root);
   const fragments: Fragment[] = [];
 
-  for (const filePath of files.filter((filePath) => isDocumentFile(filePath) && !filePath.toLowerCase().endsWith(".ja.md"))) {
+  for (const filePath of files.filter(
+    (filePath) => isDocumentFile(filePath) && !filePath.toLowerCase().endsWith(".ja.md"),
+  )) {
     const content = await readText(filePath);
     const relative = relativePath(root, filePath);
     const paragraphs = content
@@ -59,17 +59,10 @@ export async function normalizeDocuments(root: string): Promise<Fragment[]> {
         text: paragraph,
         path: relative,
         lineStart,
-        lineEnd
+        lineEnd,
       });
     }
   }
 
   return fragments.sort((left, right) => left.path.localeCompare(right.path));
-}
-
-export function resolveOutputPath(root: string, filePath: string): string {
-  if (path.isAbsolute(filePath)) {
-    return filePath;
-  }
-  return path.join(root, filePath);
 }

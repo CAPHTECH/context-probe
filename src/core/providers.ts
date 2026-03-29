@@ -4,12 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import type {
-  ExtractionKind,
-  ExtractionProviderName,
-  ExtractionProviderResult,
-  Fragment
-} from "./contracts.js";
+import type { ExtractionKind, ExtractionProviderName, ExtractionProviderResult, Fragment } from "./contracts.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -35,7 +30,7 @@ function buildPrompt(kind: ExtractionKind, promptProfile: string, fragments: Fra
     rules:
       "Extract business rules with type, statement, confidence, unknowns, relatedTerms, and supporting fragmentIds.",
     invariants:
-      "Extract invariants with type, statement, confidence, unknowns, relatedTerms, and supporting fragmentIds."
+      "Extract invariants with type, statement, confidence, unknowns, relatedTerms, and supporting fragmentIds.",
   } satisfies Record<ExtractionKind, string>;
 
   const fragmentsBlock = fragments
@@ -50,7 +45,7 @@ function buildPrompt(kind: ExtractionKind, promptProfile: string, fragments: Fra
     "If uncertain, keep unknowns non-empty instead of guessing.",
     "",
     "Fragments:",
-    fragmentsBlock
+    fragmentsBlock,
   ].join("\n");
 }
 
@@ -65,9 +60,9 @@ function buildSchema(kind: ExtractionKind): Record<string, unknown> {
             collision: { type: "boolean" },
             confidence: { type: "number" },
             unknowns: { type: "array", items: { type: "string" } },
-            fragmentIds: { type: "array", items: { type: "string" } }
+            fragmentIds: { type: "array", items: { type: "string" } },
           },
-          required: ["canonicalTerm", "aliases", "collision", "confidence", "unknowns", "fragmentIds"]
+          required: ["canonicalTerm", "aliases", "collision", "confidence", "unknowns", "fragmentIds"],
         }
       : {
           type: "object",
@@ -77,9 +72,9 @@ function buildSchema(kind: ExtractionKind): Record<string, unknown> {
             confidence: { type: "number" },
             unknowns: { type: "array", items: { type: "string" } },
             fragmentIds: { type: "array", items: { type: "string" } },
-            relatedTerms: { type: "array", items: { type: "string" } }
+            relatedTerms: { type: "array", items: { type: "string" } },
           },
-          required: ["type", "statement", "confidence", "unknowns", "fragmentIds", "relatedTerms"]
+          required: ["type", "statement", "confidence", "unknowns", "fragmentIds", "relatedTerms"],
         };
 
   return {
@@ -87,13 +82,13 @@ function buildSchema(kind: ExtractionKind): Record<string, unknown> {
     properties: {
       items: {
         type: "array",
-        items: baseItem
+        items: baseItem,
       },
       confidence: { type: "number" },
       unknowns: { type: "array", items: { type: "string" } },
-      diagnostics: { type: "array", items: { type: "string" } }
+      diagnostics: { type: "array", items: { type: "string" } },
     },
-    required: ["items", "confidence", "unknowns", "diagnostics"]
+    required: ["items", "confidence", "unknowns", "diagnostics"],
   };
 }
 
@@ -108,21 +103,24 @@ function normalizeProviderPayload(payload: unknown): {
       items: payload.filter((value): value is RawProviderItem => typeof value === "object" && value !== null),
       confidence: 0.7,
       unknowns: [],
-      diagnostics: []
+      diagnostics: [],
     };
   }
   if (typeof payload === "object" && payload !== null) {
     const record = payload as Record<string, unknown>;
-    const nested = record.result && typeof record.result === "object" ? (record.result as Record<string, unknown>) : record;
+    const nested =
+      record.result && typeof record.result === "object" ? (record.result as Record<string, unknown>) : record;
     return {
       items: Array.isArray(nested.items)
         ? nested.items.filter((value): value is RawProviderItem => typeof value === "object" && value !== null)
         : [],
       confidence: typeof nested.confidence === "number" ? nested.confidence : 0.7,
-      unknowns: Array.isArray(nested.unknowns) ? nested.unknowns.filter((value): value is string => typeof value === "string") : [],
+      unknowns: Array.isArray(nested.unknowns)
+        ? nested.unknowns.filter((value): value is string => typeof value === "string")
+        : [],
       diagnostics: Array.isArray(nested.diagnostics)
         ? nested.diagnostics.filter((value): value is string => typeof value === "string")
-        : []
+        : [],
     };
   }
   throw new Error("Provider output was not a JSON object");
@@ -132,21 +130,11 @@ async function runCodexCli(options: CliExtractionOptions, schemaPath: string, ou
   const command = options.providerCommand ?? defaultProviderCommand(options.provider);
   await execFile(
     command,
-    [
-      "exec",
-      "--skip-git-repo-check",
-      "-C",
-      options.cwd,
-      "--output-schema",
-      schemaPath,
-      "-o",
-      outputPath,
-      prompt
-    ],
+    ["exec", "--skip-git-repo-check", "-C", options.cwd, "--output-schema", schemaPath, "-o", outputPath, prompt],
     {
       cwd: options.cwd,
-      maxBuffer: 10 * 1024 * 1024
-    }
+      maxBuffer: 10 * 1024 * 1024,
+    },
   );
   return readFile(outputPath, "utf8");
 }
@@ -165,18 +153,18 @@ async function runClaudeCli(options: CliExtractionOptions, schema: Record<string
       "default",
       "--tools",
       "",
-      prompt
+      prompt,
     ],
     {
       cwd: options.cwd,
-      maxBuffer: 10 * 1024 * 1024
-    }
+      maxBuffer: 10 * 1024 * 1024,
+    },
   );
   return stdout;
 }
 
 export async function runCliExtraction(
-  options: CliExtractionOptions
+  options: CliExtractionOptions,
 ): Promise<ExtractionProviderResult<RawProviderItem>> {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "context-probe-provider-"));
   const schemaPath = path.join(tempDir, `${options.kind}-schema.json`);
@@ -196,7 +184,7 @@ export async function runCliExtraction(
       confidence: parsed.confidence,
       unknowns: parsed.unknowns,
       diagnostics: parsed.diagnostics,
-      provider: options.provider
+      provider: options.provider,
     };
   } finally {
     await rm(tempDir, { recursive: true, force: true });

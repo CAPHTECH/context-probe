@@ -1,3 +1,4 @@
+import { normalizeDocuments } from "./artifacts.js";
 import type {
   ExtractionBackend,
   ExtractionKind,
@@ -6,13 +7,12 @@ import type {
   Fragment,
   GlossaryTerm,
   InvariantCandidate,
+  ReviewResolutionLog,
   RuleCandidate,
-  ReviewResolutionLog
 } from "./contracts.js";
-import { normalizeDocuments } from "./artifacts.js";
-import { applyReviewOverrides } from "./review.js";
 import { runCliExtraction } from "./providers.js";
 import { createEvidenceId } from "./response.js";
+import { applyReviewOverrides } from "./review.js";
 
 interface ExtractionOptions {
   root: string;
@@ -54,7 +54,7 @@ const RULE_SIGNALS = [
   /\bshould not\b/i,
   /禁止/u,
   /行わない/u,
-  /残さない/u
+  /残さない/u,
 ];
 const INVARIANT_SIGNALS = [
   /常に/u,
@@ -70,7 +70,7 @@ const INVARIANT_SIGNALS = [
   /辿れる/u,
   /反映(?:される|されている)/u,
   /付与(?:される|されている)/u,
-  /表示(?:される|されている)/u
+  /表示(?:される|されている)/u,
 ];
 const RULE_PREDICATE_PATTERNS = [
   /なければならない[。.]?$/u,
@@ -83,7 +83,7 @@ const RULE_PREDICATE_PATTERNS = [
   /残さない[。.]?$/u,
   /持つ[。.]?$/u,
   /従う[。.]?$/u,
-  /守る[。.]?$/u
+  /守る[。.]?$/u,
 ];
 const INVARIANT_PREDICATE_PATTERNS = [
   /である[。.]?$/u,
@@ -103,7 +103,7 @@ const INVARIANT_PREDICATE_PATTERNS = [
   /維持(?:される|している|する)?[。.]?$/u,
   /成立(?:する|している)?[。.]?$/u,
   /閉じ(?:ている|る)[。.]?$/u,
-  /\balways\b.+\b(is|are|returns?|holds?)\b/i
+  /\balways\b.+\b(is|are|returns?|holds?)\b/i,
 ];
 const RULE_INVARIANT_AMBIGUITY = "The boundary between a rule and an invariant is ambiguous.";
 const INVARIANT_ACCEPTANCE_AMBIGUITY = "The boundary between an invariant and an acceptance condition is ambiguous.";
@@ -112,7 +112,7 @@ const INVARIANT_REVIEW_SIGNALS = [
   /表示(?:される|されている)/u,
   /反映(?:される|されている)/u,
   /付与(?:される|されている)/u,
-  /欠落しない/u
+  /欠落しない/u,
 ];
 const STRUCTURAL_GLOSSARY_FLAG_PATTERN = /^--[a-z0-9][a-z0-9-]*$/;
 const STRUCTURAL_GLOSSARY_FILE_SUFFIX_PATTERN = /\.(?:ts|tsx|js|mjs|md|yaml|yml|json)$/i;
@@ -171,7 +171,10 @@ function isListItemLine(line: string): boolean {
 }
 
 function stripListMarker(line: string): string {
-  return line.replace(/^[-*+]\s+/, "").replace(/^\d+\.\s+/, "").trim();
+  return line
+    .replace(/^[-*+]\s+/, "")
+    .replace(/^\d+\.\s+/, "")
+    .trim();
 }
 
 function buildMetadata(options: ExtractionOptions): ExtractionMetadata {
@@ -179,7 +182,7 @@ function buildMetadata(options: ExtractionOptions): ExtractionMetadata {
     extractor: options.extractor ?? "heuristic",
     ...(options.provider ? { provider: options.provider } : {}),
     promptProfile: options.promptProfile ?? "default",
-    fallback: options.fallback ?? "heuristic"
+    fallback: options.fallback ?? "heuristic",
   };
 }
 
@@ -204,8 +207,8 @@ function createEvidenceFromFragment(fragment: Fragment, statement: string, confi
     source: {
       artifactId: fragment.artifactId,
       fragmentId: fragment.fragmentId,
-      path: fragment.path
-    }
+      path: fragment.path,
+    },
   };
 }
 
@@ -226,7 +229,7 @@ function collectTerms(fragments: Fragment[]): Map<string, HeuristicTermCandidate
       canonicalTerm: term,
       count: 0,
       evidence: [],
-      fragmentIds: []
+      fragmentIds: [],
     };
     current.count += 1;
     current.fragmentIds.push(fragment.fragmentId);
@@ -280,18 +283,18 @@ function hasPredicateShape(text: string, patterns: RegExp[]): boolean {
 
 function buildInvariantReviewState(
   statement: string,
-  sourceKind: "sentence" | "bullet"
+  sourceKind: "sentence" | "bullet",
 ): Pick<HeuristicStatementCandidate, "confidence" | "unknowns"> {
   const bulletPenalty = sourceKind === "bullet" ? 0.06 : 0;
   if (hasAnySignal(statement, INVARIANT_REVIEW_SIGNALS)) {
     return {
       confidence: 0.68 - bulletPenalty,
-      unknowns: [INVARIANT_ACCEPTANCE_AMBIGUITY]
+      unknowns: [INVARIANT_ACCEPTANCE_AMBIGUITY],
     };
   }
   return {
     confidence: 0.82 - bulletPenalty,
-    unknowns: []
+    unknowns: [],
   };
 }
 
@@ -310,7 +313,7 @@ function buildStatementSegments(fragment: Fragment): StatementSegment[] {
     splitIntoSentences(proseBuffer.join(" ")).forEach((sentence) => {
       segments.push({
         text: sentence,
-        sourceKind: "sentence"
+        sourceKind: "sentence",
       });
     });
     proseBuffer.length = 0;
@@ -328,7 +331,7 @@ function buildStatementSegments(fragment: Fragment): StatementSegment[] {
       if (bullet) {
         segments.push({
           text: bullet,
-          sourceKind: "bullet"
+          sourceKind: "bullet",
         });
       }
       continue;
@@ -343,7 +346,7 @@ function buildStatementSegments(fragment: Fragment): StatementSegment[] {
 function classifyStatement(
   statement: string,
   fragment: Fragment,
-  sourceKind: "sentence" | "bullet"
+  sourceKind: "sentence" | "bullet",
 ): { kind: "rule" | "invariant"; item: HeuristicStatementCandidate } | undefined {
   const normalized = normalizeStatement(statement);
   if (!normalized || isQuestionLikeStatement(normalized)) {
@@ -370,8 +373,8 @@ function classifyStatement(
         fragment,
         confidence: invariantReviewState.confidence,
         unknowns: invariantReviewState.unknowns,
-        sourceKind
-      }
+        sourceKind,
+      },
     };
   }
 
@@ -383,8 +386,8 @@ function classifyStatement(
         fragment,
         confidence: 0.62 - bulletPenalty,
         unknowns: [RULE_INVARIANT_AMBIGUITY],
-        sourceKind
-      }
+        sourceKind,
+      },
     };
   }
 
@@ -396,8 +399,8 @@ function classifyStatement(
         fragment,
         confidence: 0.78 - bulletPenalty,
         unknowns: [],
-        sourceKind
-      }
+        sourceKind,
+      },
     };
   }
 
@@ -408,8 +411,8 @@ function classifyStatement(
       fragment,
       confidence: 0.62 - bulletPenalty,
       unknowns: [RULE_INVARIANT_AMBIGUITY],
-      sourceKind
-    }
+      sourceKind,
+    },
   };
 }
 
@@ -458,7 +461,7 @@ function normalizeGlossaryFromHeuristic(fragments: Fragment[]): GlossaryTerm[] {
       confidence: 0.7,
       evidence: candidate.evidence,
       unknowns: [],
-      fragmentIds: candidate.fragmentIds
+      fragmentIds: candidate.fragmentIds,
     }));
 }
 
@@ -471,7 +474,7 @@ function normalizeRulesFromHeuristic(fragments: Fragment[]): RuleCandidate[] {
     evidence: [createEvidenceFromFragment(item.fragment, item.statement, item.confidence)],
     unknowns: item.unknowns,
     fragmentIds: [item.fragment.fragmentId],
-    relatedTerms: []
+    relatedTerms: [],
   }));
 }
 
@@ -484,7 +487,7 @@ function normalizeInvariantsFromHeuristic(fragments: Fragment[]): InvariantCandi
     evidence: [createEvidenceFromFragment(item.fragment, item.statement, item.confidence)],
     unknowns: item.unknowns,
     fragmentIds: [item.fragment.fragmentId],
-    relatedTerms: []
+    relatedTerms: [],
   }));
 }
 
@@ -500,15 +503,23 @@ function normalizeGlossaryFromCli(rawItems: Record<string, unknown>[], fragments
       return {
         termId: createTermId(`${canonicalTerm}:${fragmentIds.join(",")}`),
         canonicalTerm,
-        aliases: Array.isArray(item.aliases) ? item.aliases.filter((value): value is string => typeof value === "string") : [],
+        aliases: Array.isArray(item.aliases)
+          ? item.aliases.filter((value): value is string => typeof value === "string")
+          : [],
         count: fragmentIds.length || 1,
         collision: Boolean(item.collision),
         confidence: typeof item.confidence === "number" ? item.confidence : 0.7,
         evidence: supportingFragments.map((fragment) =>
-          createEvidenceFromFragment(fragment, `Term candidate: ${canonicalTerm}`, typeof item.confidence === "number" ? item.confidence : 0.7)
+          createEvidenceFromFragment(
+            fragment,
+            `Term candidate: ${canonicalTerm}`,
+            typeof item.confidence === "number" ? item.confidence : 0.7,
+          ),
         ),
-        unknowns: Array.isArray(item.unknowns) ? item.unknowns.filter((value): value is string => typeof value === "string") : [],
-        fragmentIds
+        unknowns: Array.isArray(item.unknowns)
+          ? item.unknowns.filter((value): value is string => typeof value === "string")
+          : [],
+        fragmentIds,
       };
     });
 }
@@ -529,11 +540,13 @@ function normalizeRulesFromCli(rawItems: Record<string, unknown>[], fragments: F
         statement,
         confidence,
         evidence: supportingFragments.map((fragment) => createEvidenceFromFragment(fragment, statement, confidence)),
-        unknowns: Array.isArray(item.unknowns) ? item.unknowns.filter((value): value is string => typeof value === "string") : [],
+        unknowns: Array.isArray(item.unknowns)
+          ? item.unknowns.filter((value): value is string => typeof value === "string")
+          : [],
         fragmentIds,
         relatedTerms: Array.isArray(item.relatedTerms)
           ? item.relatedTerms.filter((value): value is string => typeof value === "string")
-          : []
+          : [],
       };
     });
 }
@@ -554,11 +567,13 @@ function normalizeInvariantsFromCli(rawItems: Record<string, unknown>[], fragmen
         statement,
         confidence,
         evidence: supportingFragments.map((fragment) => createEvidenceFromFragment(fragment, statement, confidence)),
-        unknowns: Array.isArray(item.unknowns) ? item.unknowns.filter((value): value is string => typeof value === "string") : [],
+        unknowns: Array.isArray(item.unknowns)
+          ? item.unknowns.filter((value): value is string => typeof value === "string")
+          : [],
         fragmentIds,
         relatedTerms: Array.isArray(item.relatedTerms)
           ? item.relatedTerms.filter((value): value is string => typeof value === "string")
-          : []
+          : [],
       };
     });
 }
@@ -573,7 +588,7 @@ async function extractWithProvider(kind: ExtractionKind, fragments: Fragment[], 
     kind,
     promptProfile: options.promptProfile ?? "default",
     fragments,
-    ...(options.providerCommand ? { providerCommand: options.providerCommand } : {})
+    ...(options.providerCommand ? { providerCommand: options.providerCommand } : {}),
   });
 
   if (kind === "glossary") {
@@ -582,7 +597,7 @@ async function extractWithProvider(kind: ExtractionKind, fragments: Fragment[], 
       confidence: providerResult.confidence,
       unknowns: providerResult.unknowns,
       diagnostics: providerResult.diagnostics,
-      provider: providerResult.provider
+      provider: providerResult.provider,
     };
   }
   if (kind === "rules") {
@@ -591,7 +606,7 @@ async function extractWithProvider(kind: ExtractionKind, fragments: Fragment[], 
       confidence: providerResult.confidence,
       unknowns: providerResult.unknowns,
       diagnostics: providerResult.diagnostics,
-      provider: providerResult.provider
+      provider: providerResult.provider,
     };
   }
   return {
@@ -599,28 +614,19 @@ async function extractWithProvider(kind: ExtractionKind, fragments: Fragment[], 
     confidence: providerResult.confidence,
     unknowns: providerResult.unknowns,
     diagnostics: providerResult.diagnostics,
-    provider: providerResult.provider
+    provider: providerResult.provider,
   };
 }
 
-function applyGlossaryReview(
-  items: GlossaryTerm[],
-  options: ExtractionOptions
-): GlossaryTerm[] {
+function applyGlossaryReview(items: GlossaryTerm[], options: ExtractionOptions): GlossaryTerm[] {
   return options.applyReviewLog ? applyReviewOverrides(items, options.reviewLog, "termId") : items;
 }
 
-function applyRulesReview(
-  items: RuleCandidate[],
-  options: ExtractionOptions
-): RuleCandidate[] {
+function applyRulesReview(items: RuleCandidate[], options: ExtractionOptions): RuleCandidate[] {
   return options.applyReviewLog ? applyReviewOverrides(items, options.reviewLog, "ruleId") : items;
 }
 
-function applyInvariantsReview(
-  items: InvariantCandidate[],
-  options: ExtractionOptions
-): InvariantCandidate[] {
+function applyInvariantsReview(items: InvariantCandidate[], options: ExtractionOptions): InvariantCandidate[] {
   return options.applyReviewLog ? applyReviewOverrides(items, options.reviewLog, "invariantId") : items;
 }
 
@@ -637,11 +643,11 @@ export async function extractGlossary(options: ExtractionOptions) {
         terms: applyGlossaryReview(extracted.items as GlossaryTerm[], options),
         metadata: {
           ...metadata,
-          provider: extracted.provider
+          provider: extracted.provider,
         },
         confidence: extracted.confidence,
         unknowns: extracted.unknowns,
-        diagnostics: extracted.diagnostics
+        diagnostics: extracted.diagnostics,
       };
     } catch (error) {
       if (fallback === "none") {
@@ -654,7 +660,7 @@ export async function extractGlossary(options: ExtractionOptions) {
         metadata,
         confidence: 0.55,
         unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
-        diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"]
+        diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"],
       };
     }
   }
@@ -666,7 +672,7 @@ export async function extractGlossary(options: ExtractionOptions) {
     metadata,
     confidence: 0.7,
     unknowns: [],
-    diagnostics: []
+    diagnostics: [],
   };
 }
 
@@ -683,11 +689,11 @@ export async function extractRules(options: ExtractionOptions) {
         fragments,
         metadata: {
           ...metadata,
-          provider: extracted.provider
+          provider: extracted.provider,
         },
         confidence: extracted.confidence,
         unknowns: extracted.unknowns,
-        diagnostics: extracted.diagnostics
+        diagnostics: extracted.diagnostics,
       };
     } catch (error) {
       if (fallback === "none") {
@@ -700,7 +706,7 @@ export async function extractRules(options: ExtractionOptions) {
         metadata,
         confidence: 0.55,
         unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
-        diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"]
+        diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"],
       };
     }
   }
@@ -712,7 +718,7 @@ export async function extractRules(options: ExtractionOptions) {
     metadata,
     confidence: 0.7,
     unknowns: [],
-    diagnostics: []
+    diagnostics: [],
   };
 }
 
@@ -729,11 +735,11 @@ export async function extractInvariants(options: ExtractionOptions) {
         fragments,
         metadata: {
           ...metadata,
-          provider: extracted.provider
+          provider: extracted.provider,
         },
         confidence: extracted.confidence,
         unknowns: extracted.unknowns,
-        diagnostics: extracted.diagnostics
+        diagnostics: extracted.diagnostics,
       };
     } catch (error) {
       if (fallback === "none") {
@@ -746,7 +752,7 @@ export async function extractInvariants(options: ExtractionOptions) {
         metadata,
         confidence: 0.55,
         unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
-        diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"]
+        diagnostics: [error instanceof Error ? error.message : "CLI extractor failed"],
       };
     }
   }
@@ -758,6 +764,6 @@ export async function extractInvariants(options: ExtractionOptions) {
     metadata,
     confidence: 0.68,
     unknowns: [],
-    diagnostics: []
+    diagnostics: [],
   };
 }

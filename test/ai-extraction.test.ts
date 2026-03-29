@@ -23,9 +23,9 @@ describe("AI-backed extraction", () => {
         extractor: "cli",
         provider: "codex",
         "provider-cmd": CODEX_STUB,
-        fallback: "none"
+        fallback: "none",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("ok");
@@ -47,9 +47,9 @@ describe("AI-backed extraction", () => {
         extractor: "cli",
         provider: "claude",
         "provider-cmd": CLAUDE_STUB,
-        fallback: "none"
+        fallback: "none",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const result = response.result as {
@@ -68,17 +68,18 @@ describe("AI-backed extraction", () => {
         extractor: "cli",
         provider: "codex",
         "provider-cmd": CODEX_STUB,
-        fallback: "none"
+        fallback: "none",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const reviewItemsResponse = await COMMANDS["review.list_unknowns"]!(
       {
-        input: await writeTempJson(glossaryResponse)
+        input: await writeTempJson(glossaryResponse),
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
-    const reviewItems = (reviewItemsResponse.result as { reviewItems: Array<{ reviewItemId: string; reason: string }> }).reviewItems;
+    const reviewItems = (reviewItemsResponse.result as { reviewItems: Array<{ reviewItemId: string; reason: string }> })
+      .reviewItems;
     const collisionItem = reviewItems.find((item) => item.reason === "collision");
     expect(collisionItem).toBeTruthy();
 
@@ -89,18 +90,18 @@ describe("AI-backed extraction", () => {
         decision: {
           patch: {
             collision: false,
-            aliases: ["Invoice"]
-          }
-        }
-      }
+            aliases: ["Invoice"],
+          },
+        },
+      },
     ]);
     const reviewItemsPath = await writeTempJson(reviewItemsResponse.result);
     const resolutionResponse = await COMMANDS["review.resolve"]!(
       {
         "review-items": reviewItemsPath,
-        resolutions: resolutionLogPath
+        resolutions: resolutionLogPath,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const reviewLogPath = await writeTempJson(resolutionResponse.result);
 
@@ -112,14 +113,16 @@ describe("AI-backed extraction", () => {
         "provider-cmd": CODEX_STUB,
         fallback: "none",
         "review-log": reviewLogPath,
-        "apply-review-log": true
+        "apply-review-log": true,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
-    const resolvedTerms = (resolvedGlossaryResponse.result as {
-      terms: Array<{ collision: boolean; aliases: string[] }>;
-    }).terms;
+    const resolvedTerms = (
+      resolvedGlossaryResponse.result as {
+        terms: Array<{ collision: boolean; aliases: string[] }>;
+      }
+    ).terms;
     expect(resolvedTerms[0]?.collision).toBe(false);
     expect(resolvedTerms[0]?.aliases).toEqual(["Invoice"]);
   });
@@ -133,9 +136,9 @@ describe("AI-backed extraction", () => {
         extractor: "cli",
         provider: "codex",
         "provider-cmd": CODEX_STUB,
-        fallback: "none"
+        fallback: "none",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const result = response.result as {

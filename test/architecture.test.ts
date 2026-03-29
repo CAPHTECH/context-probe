@@ -11,9 +11,9 @@ describe("architecture direction scoring", () => {
         repo: path.resolve("fixtures/architecture/sample-repo"),
         constraints: path.resolve("fixtures/architecture/constraints.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("ok");

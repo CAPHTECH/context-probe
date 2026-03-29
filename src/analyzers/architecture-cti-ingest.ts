@@ -1,7 +1,4 @@
-import type {
-  ArchitectureComplexityExportBundle,
-  ArchitectureComplexityMetadata
-} from "../core/contracts.js";
+import type { ArchitectureComplexityExportBundle, ArchitectureComplexityMetadata } from "../core/contracts.js";
 
 export interface ComplexityExportIngestFinding {
   kind: "complexity_export_metric_mapped" | "complexity_export_metric_missing";
@@ -53,7 +50,7 @@ export function ingestComplexityExportBundle(input: {
     "datastoreCount",
     "onCallSurface",
     "syncDepthP95",
-    "runCostPerBusinessTransaction"
+    "runCostPerBusinessTransaction",
   ] as const;
 
   for (const component of mappings) {
@@ -65,7 +62,7 @@ export function ingestComplexityExportBundle(input: {
         confidence: 0.62,
         note: `The complexity export is missing ${component}.`,
         component,
-        ...(input.bundle.sourceSystem ? { sourceSystem: input.bundle.sourceSystem } : {})
+        ...(input.bundle.sourceSystem ? { sourceSystem: input.bundle.sourceSystem } : {}),
       });
       confidenceSignals.push(0.55);
       continue;
@@ -76,7 +73,7 @@ export function ingestComplexityExportBundle(input: {
       note: `Imported ${component} from the complexity export into CTI metadata.`,
       component,
       observed,
-      ...(input.bundle.sourceSystem ? { sourceSystem: input.bundle.sourceSystem } : {})
+      ...(input.bundle.sourceSystem ? { sourceSystem: input.bundle.sourceSystem } : {}),
     });
     confidenceSignals.push(0.84);
   }
@@ -85,10 +82,10 @@ export function ingestComplexityExportBundle(input: {
     complexity: {
       ...(input.existing ?? {}),
       ...metrics,
-      ...(input.existing?.normalization ? { normalization: input.existing.normalization } : {})
+      ...(input.existing?.normalization ? { normalization: input.existing.normalization } : {}),
     },
     confidence: clamp01(average(confidenceSignals, 0.6)),
     unknowns: unique(unknowns),
-    findings
+    findings,
   };
 }

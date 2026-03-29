@@ -11,29 +11,29 @@ import type {
   GlossaryTerm,
   InvariantCandidate,
   RuleCandidate,
-  TermTraceLink
+  TermTraceLink,
 } from "./contracts.js";
 import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
 import { matchGlobs } from "./io.js";
 import { clampConfidence, toEvidence } from "./response.js";
 import {
   AGGREGATE_FILE_PATTERN,
-  CONTRACT_MARKERS,
-  INTERNAL_MARKERS,
-  type ExtractionOptions,
-  type ScaffoldComputation,
-  type SourceGroup,
-  STOPWORD_AGGREGATE_TERMS,
   averageConfidence,
+  CONTRACT_MARKERS,
   collectMarkerGlobs,
   createDefaultExtractionOptions,
+  type ExtractionOptions,
   groupSourceFiles,
+  INTERNAL_MARKERS,
   inferGroupNames,
   mergeEvidence,
   mergeUnknowns,
   normalizeName,
+  type ScaffoldComputation,
+  type SourceGroup,
+  STOPWORD_AGGREGATE_TERMS,
   toPascalCase,
-  unique
+  unique,
 } from "./scaffold-shared.js";
 import { buildTermTraceLinks } from "./trace.js";
 
@@ -59,7 +59,7 @@ function countContextMentions(name: string, fragments: GlossaryExtractionResult[
 function buildContextCandidate(
   group: SourceGroup,
   name: string,
-  fragments: GlossaryExtractionResult["fragments"] | undefined
+  fragments: GlossaryExtractionResult["fragments"] | undefined,
 ): DomainContextCandidate {
   const pathGlobs = group.segment ? [`${group.basePath}/**`] : group.files;
   const contractGlobs = collectMarkerGlobs(group, CONTRACT_MARKERS);
@@ -71,14 +71,14 @@ function buildContextCandidate(
       (group.files.length >= 2 ? 0.08 : 0) +
       (contractGlobs.length > 0 ? 0.08 : 0) +
       (internalGlobs.length > 0 ? 0.08 : 0) +
-      (docsMentions > 0 ? 0.08 : 0)
+      (docsMentions > 0 ? 0.08 : 0),
   );
 
   const definition: ContextDefinition = {
     name,
     pathGlobs,
     ...(contractGlobs.length > 0 ? { contractGlobs } : {}),
-    ...(internalGlobs.length > 0 ? { internalGlobs } : {})
+    ...(internalGlobs.length > 0 ? { internalGlobs } : {}),
   };
 
   return {
@@ -90,19 +90,19 @@ function buildContextCandidate(
         {
           group: group.basePath || ".",
           files: group.files.slice(0, 5),
-          pathGlobs
+          pathGlobs,
         },
         undefined,
-        confidence
-      )
+        confidence,
+      ),
     ],
-    unknowns: group.segment ? [] : ["Root-level source files were grouped into a single context by heuristic."]
+    unknowns: group.segment ? [] : ["Root-level source files were grouped into a single context by heuristic."],
   };
 }
 
 function buildContextCandidates(
   codebase: Awaited<ReturnType<typeof parseCodebase>>,
-  fragments: GlossaryExtractionResult["fragments"] | undefined
+  fragments: GlossaryExtractionResult["fragments"] | undefined,
 ): Array<{ group: SourceGroup; candidate: DomainContextCandidate }> {
   const groups = groupSourceFiles(codebase);
   if (groups.length === 0) {
@@ -112,12 +112,17 @@ function buildContextCandidates(
   const names = inferGroupNames(groups);
   return groups.map((group, index) => ({
     group,
-    candidate: buildContextCandidate(group, names[index] ?? "Context", fragments)
+    candidate: buildContextCandidate(group, names[index] ?? "Context", fragments),
   }));
 }
 
 function isAggregateFile(filePath: string): boolean {
-  const baseName = filePath.split("/").pop()?.replace(/\.[^.]+$/u, "").toLowerCase() ?? "";
+  const baseName =
+    filePath
+      .split("/")
+      .pop()
+      ?.replace(/\.[^.]+$/u, "")
+      .toLowerCase() ?? "";
   return AGGREGATE_FILE_PATTERN.test(baseName);
 }
 
@@ -125,13 +130,13 @@ function sanitizeAggregateAliases(name: string, aliases: string[]): string[] {
   return unique(
     aliases
       .map((alias) => alias.trim())
-      .filter((alias) => alias.length > 0 && normalizeName(alias) !== normalizeName(name))
+      .filter((alias) => alias.length > 0 && normalizeName(alias) !== normalizeName(name)),
   );
 }
 
 function createExplicitAggregateCandidates(
   contextCandidates: Array<{ group: SourceGroup; candidate: DomainContextCandidate }>,
-  fragments: GlossaryExtractionResult["fragments"] | undefined
+  fragments: GlossaryExtractionResult["fragments"] | undefined,
 ): DomainAggregateCandidate[] {
   const aggregateCandidates: DomainAggregateCandidate[] = [];
 
@@ -150,7 +155,7 @@ function createExplicitAggregateCandidates(
         definition: {
           name,
           context: entry.candidate.definition.name,
-          ...(aliases.length > 0 ? { aliases } : {})
+          ...(aliases.length > 0 ? { aliases } : {}),
         },
         confidence,
         evidence: [
@@ -158,13 +163,13 @@ function createExplicitAggregateCandidates(
             `${name} was inferred from ${filePath}.`,
             {
               context: entry.candidate.definition.name,
-              path: filePath
+              path: filePath,
             },
             undefined,
-            confidence
-          )
+            confidence,
+          ),
         ],
-        unknowns: []
+        unknowns: [],
       });
     }
   }
@@ -192,7 +197,7 @@ function countTermSupport(term: GlossaryTerm, rules: RuleCandidate[], invariants
 
 function hasContractOccurrence(termLink: TermTraceLink | undefined, context: ContextDefinition): boolean {
   return (termLink?.occurrences ?? []).some(
-    (occurrence) => occurrence.kind === "code" && matchGlobs(occurrence.path, context.contractGlobs)
+    (occurrence) => occurrence.kind === "code" && matchGlobs(occurrence.path, context.contractGlobs),
   );
 }
 
@@ -200,13 +205,13 @@ function hasInternalOccurrence(termLink: TermTraceLink | undefined, context: Con
   return (termLink?.occurrences ?? []).some(
     (occurrence) =>
       occurrence.kind === "code" &&
-      (matchGlobs(occurrence.path, context.internalGlobs) || matchGlobs(occurrence.path, context.pathGlobs))
+      (matchGlobs(occurrence.path, context.internalGlobs) || matchGlobs(occurrence.path, context.pathGlobs)),
   );
 }
 
 function createTermAggregateCandidates(
   contextCandidates: Array<{ group: SourceGroup; candidate: DomainContextCandidate }>,
-  docsBundle: DocsBundle | undefined
+  docsBundle: DocsBundle | undefined,
 ): DomainAggregateCandidate[] {
   if (!docsBundle) {
     return [];
@@ -214,7 +219,7 @@ function createTermAggregateCandidates(
 
   const model: DomainModel = {
     version: "1.0",
-    contexts: contextCandidates.map((entry) => entry.candidate.definition)
+    contexts: contextCandidates.map((entry) => entry.candidate.definition),
   };
   const contextByName = new Map(model.contexts.map((context) => [context.name, context]));
   const linkByTermId = new Map(docsBundle.termLinks.map((link) => [link.termId, link]));
@@ -252,14 +257,14 @@ function createTermAggregateCandidates(
       0.58 +
         Math.min(0.15, supportCount * 0.05) +
         ((link?.coverage.codeHits ?? 0) > 0 ? 0.08 : 0) +
-        (term.collision ? -0.08 : 0)
+        (term.collision ? -0.08 : 0),
     );
 
     candidates.push({
       definition: {
         name,
         context: contextName,
-        ...(aliases.length > 0 ? { aliases } : {})
+        ...(aliases.length > 0 ? { aliases } : {}),
       },
       confidence,
       evidence: [
@@ -269,13 +274,13 @@ function createTermAggregateCandidates(
             context: contextName,
             term: term.canonicalTerm,
             codeHits: link?.coverage.codeHits ?? 0,
-            supportCount
+            supportCount,
           },
           [term.termId],
-          confidence
-        )
+          confidence,
+        ),
       ],
-      unknowns: ["The aggregate name is inferred from localized document terms and should be reviewed."]
+      unknowns: ["The aggregate name is inferred from localized document terms and should be reviewed."],
     });
   }
 
@@ -306,19 +311,19 @@ async function buildDocsBundle(
   repoRoot: string,
   docsRoot: string,
   codebase: Awaited<ReturnType<typeof parseCodebase>>,
-  extractionOptions: ExtractionOptions | undefined
+  extractionOptions: ExtractionOptions | undefined,
 ): Promise<DocsBundle> {
   const options = extractionOptions ?? createDefaultExtractionOptions(docsRoot, repoRoot);
   const [glossary, rules, invariants] = await Promise.all([
     extractGlossary(options),
     extractRules(options),
-    extractInvariants(options)
+    extractInvariants(options),
   ]);
   const termLinks = await buildTermTraceLinks({
     docsRoot,
     repoRoot,
     terms: glossary.terms,
-    codeFiles: codebase.scorableSourceFiles
+    codeFiles: codebase.scorableSourceFiles,
   });
   return { glossary, rules, invariants, termLinks };
 }
@@ -343,16 +348,16 @@ export async function scaffoldDomainModel(options: {
     contexts: contextCandidates.map((entry) => entry.candidate.definition),
     ...(aggregateCandidates.length > 0
       ? {
-          aggregates: aggregateCandidates.map((candidate) => candidate.definition)
+          aggregates: aggregateCandidates.map((candidate) => candidate.definition),
         }
-      : {})
+      : {}),
   };
 
   const result: DomainModelScaffoldResult = {
     model,
     yaml: YAML.stringify(model),
     contexts: contextCandidates.map((entry) => entry.candidate),
-    aggregates: aggregateCandidates
+    aggregates: aggregateCandidates,
   };
 
   const extractionSignals = docsBundle
@@ -364,28 +369,22 @@ export async function scaffoldDomainModel(options: {
     [...contextCandidates.map((entry) => entry.candidate), ...aggregateCandidates],
     [
       ...(docsBundle
-        ? [
-            ...docsBundle.glossary.unknowns,
-            ...docsBundle.rules.unknowns,
-            ...docsBundle.invariants.unknowns
-          ]
+        ? [...docsBundle.glossary.unknowns, ...docsBundle.rules.unknowns, ...docsBundle.invariants.unknowns]
         : ["No docs root was provided, so aggregate candidates rely on code structure only."]),
-      ...(aggregateCandidates.length === 0 ? ["No aggregate candidates were observed; review whether aggregates should be declared explicitly."] : [])
-    ]
+      ...(aggregateCandidates.length === 0
+        ? ["No aggregate candidates were observed; review whether aggregates should be declared explicitly."]
+        : []),
+    ],
   );
 
   const diagnostics = unique(
     [
       ...(docsBundle
-        ? [
-            ...docsBundle.glossary.diagnostics,
-            ...docsBundle.rules.diagnostics,
-            ...docsBundle.invariants.diagnostics
-          ]
+        ? [...docsBundle.glossary.diagnostics, ...docsBundle.rules.diagnostics, ...docsBundle.invariants.diagnostics]
         : []),
       `Scaffolded ${contextCandidates.length} context candidate(s).`,
-      `Scaffolded ${aggregateCandidates.length} aggregate candidate(s).`
-    ].filter((entry) => entry.length > 0)
+      `Scaffolded ${aggregateCandidates.length} aggregate candidate(s).`,
+    ].filter((entry) => entry.length > 0),
   );
 
   return {
@@ -393,6 +392,6 @@ export async function scaffoldDomainModel(options: {
     confidence,
     evidence: mergeEvidence([...contextCandidates.map((entry) => entry.candidate), ...aggregateCandidates]),
     unknowns,
-    diagnostics
+    diagnostics,
   };
 }

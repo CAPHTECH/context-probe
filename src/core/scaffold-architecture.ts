@@ -5,21 +5,21 @@ import type {
   ArchitectureConstraints,
   ArchitectureConstraintsScaffoldResult,
   ArchitectureLayerCandidate,
-  LayerDefinition
+  LayerDefinition,
 } from "./contracts.js";
 import { clampConfidence, toEvidence } from "./response.js";
 import {
-  LAYER_PRIORITY_HINTS,
-  type ScaffoldComputation,
-  type SourceGroup,
   averageLayerConfidence,
   groupSourceFiles,
   inferRootGroupName,
+  LAYER_PRIORITY_HINTS,
   makeUniqueNames,
   mergeEvidence,
   mergeUnknowns,
   normalizeName,
-  toPascalCase
+  type ScaffoldComputation,
+  type SourceGroup,
+  toPascalCase,
 } from "./scaffold-shared.js";
 
 function buildLayerCandidate(group: SourceGroup, balance: number): ArchitectureLayerCandidate {
@@ -27,13 +27,13 @@ function buildLayerCandidate(group: SourceGroup, balance: number): ArchitectureL
   const globs = group.segment ? [`${group.basePath}/**`] : group.files;
   const hintKey = normalizeName(group.segment ?? name).replace(/\s+/gu, "_");
   const confidence = clampConfidence(
-    0.58 + (LAYER_PRIORITY_HINTS.has(hintKey) ? 0.18 : 0) + (group.files.length >= 2 ? 0.08 : 0)
+    0.58 + (LAYER_PRIORITY_HINTS.has(hintKey) ? 0.18 : 0) + (group.files.length >= 2 ? 0.08 : 0),
   );
   return {
     definition: {
       name,
       rank: 0,
-      globs
+      globs,
     },
     confidence,
     evidence: [
@@ -42,13 +42,13 @@ function buildLayerCandidate(group: SourceGroup, balance: number): ArchitectureL
         {
           group: group.basePath || ".",
           outgoingMinusIncomingDependencies: balance,
-          globs
+          globs,
         },
         undefined,
-        confidence
-      )
+        confidence,
+      ),
     ],
-    unknowns: group.segment ? [] : ["Root-level source files were grouped into a single layer by heuristic."]
+    unknowns: group.segment ? [] : ["Root-level source files were grouped into a single layer by heuristic."],
   };
 }
 
@@ -82,10 +82,10 @@ function inferLayerOrder(codebase: Awaited<ReturnType<typeof parseCodebase>>, gr
 
   return [...groups].sort((left, right) => {
     const leftHint = LAYER_PRIORITY_HINTS.get(
-      normalizeName(left.segment ?? inferRootGroupName(left)).replace(/\s+/gu, "_")
+      normalizeName(left.segment ?? inferRootGroupName(left)).replace(/\s+/gu, "_"),
     );
     const rightHint = LAYER_PRIORITY_HINTS.get(
-      normalizeName(right.segment ?? inferRootGroupName(right)).replace(/\s+/gu, "_")
+      normalizeName(right.segment ?? inferRootGroupName(right)).replace(/\s+/gu, "_"),
     );
     const leftPriority = leftHint ?? 100;
     const rightPriority = rightHint ?? 100;
@@ -103,17 +103,17 @@ function inferLayerOrder(codebase: Awaited<ReturnType<typeof parseCodebase>>, gr
 
 function buildArchitectureConstraints(groups: SourceGroup[]): ArchitectureConstraints {
   const orderedNames = makeUniqueNames(
-    groups.map((group) => (group.segment ? toPascalCase(group.segment) : inferRootGroupName(group)))
+    groups.map((group) => (group.segment ? toPascalCase(group.segment) : inferRootGroupName(group))),
   );
   const layers: LayerDefinition[] = groups.map((group, index) => ({
     name: orderedNames[index] ?? `Layer${index + 1}`,
     rank: index,
-    globs: group.segment ? [`${group.basePath}/**`] : group.files
+    globs: group.segment ? [`${group.basePath}/**`] : group.files,
   }));
   return {
     version: "1.0",
     direction: "inward",
-    layers
+    layers,
   };
 }
 
@@ -157,15 +157,15 @@ export async function scaffoldArchitectureConstraints(options: {
         ...candidate.definition,
         name: constraints.layers[index]?.name ?? candidate.definition.name,
         rank: index,
-        globs: constraints.layers[index]?.globs ?? candidate.definition.globs
-      }
+        globs: constraints.layers[index]?.globs ?? candidate.definition.globs,
+      },
     };
   });
 
   const result: ArchitectureConstraintsScaffoldResult = {
     constraints,
     yaml: YAML.stringify(constraints),
-    layers
+    layers,
   };
 
   const confidence = clampConfidence(averageLayerConfidence(layers));
@@ -175,8 +175,8 @@ export async function scaffoldArchitectureConstraints(options: {
     confidence,
     evidence: mergeEvidence(layers),
     unknowns: mergeUnknowns(layers, [
-      "Complexity metadata is not scaffolded by default; add it explicitly when stable observations are available."
+      "Complexity metadata is not scaffolded by default; add it explicitly when stable observations are available.",
     ]),
-    diagnostics: [`Scaffolded ${layers.length} layer candidate(s).`]
+    diagnostics: [`Scaffolded ${layers.length} layer candidate(s).`],
   };
 }

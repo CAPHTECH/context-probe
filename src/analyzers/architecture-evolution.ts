@@ -2,7 +2,7 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
   ArchitectureDeliveryObservationSet,
-  CochangeCommit
+  CochangeCommit,
 } from "../core/contracts.js";
 import { matchGlobs, toPosixPath } from "../core/io.js";
 
@@ -51,22 +51,19 @@ function uniqueUnknowns(entries: string[]): string[] {
   return Array.from(new Set(entries));
 }
 
-function architectureBoundaries(
-  constraints: ArchitectureConstraints,
-  boundaryMap?: ArchitectureBoundaryMap
-) {
+function architectureBoundaries(constraints: ArchitectureConstraints, boundaryMap?: ArchitectureBoundaryMap) {
   if (boundaryMap && boundaryMap.boundaries.length > 0) {
     return boundaryMap.boundaries;
   }
   return constraints.layers.map((layer) => ({
     name: layer.name,
-    pathGlobs: layer.globs
+    pathGlobs: layer.globs,
   }));
 }
 
 function classifyBoundary(
   filePath: string,
-  boundaries: Array<{ name: string; pathGlobs: string[] }>
+  boundaries: Array<{ name: string; pathGlobs: string[] }>,
 ): string | undefined {
   const normalized = toPosixPath(filePath);
   return boundaries.find((boundary) => matchGlobs(normalized, boundary.pathGlobs))?.name;
@@ -92,7 +89,7 @@ export function scoreArchitectureEvolutionLocality(options: {
       WeightedClusteringCost: 0.5,
       confidence: 0.25,
       unknowns: ["There are too few architecture boundaries, so AELS is close to unobserved."],
-      findings
+      findings,
     };
   }
 
@@ -105,11 +102,11 @@ export function scoreArchitectureEvolutionLocality(options: {
       const touchedBoundaries = new Set(
         commit.files
           .map((filePath) => classifyBoundary(filePath, boundaries))
-          .filter((value): value is string => Boolean(value))
+          .filter((value): value is string => Boolean(value)),
       );
       return {
         ...commit,
-        touchedBoundaries
+        touchedBoundaries,
       };
     })
     .filter((entry) => entry.touchedBoundaries.size > 0);
@@ -122,9 +119,9 @@ export function scoreArchitectureEvolutionLocality(options: {
       confidence: 0.3,
       unknowns: uniqueUnknowns([
         ...unknowns,
-        "No history could be mapped to architecture boundaries, so AELS is close to unobserved."
+        "No history could be mapped to architecture boundaries, so AELS is close to unobserved.",
       ]),
-      findings
+      findings,
     };
   }
 
@@ -132,7 +129,7 @@ export function scoreArchitectureEvolutionLocality(options: {
   const crossBoundaryCommits = relevant.filter((entry) => entry.touchedBoundaries.size > 1);
   const CrossBoundaryCoChange = crossBoundaryCommits.length / relevant.length;
   const propagationCosts = relevant.map((entry) =>
-    totalBoundaries <= 1 ? 0 : (entry.touchedBoundaries.size - 1) / Math.max(1, totalBoundaries - 1)
+    totalBoundaries <= 1 ? 0 : (entry.touchedBoundaries.size - 1) / Math.max(1, totalBoundaries - 1),
   );
   const WeightedPropagationCost = clamp01(average(propagationCosts, 0));
 
@@ -145,7 +142,12 @@ export function scoreArchitectureEvolutionLocality(options: {
     }
     for (let index = 0; index < boundaryNames.length; index += 1) {
       for (let next = index + 1; next < boundaryNames.length; next += 1) {
-        const key = pairKey(boundaryNames[index]!, boundaryNames[next]!);
+        const leftBoundary = boundaryNames[index];
+        const rightBoundary = boundaryNames[next];
+        if (!leftBoundary || !rightBoundary) {
+          continue;
+        }
+        const key = pairKey(leftBoundary, rightBoundary);
         pairCounts.set(key, (pairCounts.get(key) ?? 0) + 1);
       }
     }
@@ -153,17 +155,18 @@ export function scoreArchitectureEvolutionLocality(options: {
       kind: "cross_boundary_cochange",
       commitHash: commit.hash,
       confidence: 0.82,
-      note: `Commit ${commit.hash.slice(0, 7)} changed multiple boundaries at once: ${boundaryNames.join(", ")}`
+      note: `Commit ${commit.hash.slice(0, 7)} changed multiple boundaries at once: ${boundaryNames.join(", ")}`,
     });
   }
 
   const maxPossiblePairs = Math.max(1, (totalBoundaries * (totalBoundaries - 1)) / 2);
   const pairSpread = pairCounts.size / maxPossiblePairs;
   const pairTouchDensity =
-    Array.from(pairCounts.values()).reduce((sum, value) => sum + value, 0) / Math.max(1, relevant.length * maxPossiblePairs);
+    Array.from(pairCounts.values()).reduce((sum, value) => sum + value, 0) /
+    Math.max(1, relevant.length * maxPossiblePairs);
   const boundarySpread = involvedBoundaries.size / totalBoundaries;
   const WeightedClusteringCost =
-    crossBoundaryCommits.length === 0 ? 0 : clamp01(0.75 * pairTouchDensity + 0.15 * pairSpread + 0.10 * boundarySpread);
+    crossBoundaryCommits.length === 0 ? 0 : clamp01(0.75 * pairTouchDensity + 0.15 * pairSpread + 0.1 * boundarySpread);
 
   if (relevant.length < 3) {
     unknowns.push("History is still thin for architecture-locality evaluation, so AELS is provisional.");
@@ -176,14 +179,14 @@ export function scoreArchitectureEvolutionLocality(options: {
     findings.push({
       kind: "high_propagation_cost",
       confidence: 0.76,
-      note: `WeightedPropagationCost is high at ${WeightedPropagationCost.toFixed(3)}, so changes are likely to spread.`
+      note: `WeightedPropagationCost is high at ${WeightedPropagationCost.toFixed(3)}, so changes are likely to spread.`,
     });
   }
   if (WeightedClusteringCost > 0.5) {
     findings.push({
       kind: "high_clustering_cost",
       confidence: 0.74,
-      note: `WeightedClusteringCost is high at ${WeightedClusteringCost.toFixed(3)}, so change coupling is spread across boundaries.`
+      note: `WeightedClusteringCost is high at ${WeightedClusteringCost.toFixed(3)}, so change coupling is spread across boundaries.`,
     });
   }
 
@@ -196,13 +199,13 @@ export function scoreArchitectureEvolutionLocality(options: {
         [
           options.boundaryMap ? 0.86 : 0.68,
           relevant.length >= 3 ? 0.84 : relevant.length > 0 ? 0.58 : 0.3,
-          crossBoundaryCommits.length > 0 ? 0.82 : 0.62
+          crossBoundaryCommits.length > 0 ? 0.82 : 0.62,
         ],
-        0.45
-      )
+        0.45,
+      ),
     ),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }
 
@@ -220,34 +223,34 @@ export function scoreArchitectureEvolutionEfficiency(options: {
       component: "LeadTimeScore" as const,
       weight: 0.25,
       value: scores?.LeadTimeScore,
-      note: "Applying lead time score to delivery efficiency."
+      note: "Applying lead time score to delivery efficiency.",
     },
     {
       component: "DeployFreqScore" as const,
       weight: 0.2,
       value: scores?.DeployFreqScore,
-      note: "Applying deployment frequency score to delivery efficiency."
+      note: "Applying deployment frequency score to delivery efficiency.",
     },
     {
       component: "RecoveryScore" as const,
       weight: 0.2,
       value: scores?.RecoveryScore,
-      note: "Applying recovery score to delivery efficiency."
+      note: "Applying recovery score to delivery efficiency.",
     },
     {
       component: "ChangeFailScore" as const,
       weight: 0.2,
       value: scores?.ChangeFailScore,
       invert: true,
-      note: "Applying the inverted change-fail score to delivery efficiency."
+      note: "Applying the inverted change-fail score to delivery efficiency.",
     },
     {
       component: "ReworkScore" as const,
       weight: 0.15,
       value: scores?.ReworkScore,
       invert: true,
-      note: "Applying the inverted deployment-rework score to delivery efficiency."
-    }
+      note: "Applying the inverted deployment-rework score to delivery efficiency.",
+    },
   ];
 
   let observedWeight = 0;
@@ -259,7 +262,7 @@ export function scoreArchitectureEvolutionEfficiency(options: {
         kind: "missing_delivery_observation",
         component: entry.component,
         confidence: 0.45,
-        note: `${entry.component} was not provided.`
+        note: `${entry.component} was not provided.`,
       });
       continue;
     }
@@ -271,7 +274,7 @@ export function scoreArchitectureEvolutionEfficiency(options: {
         kind: "weak_delivery_score",
         component: entry.component,
         confidence: 0.76,
-        note: `${entry.note} (normalized=${normalized.toFixed(3)})`
+        note: `${entry.note} (normalized=${normalized.toFixed(3)})`,
       });
     }
   }
@@ -286,14 +289,11 @@ export function scoreArchitectureEvolutionEfficiency(options: {
     Locality: options.locality,
     confidence: clamp01(
       average(
-        [
-          observedWeight > 0 ? 0.82 * observedWeight + 0.35 * (1 - observedWeight) : 0.3,
-          options.localityConfidence
-        ],
-        0.4
-      )
+        [observedWeight > 0 ? 0.82 * observedWeight + 0.35 * (1 - observedWeight) : 0.3, options.localityConfidence],
+        0.4,
+      ),
     ),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }

@@ -1,9 +1,8 @@
 import path from "node:path";
 
 import { afterEach, describe, expect, test } from "vitest";
-
-import { COMMANDS } from "../src/commands.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../src/analyzers/code.js";
+import { COMMANDS } from "../src/commands.js";
 import { loadDomainModel } from "../src/core/model.js";
 import { cleanupTemporaryRepo, createTemporaryGitRepoFromFixture } from "./helpers.js";
 
@@ -39,15 +38,17 @@ describe("domain design analysis", () => {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("ok");
-    const metrics = (response.result as {
-      metrics: Array<{ metricId: string; value: number }>;
-    }).metrics;
+    const metrics = (
+      response.result as {
+        metrics: Array<{ metricId: string; value: number }>;
+      }
+    ).metrics;
     expect(metrics.find((metric) => metric.metricId === "MCCS")?.value).toBeLessThan(1);
     expect(metrics.find((metric) => metric.metricId === "ELS")?.value).toBeGreaterThanOrEqual(0);
   }, 20000);
@@ -60,9 +61,9 @@ describe("domain design analysis", () => {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const shadowed = await COMMANDS["score.compute"]!(
       {
@@ -70,9 +71,9 @@ describe("domain design analysis", () => {
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
         domain: "domain_design",
-        "shadow-persistence": true
+        "shadow-persistence": true,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const baselineResult = baseline.result as {
@@ -93,7 +94,7 @@ describe("domain design analysis", () => {
     expect(shadowedResult.shadow?.localityModels.els.score).toBeGreaterThanOrEqual(0);
     expect(shadowedResult.shadow?.localityModels.persistenceCandidate.localityScore).toBeGreaterThanOrEqual(0);
     expect(shadowedResult.metrics.find((metric) => metric.metricId === "ELS")?.value).toBe(
-      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value
+      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value,
     );
   }, 20000);
 
@@ -105,9 +106,9 @@ describe("domain design analysis", () => {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const pilot = await COMMANDS["score.compute"]!(
       {
@@ -117,9 +118,9 @@ describe("domain design analysis", () => {
         domain: "domain_design",
         "pilot-persistence": true,
         "rollout-category": "application",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const baselineResult = baseline.result as {
@@ -149,14 +150,14 @@ describe("domain design analysis", () => {
     expect(pilotResult.pilot?.overallGate.rolloutDisposition).toBe("shadow_only");
     expect(pilotResult.pilot?.categoryGate.rolloutDisposition).toBe("replace");
     expect(pilotResult.pilot?.baselineElsValue).toBe(
-      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value
+      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value,
     );
     expect(pilotResult.pilot?.persistenceCandidateValue).toBe(
-      pilotResult.shadow?.localityModels.persistenceCandidate.localityScore
+      pilotResult.shadow?.localityModels.persistenceCandidate.localityScore,
     );
     expect(pilotResult.pilot?.effectiveElsValue).toBe(pilotResult.pilot?.persistenceCandidateValue);
     expect(pilotResult.metrics.find((metric) => metric.metricId === "ELS")?.value).toBe(
-      pilotResult.pilot?.persistenceCandidateValue
+      pilotResult.pilot?.persistenceCandidateValue,
     );
   }, 20000);
 
@@ -168,9 +169,9 @@ describe("domain design analysis", () => {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const pilot = await COMMANDS["score.compute"]!(
       {
@@ -180,9 +181,9 @@ describe("domain design analysis", () => {
         domain: "domain_design",
         "pilot-persistence": true,
         "rollout-category": "tooling",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const baselineResult = baseline.result as {
@@ -210,11 +211,11 @@ describe("domain design analysis", () => {
     expect(pilotResult.pilot?.localitySource).toBe("els");
     expect(pilotResult.pilot?.categoryGate.rolloutDisposition).toBe("shadow_only");
     expect(pilotResult.pilot?.baselineElsValue).toBe(
-      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value
+      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value,
     );
     expect(pilotResult.pilot?.effectiveElsValue).toBe(pilotResult.pilot?.baselineElsValue);
     expect(pilotResult.metrics.find((metric) => metric.metricId === "ELS")?.value).toBe(
-      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value
+      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value,
     );
   }, 20000);
 
@@ -228,10 +229,10 @@ describe("domain design analysis", () => {
           model: path.join(FIXTURE_ROOT, "model.yaml"),
           policy: path.resolve("fixtures/policies/default.yaml"),
           domain: "domain_design",
-          "rollout-category": "application"
+          "rollout-category": "application",
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     ).rejects.toThrow("`--rollout-category` requires `--pilot-persistence`");
   }, 20000);
 
@@ -242,9 +243,9 @@ describe("domain design analysis", () => {
       {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
-        policy: path.resolve("fixtures/policies/default.yaml")
+        policy: path.resolve("fixtures/policies/default.yaml"),
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const withPilotFlags = await COMMANDS["score.observe_shadow_rollout"]!(
       {
@@ -253,9 +254,9 @@ describe("domain design analysis", () => {
         policy: path.resolve("fixtures/policies/default.yaml"),
         "pilot-persistence": true,
         "rollout-category": "application",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const baselineResult = baseline.result as {
@@ -281,9 +282,9 @@ describe("domain design analysis", () => {
         repo: nongitRepoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const pilot = await COMMANDS["score.compute"]!(
       {
@@ -293,9 +294,9 @@ describe("domain design analysis", () => {
         domain: "domain_design",
         "pilot-persistence": true,
         "rollout-category": "application",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const baselineResult = baseline.result as {
@@ -317,15 +318,15 @@ describe("domain design analysis", () => {
     expect(pilotResult.pilot?.effectiveElsValue).toBe(pilotResult.pilot?.baselineElsValue);
     expect(pilotResult.pilot?.persistenceCandidateValue).toBe(pilotResult.pilot?.baselineElsValue);
     expect(pilotResult.metrics.find((metric) => metric.metricId === "ELS")?.value).toBe(
-      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value
+      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value,
     );
     expect(
       pilotResult.metrics
         .find((metric) => metric.metricId === "ELS")
-        ?.unknowns.some((entry) => entry.includes("fell back to baseline ELS"))
+        ?.unknowns.some((entry) => entry.includes("fell back to baseline ELS")),
     ).toBe(true);
     expect(pilot.diagnostics).toContain(
-      "Persistence pilot fell back to baseline ELS because locality comparison data is unavailable."
+      "Persistence pilot fell back to baseline ELS because locality comparison data is unavailable.",
     );
   }, 20000);
 
@@ -341,9 +342,9 @@ describe("domain design analysis", () => {
         format: "md",
         "pilot-persistence": true,
         "rollout-category": "application",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const result = response.result as {
@@ -371,9 +372,9 @@ describe("domain design analysis", () => {
         domain: "domain_design",
         "pilot-persistence": true,
         "rollout-category": "application",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const result = response.result as {
@@ -404,9 +405,9 @@ describe("domain design analysis", () => {
         domain: "domain_design",
         "pilot-persistence": true,
         "rollout-category": "application",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const pilotResult = pilot.result as {
@@ -434,11 +435,10 @@ describe("domain design analysis", () => {
     const elsMetric = pilotResult.metrics.find((metric) => metric.metricId === "ELS");
 
     expect(elsMetric?.components).toEqual({
-      persistentCouplingPenalty:
-        pilotResult.shadow?.localityModels.persistenceCandidate.persistentCouplingPenalty,
+      persistentCouplingPenalty: pilotResult.shadow?.localityModels.persistenceCandidate.persistentCouplingPenalty,
       clusterPenalty: pilotResult.shadow?.localityModels.persistenceCandidate.clusterPenalty,
       pairPenalty: pilotResult.shadow?.localityModels.persistenceCandidate.pairPenalty,
-      coherencePenalty: pilotResult.shadow?.localityModels.persistenceCandidate.coherencePenalty
+      coherencePenalty: pilotResult.shadow?.localityModels.persistenceCandidate.coherencePenalty,
     });
     expect(pilotResult.pilot?.localitySource).toBe("persistence_candidate");
     expect(elsMetric?.confidence).toBeLessThan(1);
@@ -454,9 +454,9 @@ describe("domain design analysis", () => {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
         policy: path.resolve("fixtures/policies/default.yaml"),
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const toolingPilot = await COMMANDS["gate.evaluate"]!(
       {
@@ -466,9 +466,9 @@ describe("domain design analysis", () => {
         domain: "domain_design",
         "pilot-persistence": true,
         "rollout-category": "tooling",
-        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH
+        "shadow-rollout-registry": SHADOW_ROLLOUT_REGISTRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const baselineResult = baseline.result as {
@@ -491,7 +491,7 @@ describe("domain design analysis", () => {
     expect(toolingPilotResult.pilot?.effectiveElsValue).toBe(toolingPilotResult.pilot?.baselineElsValue);
     expect(toolingPilotResult.gate.status).toBe(baselineResult.gate.status);
     expect(toolingPilotResult.metrics.find((metric) => metric.metricId === "ELS")?.value).toBe(
-      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value
+      baselineResult.metrics.find((metric) => metric.metricId === "ELS")?.value,
     );
     expect(toolingPilot.diagnostics).toContain("Pilot locality source: els for category tooling.");
   }, 20000);
@@ -503,9 +503,9 @@ describe("domain design analysis", () => {
       {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
-        policy: path.resolve("fixtures/policies/default.yaml")
+        policy: path.resolve("fixtures/policies/default.yaml"),
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.confidence).toBeLessThan(1);
@@ -519,9 +519,9 @@ describe("domain design analysis", () => {
       {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
-        policy: path.resolve("fixtures/policies/default.yaml")
+        policy: path.resolve("fixtures/policies/default.yaml"),
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("ok");
@@ -552,9 +552,9 @@ describe("domain design analysis", () => {
       {
         repo: repoPath,
         model: path.join(FIXTURE_ROOT, "model.yaml"),
-        policy: path.resolve("fixtures/policies/default.yaml")
+        policy: path.resolve("fixtures/policies/default.yaml"),
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(response.status).toBe("ok");

@@ -1,6 +1,5 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { chmod } from "node:fs/promises";
-import { readFile, writeFile } from "node:fs/promises";
+import { chmod, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -45,7 +44,7 @@ const APSI_FORMULAS = {
   layered: { QSF: 0.35, PCS: 0.3, OAS: 0.15, EES: 0.1, CTI: 0.1 },
   service_based: { QSF: 0.2, PCS: 0.2, OAS: 0.15, EES: 0.25, CTI: 0.2 },
   cqrs: { QSF: 0.3, PCS: 0.15, OAS: 0.25, EES: 0.1, CTI: 0.2 },
-  event_driven: { QSF: 0.2, PCS: 0.15, OAS: 0.3, EES: 0.1, CTI: 0.25 }
+  event_driven: { QSF: 0.2, PCS: 0.15, OAS: 0.3, EES: 0.1, CTI: 0.25 },
 } as const;
 const TIS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/tis/constraints.yaml");
 const TIS_REPO = path.resolve("fixtures/validation/scoring/tis/repo");
@@ -66,65 +65,57 @@ const OAS_EXPORT_THIN_TELEMETRY_PATH = path.resolve("fixtures/validation/scoring
 const OAS_GOOD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/good-runtime.yaml");
 const OAS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/bad-runtime.yaml");
 const OAS_FAMILY_LAYERED_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-layered-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/family-layered-good-runtime.yaml",
 );
 const OAS_FAMILY_LAYERED_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-layered-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/family-layered-bad-runtime.yaml",
 );
 const OAS_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-microservices-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/family-microservices-good-runtime.yaml",
 );
 const OAS_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-microservices-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/family-microservices-bad-runtime.yaml",
 );
-const OAS_FAMILY_CQRS_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-cqrs-good-runtime.yaml"
-);
-const OAS_FAMILY_CQRS_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-cqrs-bad-runtime.yaml"
-);
+const OAS_FAMILY_CQRS_GOOD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/family-cqrs-good-runtime.yaml");
+const OAS_FAMILY_CQRS_BAD_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/family-cqrs-bad-runtime.yaml");
 const OAS_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-event-driven-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/family-event-driven-good-runtime.yaml",
 );
 const OAS_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-event-driven-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/family-event-driven-bad-runtime.yaml",
 );
 const OAS_FAMILY_THIN_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/family-thin-runtime.yaml");
-const OAS_FAMILY_MISMATCH_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/family-mismatch-runtime.yaml"
-);
+const OAS_FAMILY_MISMATCH_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/family-mismatch-runtime.yaml");
 const OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-pattern-runtime-normalization-profile.yaml"
+  "fixtures/validation/scoring/oas/raw-pattern-runtime-normalization-profile.yaml",
 );
 const OAS_RAW_FAMILY_LAYERED_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-layered-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-layered-good-runtime.yaml",
 );
 const OAS_RAW_FAMILY_LAYERED_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-layered-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-layered-bad-runtime.yaml",
 );
 const OAS_RAW_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-microservices-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-microservices-good-runtime.yaml",
 );
 const OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-microservices-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-microservices-bad-runtime.yaml",
 );
 const OAS_RAW_FAMILY_CQRS_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-cqrs-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-cqrs-good-runtime.yaml",
 );
 const OAS_RAW_FAMILY_CQRS_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-cqrs-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-cqrs-bad-runtime.yaml",
 );
 const OAS_RAW_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-event-driven-good-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-event-driven-good-runtime.yaml",
 );
 const OAS_RAW_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-event-driven-bad-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-event-driven-bad-runtime.yaml",
 );
-const OAS_RAW_FAMILY_THIN_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-thin-runtime.yaml"
-);
+const OAS_RAW_FAMILY_THIN_RUNTIME_PATH = path.resolve("fixtures/validation/scoring/oas/raw-family-thin-runtime.yaml");
 const OAS_RAW_FAMILY_MISMATCH_RUNTIME_PATH = path.resolve(
-  "fixtures/validation/scoring/oas/raw-family-mismatch-runtime.yaml"
+  "fixtures/validation/scoring/oas/raw-family-mismatch-runtime.yaml",
 );
 const AELS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/aels/constraints.yaml");
 const AELS_BOUNDARY_MAP_PATH = path.resolve("fixtures/validation/scoring/aels/boundary-map.yaml");
@@ -172,18 +163,18 @@ describe("score validation", () => {
         repo: goodRepo,
         model: MCCS_MODEL_PATH,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: badRepo,
         model: MCCS_MODEL_PATH,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodMccs = getMetric(goodResponse, "MCCS");
@@ -200,18 +191,18 @@ describe("score validation", () => {
         repo: DDS_GOOD_REPO,
         constraints: DDS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: DDS_BAD_REPO,
         constraints: DDS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodDds = getMetric(goodResponse, "DDS");
@@ -228,18 +219,18 @@ describe("score validation", () => {
         repo: BPS_GOOD_REPO,
         constraints: BPS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: BPS_BAD_REPO,
         constraints: BPS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodBps = getMetric(goodResponse, "BPS");
@@ -257,18 +248,18 @@ describe("score validation", () => {
         repo: IPS_GOOD_REPO,
         constraints: IPS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: IPS_BAD_REPO,
         constraints: IPS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodIps = getMetric(goodResponse, "IPS");
@@ -286,18 +277,18 @@ describe("score validation", () => {
         repo: CTI_GOOD_REPO,
         constraints: CTI_GOOD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
         repo: CTI_BAD_REPO,
         constraints: CTI_BAD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
-        domain: "architecture_design"
+        domain: "architecture_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodCti = getMetric(goodResponse, "CTI");
@@ -306,7 +297,7 @@ describe("score validation", () => {
     expect(goodCti.value).toBeLessThan(badCti.value);
     expect(badCti.components.DeployablesPerTeam ?? 0).toBeGreaterThan(goodCti.components.DeployablesPerTeam ?? 0);
     expect(badCti.components.ContractsOrSchemasPerService ?? 0).toBeGreaterThan(
-      goodCti.components.ContractsOrSchemasPerService ?? 0
+      goodCti.components.ContractsOrSchemasPerService ?? 0,
     );
     expect(badCti.components.SyncDepthOverhead ?? 0).toBeGreaterThan(goodCti.components.SyncDepthOverhead ?? 0);
   });
@@ -318,9 +309,9 @@ describe("score validation", () => {
         constraints: CTI_BAD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-export": CTI_GOOD_EXPORT_PATH
+        "complexity-export": CTI_GOOD_EXPORT_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const exportedBadResponse = await COMMANDS["score.compute"]!(
       {
@@ -328,9 +319,9 @@ describe("score validation", () => {
         constraints: CTI_GOOD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-export": CTI_BAD_EXPORT_PATH
+        "complexity-export": CTI_BAD_EXPORT_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodCti = getMetric(exportedGoodResponse, "CTI");
@@ -347,12 +338,12 @@ describe("score validation", () => {
     const goodFileSource = await writeJsonFixture(tempRoots, "cti-good-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: CTI_GOOD_EXPORT_PATH
+      path: CTI_GOOD_EXPORT_PATH,
     });
     const badCommandSource = await writeJsonFixture(tempRoots, "cti-bad-source.json", {
       version: "1.0",
       sourceType: "command",
-      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(CTI_BAD_EXPORT_PATH)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(CTI_BAD_EXPORT_PATH)}`,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -361,9 +352,9 @@ describe("score validation", () => {
         constraints: CTI_BAD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-source": goodFileSource
+        "complexity-source": goodFileSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -371,9 +362,9 @@ describe("score validation", () => {
         constraints: CTI_GOOD_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "complexity-source": badCommandSource
+        "complexity-source": badCommandSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodCti = getMetric(goodResponse, "CTI");
@@ -388,7 +379,7 @@ describe("score validation", () => {
     const goodSource = await writeJsonFixture(tempRoots, "cti-precedence-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: CTI_GOOD_EXPORT_PATH
+      path: CTI_GOOD_EXPORT_PATH,
     });
 
     const response = await COMMANDS["score.compute"]!(
@@ -398,9 +389,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "complexity-export": CTI_BAD_EXPORT_PATH,
-        "complexity-source": goodSource
+        "complexity-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const cti = getMetric(response, "CTI");
@@ -417,9 +408,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH
+        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -428,9 +419,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observations": QSF_BAD_OBSERVATIONS_PATH
+        "scenario-observations": QSF_BAD_OBSERVATIONS_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -439,9 +430,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observations": QSF_THIN_OBSERVATIONS_PATH
+        "scenario-observations": QSF_THIN_OBSERVATIONS_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodQsf = getMetric(goodResponse, "QSF");
@@ -453,7 +444,7 @@ describe("score validation", () => {
     expect(thinQsf.unknowns.some((entry) => entry.includes("observed value"))).toBe(true);
     expect(goodQsf.components.weighted_coverage ?? 0).toBeGreaterThan(thinQsf.components.weighted_coverage ?? 0);
     expect(goodQsf.components.average_normalized_score ?? 0).toBeGreaterThan(
-      badQsf.components.average_normalized_score ?? 0
+      badQsf.components.average_normalized_score ?? 0,
     );
   });
 
@@ -463,17 +454,17 @@ describe("score validation", () => {
     const goodFileSource = await writeJsonFixture(tempRoots, "qsf-good-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: QSF_GOOD_OBSERVATIONS_PATH
+      path: QSF_GOOD_OBSERVATIONS_PATH,
     });
     const badCommandSource = await writeJsonFixture(tempRoots, "qsf-bad-source.json", {
       version: "1.0",
       sourceType: "command",
-      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(QSF_BAD_OBSERVATIONS_PATH)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(QSF_BAD_OBSERVATIONS_PATH)}`,
     });
     const thinFileSource = await writeJsonFixture(tempRoots, "qsf-thin-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: QSF_THIN_OBSERVATIONS_PATH
+      path: QSF_THIN_OBSERVATIONS_PATH,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -483,9 +474,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observation-source": goodFileSource
+        "scenario-observation-source": goodFileSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -494,9 +485,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observation-source": badCommandSource
+        "scenario-observation-source": badCommandSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -505,9 +496,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observation-source": thinFileSource
+        "scenario-observation-source": thinFileSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodQsf = getMetric(goodResponse, "QSF");
@@ -517,14 +508,16 @@ describe("score validation", () => {
     expect(goodQsf.value).toBeGreaterThan(badQsf.value);
     expect(goodQsf.value).toBeGreaterThan(thinQsf.value);
     expect(thinQsf.unknowns.some((entry) => entry.includes("observed value"))).toBe(true);
-    expect(goodResponse.evidence.some((entry) => entry.statement.includes("scenario observation source config"))).toBe(true);
+    expect(goodResponse.evidence.some((entry) => entry.statement.includes("scenario observation source config"))).toBe(
+      true,
+    );
   });
 
   test("explicit scenario observations take precedence over scenario observation sources", async () => {
     const badSource = await writeJsonFixture(tempRoots, "qsf-precedence-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: QSF_BAD_OBSERVATIONS_PATH
+      path: QSF_BAD_OBSERVATIONS_PATH,
     });
 
     const explicitResponse = await COMMANDS["score.compute"]!(
@@ -534,9 +527,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
-        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH
+        "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const precedenceResponse = await COMMANDS["score.compute"]!(
       {
@@ -546,13 +539,15 @@ describe("score validation", () => {
         domain: "architecture_design",
         "scenario-catalog": QSF_SCENARIOS_PATH,
         "scenario-observations": QSF_GOOD_OBSERVATIONS_PATH,
-        "scenario-observation-source": badSource
+        "scenario-observation-source": badSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(precedenceResponse, "QSF").value).toBeCloseTo(getMetric(explicitResponse, "QSF").value, 6);
-    expect(precedenceResponse.unknowns.some((entry) => entry.includes("scenario observation source was not used"))).toBe(true);
+    expect(
+      precedenceResponse.unknowns.some((entry) => entry.includes("scenario observation source was not used")),
+    ).toBe(true);
   });
 
   test("APSI is higher when scenario fit, conformance proxies, runtime proxies, evolution, and complexity tax all align", async () => {
@@ -568,9 +563,9 @@ describe("score validation", () => {
         "runtime-observations": TIS_GOOD_RUNTIME_PATH,
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
-        "delivery-observations": EES_GOOD_DELIVERY_PATH
+        "delivery-observations": EES_GOOD_DELIVERY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -584,9 +579,9 @@ describe("score validation", () => {
         "runtime-observations": TIS_BAD_RUNTIME_PATH,
         "telemetry-observations": OAS_BAD_TELEMETRY_PATH,
         "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH,
-        "delivery-observations": EES_BAD_DELIVERY_PATH
+        "delivery-observations": EES_BAD_DELIVERY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodApsi = getMetric(goodResponse, "APSI");
@@ -597,7 +592,9 @@ describe("score validation", () => {
     expect(goodApsi.components.OAS ?? 0).toBeGreaterThan(badApsi.components.OAS ?? 0);
     expect(goodApsi.components.EES ?? 0).toBeGreaterThan(badApsi.components.EES ?? 0);
     expect(goodApsi.components.CTI ?? 0).toBeLessThan(badApsi.components.CTI ?? 0);
-    expect(goodApsi.unknowns.some((entry) => entry.includes("PCS is a proxy composite of DDS, BPS, and IPS."))).toBe(true);
+    expect(goodApsi.unknowns.some((entry) => entry.includes("PCS is a proxy composite of DDS, BPS, and IPS."))).toBe(
+      true,
+    );
     expect(goodApsi.unknowns.some((entry) => entry.includes("OAS is bridged from TIS"))).toBe(false);
   });
 
@@ -613,43 +610,43 @@ describe("score validation", () => {
       "runtime-observations": TIS_GOOD_RUNTIME_PATH,
       "telemetry-observations": OAS_BAD_TELEMETRY_PATH,
       "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH,
-      "delivery-observations": EES_BAD_DELIVERY_PATH
+      "delivery-observations": EES_BAD_DELIVERY_PATH,
     } as const;
 
     const defaultResponse = await COMMANDS["score.compute"]!(
       {
         ...baseArgs,
-        profile: "default"
+        profile: "default",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const layeredResponse = await COMMANDS["score.compute"]!(
       {
         ...baseArgs,
-        profile: "layered"
+        profile: "layered",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const serviceBasedResponse = await COMMANDS["score.compute"]!(
       {
         ...baseArgs,
-        profile: "service_based"
+        profile: "service_based",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const cqrsResponse = await COMMANDS["score.compute"]!(
       {
         ...baseArgs,
-        profile: "cqrs"
+        profile: "cqrs",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const eventDrivenResponse = await COMMANDS["score.compute"]!(
       {
         ...baseArgs,
-        profile: "event_driven"
+        profile: "event_driven",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const defaultApsi = getMetric(defaultResponse, "APSI");
@@ -667,12 +664,12 @@ describe("score validation", () => {
     expect(layeredApsi.value).toBeCloseTo(computeApsiFromWeights(layeredApsi.components, APSI_FORMULAS.layered), 10);
     expect(serviceBasedApsi.value).toBeCloseTo(
       computeApsiFromWeights(serviceBasedApsi.components, APSI_FORMULAS.service_based),
-      10
+      10,
     );
     expect(cqrsApsi.value).toBeCloseTo(computeApsiFromWeights(cqrsApsi.components, APSI_FORMULAS.cqrs), 10);
     expect(eventDrivenApsi.value).toBeCloseTo(
       computeApsiFromWeights(eventDrivenApsi.components, APSI_FORMULAS.event_driven),
-      10
+      10,
     );
 
     expect(layeredApsi.value).not.toBeCloseTo(defaultApsi.value, 10);
@@ -689,9 +686,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -700,9 +697,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_BAD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -710,9 +707,9 @@ describe("score validation", () => {
         constraints: TIS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "telemetry-observations": OAS_THIN_TELEMETRY_PATH
+        "telemetry-observations": OAS_THIN_TELEMETRY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodOas = getMetric(goodResponse, "OAS");
@@ -735,9 +732,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-raw-observations": OAS_RAW_GOOD_TELEMETRY_PATH,
         "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
-        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -747,9 +744,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-raw-observations": OAS_RAW_BAD_TELEMETRY_PATH,
         "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
-        "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -758,9 +755,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-raw-observations": OAS_RAW_THIN_TELEMETRY_PATH,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodOas = getMetric(goodResponse, "OAS");
@@ -780,9 +777,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-export": OAS_EXPORT_GOOD_TELEMETRY_PATH,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -791,9 +788,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -802,9 +799,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-export": OAS_EXPORT_THIN_TELEMETRY_PATH,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodOas = getMetric(goodResponse, "OAS");
@@ -823,17 +820,17 @@ describe("score validation", () => {
     const goodFileSource = await writeJsonFixture(tempRoots, "oas-good-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: OAS_EXPORT_GOOD_TELEMETRY_PATH
+      path: OAS_EXPORT_GOOD_TELEMETRY_PATH,
     });
     const badCommandSource = await writeJsonFixture(tempRoots, "oas-bad-source.json", {
       version: "1.0",
       sourceType: "command",
-      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(OAS_EXPORT_BAD_TELEMETRY_PATH)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(OAS_EXPORT_BAD_TELEMETRY_PATH)}`,
     });
     const thinFileSource = await writeJsonFixture(tempRoots, "oas-thin-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: OAS_EXPORT_THIN_TELEMETRY_PATH
+      path: OAS_EXPORT_THIN_TELEMETRY_PATH,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -843,9 +840,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-source": goodFileSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -854,9 +851,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-source": badCommandSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -865,9 +862,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-source": thinFileSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodOas = getMetric(goodResponse, "OAS");
@@ -885,7 +882,7 @@ describe("score validation", () => {
     const goodSource = await writeJsonFixture(tempRoots, "oas-precedence-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: OAS_EXPORT_GOOD_TELEMETRY_PATH
+      path: OAS_EXPORT_GOOD_TELEMETRY_PATH,
     });
 
     const response = await COMMANDS["score.compute"]!(
@@ -898,17 +895,15 @@ describe("score validation", () => {
         "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
         "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
         "telemetry-source": goodSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const oas = getMetric(response, "OAS");
 
     expect(oas.components.CommonOps ?? 0).toBeGreaterThan(0.7);
-    expect(
-      oas.unknowns.some((entry) => entry.includes("A higher-priority telemetry input was present"))
-    ).toBe(true);
+    expect(oas.unknowns.some((entry) => entry.includes("A higher-priority telemetry input was present"))).toBe(true);
 
     const rawResponse = await COMMANDS["score.compute"]!(
       {
@@ -918,9 +913,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-raw-observations": OAS_RAW_BAD_TELEMETRY_PATH,
         "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
-        "telemetry-source": goodSource
+        "telemetry-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(rawResponse.unknowns.some((entry) => entry.includes("telemetry source was not used"))).toBe(true);
 
@@ -932,9 +927,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-export": OAS_EXPORT_BAD_TELEMETRY_PATH,
         "telemetry-source": goodSource,
-        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH
+        "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(exportResponse.unknowns.some((entry) => entry.includes("telemetry source was not used"))).toBe(true);
   });
@@ -947,9 +942,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_LAYERED_GOOD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_LAYERED_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const layeredBad = await COMMANDS["score.compute"]!(
       {
@@ -958,9 +953,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_LAYERED_BAD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_LAYERED_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const microservicesGood = await COMMANDS["score.compute"]!(
       {
@@ -969,9 +964,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const microservicesBad = await COMMANDS["score.compute"]!(
       {
@@ -980,9 +975,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const cqrsGood = await COMMANDS["score.compute"]!(
       {
@@ -991,9 +986,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_CQRS_GOOD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_CQRS_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const cqrsBad = await COMMANDS["score.compute"]!(
       {
@@ -1002,9 +997,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_CQRS_BAD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_CQRS_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const eventDrivenGood = await COMMANDS["score.compute"]!(
       {
@@ -1013,9 +1008,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const eventDrivenBad = await COMMANDS["score.compute"]!(
       {
@@ -1024,22 +1019,22 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(layeredGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(layeredBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(layeredBad, "OAS").components.PatternRuntime ?? 0,
     );
     expect(getMetric(microservicesGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(microservicesBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(microservicesBad, "OAS").components.PatternRuntime ?? 0,
     );
     expect(getMetric(cqrsGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(cqrsBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(cqrsBad, "OAS").components.PatternRuntime ?? 0,
     );
     expect(getMetric(eventDrivenGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(eventDrivenBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(eventDrivenBad, "OAS").components.PatternRuntime ?? 0,
     );
   });
 
@@ -1051,9 +1046,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_THIN_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_THIN_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const mismatchResponse = await COMMANDS["score.compute"]!(
       {
@@ -1062,9 +1057,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
-        "pattern-runtime-observations": OAS_FAMILY_MISMATCH_RUNTIME_PATH
+        "pattern-runtime-observations": OAS_FAMILY_MISMATCH_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const thinOas = getMetric(thinResponse, "OAS");
@@ -1086,9 +1081,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_LAYERED_GOOD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const layeredBad = await COMMANDS["score.compute"]!(
       {
@@ -1098,9 +1093,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_LAYERED_BAD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const microservicesGood = await COMMANDS["score.compute"]!(
       {
@@ -1110,9 +1105,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_GOOD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const microservicesBad = await COMMANDS["score.compute"]!(
       {
@@ -1122,9 +1117,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const cqrsGood = await COMMANDS["score.compute"]!(
       {
@@ -1134,9 +1129,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_CQRS_GOOD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const cqrsBad = await COMMANDS["score.compute"]!(
       {
@@ -1146,9 +1141,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_CQRS_BAD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const eventDrivenGood = await COMMANDS["score.compute"]!(
       {
@@ -1158,9 +1153,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_EVENT_DRIVEN_GOOD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const eventDrivenBad = await COMMANDS["score.compute"]!(
       {
@@ -1170,22 +1165,22 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_EVENT_DRIVEN_BAD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     expect(getMetric(layeredGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(layeredBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(layeredBad, "OAS").components.PatternRuntime ?? 0,
     );
     expect(getMetric(microservicesGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(microservicesBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(microservicesBad, "OAS").components.PatternRuntime ?? 0,
     );
     expect(getMetric(cqrsGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(cqrsBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(cqrsBad, "OAS").components.PatternRuntime ?? 0,
     );
     expect(getMetric(eventDrivenGood, "OAS").components.PatternRuntime ?? 0).toBeGreaterThan(
-      getMetric(eventDrivenBad, "OAS").components.PatternRuntime ?? 0
+      getMetric(eventDrivenBad, "OAS").components.PatternRuntime ?? 0,
     );
   });
 
@@ -1198,9 +1193,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_THIN_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const mismatchResponse = await COMMANDS["score.compute"]!(
       {
@@ -1210,9 +1205,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MISMATCH_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const precedenceResponse = await COMMANDS["score.compute"]!(
       {
@@ -1223,9 +1218,9 @@ describe("score validation", () => {
         "telemetry-export": OAS_EXPORT_GOOD_TELEMETRY_PATH,
         "telemetry-normalization-profile": OAS_RAW_PROFILE_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const explicitOverrideResponse = await COMMANDS["score.compute"]!(
       {
@@ -1236,9 +1231,9 @@ describe("score validation", () => {
         "telemetry-observations": OAS_GOOD_TELEMETRY_PATH,
         "pattern-runtime-observations": OAS_GOOD_RUNTIME_PATH,
         "pattern-runtime-raw-observations": OAS_RAW_FAMILY_MICROSERVICES_BAD_RUNTIME_PATH,
-        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH
+        "pattern-runtime-normalization-profile": OAS_RAW_PATTERN_RUNTIME_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const thinOas = getMetric(thinResponse, "OAS");
@@ -1249,9 +1244,15 @@ describe("score validation", () => {
     expect(thinOas.unknowns.some((entry) => entry.includes("serviceBasedRuntime"))).toBe(true);
     expect(mismatchOas.unknowns.some((entry) => entry.includes("patternFamily=cqrs"))).toBe(true);
     expect(mismatchOas.confidence).toBeLessThan(0.85);
-    expect(precedenceOas.unknowns.some((entry) => entry.includes("pattern runtime data inside the telemetry export was not used"))).toBe(true);
+    expect(
+      precedenceOas.unknowns.some((entry) =>
+        entry.includes("pattern runtime data inside the telemetry export was not used"),
+      ),
+    ).toBe(true);
     expect(precedenceOas.components.PatternRuntime ?? 1).toBeLessThan(0.5);
-    expect(explicitOverrideOas.unknowns.some((entry) => entry.includes("raw pattern runtime input was not used"))).toBe(true);
+    expect(explicitOverrideOas.unknowns.some((entry) => entry.includes("raw pattern runtime input was not used"))).toBe(
+      true,
+    );
     expect(explicitOverrideOas.components.PatternRuntime ?? 0).toBeGreaterThan(0.8);
   });
 
@@ -1263,9 +1264,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "topology-model": TIS_GOOD_TOPOLOGY_PATH,
-        "runtime-observations": TIS_GOOD_RUNTIME_PATH
+        "runtime-observations": TIS_GOOD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -1274,9 +1275,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "topology-model": TIS_BAD_TOPOLOGY_PATH,
-        "runtime-observations": TIS_BAD_RUNTIME_PATH
+        "runtime-observations": TIS_BAD_RUNTIME_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -1284,9 +1285,9 @@ describe("score validation", () => {
         constraints: TIS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "topology-model": TIS_BAD_TOPOLOGY_PATH
+        "topology-model": TIS_BAD_TOPOLOGY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodTis = getMetric(goodResponse, "TIS");
@@ -1307,48 +1308,52 @@ describe("score validation", () => {
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingLocalOne = 'billing-local-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingLocalOne = 'billing-local-1';\n",
       },
-      "feat: billing local 1"
+      "feat: billing local 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentLocalOne = 'fulfillment-local-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentLocalOne = 'fulfillment-local-1';\n",
       },
-      "feat: fulfillment local 1"
+      "feat: fulfillment local 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingLocalTwo = 'billing-local-2';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingLocalTwo = 'billing-local-2';\n",
       },
-      "feat: billing local 2"
+      "feat: billing local 2",
     );
 
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingCrossOne = 'billing-cross-1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCrossOne = 'fulfillment-cross-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentCrossOne = 'fulfillment-cross-1';\n",
       },
-      "feat: cross-boundary 1"
+      "feat: cross-boundary 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingCrossTwo = 'billing-cross-2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCrossTwo = 'fulfillment-cross-2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentCrossTwo = 'fulfillment-cross-2';\n",
       },
-      "feat: cross-boundary 2"
+      "feat: cross-boundary 2",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingCrossThree = 'billing-cross-3';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentCrossThree = 'fulfillment-cross-3';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentCrossThree = 'fulfillment-cross-3';\n",
       },
-      "feat: cross-boundary 3"
+      "feat: cross-boundary 3",
     );
 
     const localResponse = await COMMANDS["score.compute"]!(
@@ -1357,9 +1362,9 @@ describe("score validation", () => {
         constraints: AELS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "boundary-map": AELS_BOUNDARY_MAP_PATH
+        "boundary-map": AELS_BOUNDARY_MAP_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const scatteredResponse = await COMMANDS["score.compute"]!(
       {
@@ -1367,9 +1372,9 @@ describe("score validation", () => {
         constraints: AELS_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "boundary-map": AELS_BOUNDARY_MAP_PATH
+        "boundary-map": AELS_BOUNDARY_MAP_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const localAels = getMetric(localResponse, "AELS");
@@ -1377,13 +1382,13 @@ describe("score validation", () => {
 
     expect(localAels.value).toBeGreaterThan(scatteredAels.value);
     expect(scatteredAels.components.CrossBoundaryCoChange ?? 0).toBeGreaterThan(
-      localAels.components.CrossBoundaryCoChange ?? 0
+      localAels.components.CrossBoundaryCoChange ?? 0,
     );
     expect(scatteredAels.components.WeightedPropagationCost ?? 0).toBeGreaterThan(
-      localAels.components.WeightedPropagationCost ?? 0
+      localAels.components.WeightedPropagationCost ?? 0,
     );
     expect(scatteredAels.components.WeightedClusteringCost ?? 0).toBeGreaterThan(
-      localAels.components.WeightedClusteringCost ?? 0
+      localAels.components.WeightedClusteringCost ?? 0,
     );
   }, 30000);
 
@@ -1394,48 +1399,57 @@ describe("score validation", () => {
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryLocalOne = 'billing-delivery-local-1';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingDeliveryLocalOne = 'billing-delivery-local-1';\n",
       },
-      "feat: billing local 1"
+      "feat: billing local 1",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryLocalOne = 'fulfillment-delivery-local-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentDeliveryLocalOne = 'fulfillment-delivery-local-1';\n",
       },
-      "feat: fulfillment local 1"
+      "feat: fulfillment local 1",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryLocalTwo = 'billing-delivery-local-2';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingDeliveryLocalTwo = 'billing-delivery-local-2';\n",
       },
-      "feat: billing local 2"
+      "feat: billing local 2",
     );
 
     await appendAndCommit(
       badRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryCrossOne = 'billing-delivery-cross-1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryCrossOne = 'fulfillment-delivery-cross-1';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingDeliveryCrossOne = 'billing-delivery-cross-1';\n",
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentDeliveryCrossOne = 'fulfillment-delivery-cross-1';\n",
       },
-      "feat: cross-boundary 1"
+      "feat: cross-boundary 1",
     );
     await appendAndCommit(
       badRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryCrossTwo = 'billing-delivery-cross-2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryCrossTwo = 'fulfillment-delivery-cross-2';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingDeliveryCrossTwo = 'billing-delivery-cross-2';\n",
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentDeliveryCrossTwo = 'fulfillment-delivery-cross-2';\n",
       },
-      "feat: cross-boundary 2"
+      "feat: cross-boundary 2",
     );
     await appendAndCommit(
       badRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingDeliveryCrossThree = 'billing-delivery-cross-3';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentDeliveryCrossThree = 'fulfillment-delivery-cross-3';\n"
+        "src/billing/internal/billing-service.ts":
+          "\nexport const billingDeliveryCrossThree = 'billing-delivery-cross-3';\n",
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentDeliveryCrossThree = 'fulfillment-delivery-cross-3';\n",
       },
-      "feat: cross-boundary 3"
+      "feat: cross-boundary 3",
     );
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -1445,9 +1459,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
-        "delivery-observations": EES_GOOD_DELIVERY_PATH
+        "delivery-observations": EES_GOOD_DELIVERY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -1456,9 +1470,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
-        "delivery-observations": EES_BAD_DELIVERY_PATH
+        "delivery-observations": EES_BAD_DELIVERY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -1466,9 +1480,9 @@ describe("score validation", () => {
         constraints: EES_CONSTRAINTS_PATH,
         policy: POLICY_PATH,
         domain: "architecture_design",
-        "boundary-map": EES_BOUNDARY_MAP_PATH
+        "boundary-map": EES_BOUNDARY_MAP_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodEes = getMetric(goodResponse, "EES");
@@ -1488,48 +1502,52 @@ describe("score validation", () => {
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingRawDeliveryOne = 'billing-raw-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawDeliveryOne = 'billing-raw-1';\n",
       },
-      "feat: boundary-local 1"
+      "feat: boundary-local 1",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawDeliveryOne = 'fulfillment-raw-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRawDeliveryOne = 'fulfillment-raw-1';\n",
       },
-      "feat: boundary-local 2"
+      "feat: boundary-local 2",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingRawDeliveryTwo = 'billing-raw-2';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingRawDeliveryTwo = 'billing-raw-2';\n",
       },
-      "feat: boundary-local 3"
+      "feat: boundary-local 3",
     );
 
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingRawCrossOne = 'billing-raw-cross-1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawCrossOne = 'fulfillment-raw-cross-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRawCrossOne = 'fulfillment-raw-cross-1';\n",
       },
-      "feat: raw cross-boundary 1"
+      "feat: raw cross-boundary 1",
     );
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingRawCrossTwo = 'billing-raw-cross-2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawCrossTwo = 'fulfillment-raw-cross-2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRawCrossTwo = 'fulfillment-raw-cross-2';\n",
       },
-      "feat: raw cross-boundary 2"
+      "feat: raw cross-boundary 2",
     );
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingRawCrossThree = 'billing-raw-cross-3';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRawCrossThree = 'fulfillment-raw-cross-3';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRawCrossThree = 'fulfillment-raw-cross-3';\n",
       },
-      "feat: raw cross-boundary 3"
+      "feat: raw cross-boundary 3",
     );
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -1540,9 +1558,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-raw-observations": EES_RAW_GOOD_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -1552,9 +1570,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -1564,9 +1582,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-raw-observations": EES_RAW_THIN_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodEes = getMetric(goodResponse, "EES");
@@ -1585,33 +1603,36 @@ describe("score validation", () => {
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingExportLocalOne = 'billing-export-local-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingExportLocalOne = 'billing-export-local-1';\n",
       },
-      "feat: export local 1"
+      "feat: export local 1",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentExportLocalOne = 'fulfillment-export-local-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentExportLocalOne = 'fulfillment-export-local-1';\n",
       },
-      "feat: export local 2"
+      "feat: export local 2",
     );
 
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingExportCrossOne = 'billing-export-cross-1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentExportCrossOne = 'fulfillment-export-cross-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentExportCrossOne = 'fulfillment-export-cross-1';\n",
       },
-      "feat: export cross-boundary 1"
+      "feat: export cross-boundary 1",
     );
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingExportCrossTwo = 'billing-export-cross-2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentExportCrossTwo = 'fulfillment-export-cross-2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentExportCrossTwo = 'fulfillment-export-cross-2';\n",
       },
-      "feat: export cross-boundary 2"
+      "feat: export cross-boundary 2",
     );
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -1622,9 +1643,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-export": EES_EXPORT_GOOD_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -1634,9 +1655,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -1646,9 +1667,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-export": EES_EXPORT_THIN_DELIVERY_PATH,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodEes = getMetric(goodResponse, "EES");
@@ -1669,49 +1690,52 @@ describe("score validation", () => {
     await appendAndCommit(
       goodRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingSourceLocalOne = 'billing-source-local-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingSourceLocalOne = 'billing-source-local-1';\n",
       },
-      "feat: source local 1"
+      "feat: source local 1",
     );
     await appendAndCommit(
       goodRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentSourceLocalOne = 'fulfillment-source-local-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentSourceLocalOne = 'fulfillment-source-local-1';\n",
       },
-      "feat: source local 2"
+      "feat: source local 2",
     );
 
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingSourceCrossOne = 'billing-source-cross-1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentSourceCrossOne = 'fulfillment-source-cross-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentSourceCrossOne = 'fulfillment-source-cross-1';\n",
       },
-      "feat: source cross-boundary 1"
+      "feat: source cross-boundary 1",
     );
     await appendAndCommit(
       badRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingSourceCrossTwo = 'billing-source-cross-2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentSourceCrossTwo = 'fulfillment-source-cross-2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentSourceCrossTwo = 'fulfillment-source-cross-2';\n",
       },
-      "feat: source cross-boundary 2"
+      "feat: source cross-boundary 2",
     );
 
     const goodFileSource = await writeJsonFixture(tempRoots, "ees-good-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: EES_EXPORT_GOOD_DELIVERY_PATH
+      path: EES_EXPORT_GOOD_DELIVERY_PATH,
     });
     const badCommandSource = await writeJsonFixture(tempRoots, "ees-bad-source.json", {
       version: "1.0",
       sourceType: "command",
-      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(EES_EXPORT_BAD_DELIVERY_PATH)}`
+      command: `${shellQuote(process.execPath)} ${shellQuote(DATA_FILE_STUB)} ${shellQuote(EES_EXPORT_BAD_DELIVERY_PATH)}`,
     });
     const thinFileSource = await writeJsonFixture(tempRoots, "ees-thin-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: EES_EXPORT_THIN_DELIVERY_PATH
+      path: EES_EXPORT_THIN_DELIVERY_PATH,
     });
 
     const goodResponse = await COMMANDS["score.compute"]!(
@@ -1722,9 +1746,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-source": goodFileSource,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -1734,9 +1758,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-source": badCommandSource,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const thinResponse = await COMMANDS["score.compute"]!(
       {
@@ -1746,9 +1770,9 @@ describe("score validation", () => {
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-source": thinFileSource,
-        "delivery-normalization-profile": EES_RAW_PROFILE_PATH
+        "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodEes = getMetric(goodResponse, "EES");
@@ -1768,22 +1792,23 @@ describe("score validation", () => {
     await appendAndCommit(
       repo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingPrecedenceOne = 'billing-precedence-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingPrecedenceOne = 'billing-precedence-1';\n",
       },
-      "feat: precedence local 1"
+      "feat: precedence local 1",
     );
     await appendAndCommit(
       repo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentPrecedenceOne = 'fulfillment-precedence-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentPrecedenceOne = 'fulfillment-precedence-1';\n",
       },
-      "feat: precedence local 2"
+      "feat: precedence local 2",
     );
 
     const goodSource = await writeJsonFixture(tempRoots, "ees-precedence-source.json", {
       version: "1.0",
       sourceType: "file",
-      path: EES_EXPORT_GOOD_DELIVERY_PATH
+      path: EES_EXPORT_GOOD_DELIVERY_PATH,
     });
 
     const normalizedResponse = await COMMANDS["score.compute"]!(
@@ -1793,9 +1818,9 @@ describe("score validation", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "boundary-map": EES_BOUNDARY_MAP_PATH,
-        "delivery-observations": EES_GOOD_DELIVERY_PATH
+        "delivery-observations": EES_GOOD_DELIVERY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const precedenceResponse = await COMMANDS["score.compute"]!(
       {
@@ -1808,16 +1833,18 @@ describe("score validation", () => {
         "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
         "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
         "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH,
-        "delivery-source": goodSource
+        "delivery-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const normalizedEes = getMetric(normalizedResponse, "EES");
     const precedenceEes = getMetric(precedenceResponse, "EES");
 
     expect(precedenceEes.components.Delivery ?? 0).toBeCloseTo(normalizedEes.components.Delivery ?? 0, 6);
-    expect(precedenceEes.unknowns.some((entry) => entry.includes("A higher-priority delivery input was present"))).toBe(true);
+    expect(precedenceEes.unknowns.some((entry) => entry.includes("A higher-priority delivery input was present"))).toBe(
+      true,
+    );
 
     const rawResponse = await COMMANDS["score.compute"]!(
       {
@@ -1828,9 +1855,9 @@ describe("score validation", () => {
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-raw-observations": EES_RAW_BAD_DELIVERY_PATH,
         "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
-        "delivery-source": goodSource
+        "delivery-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(rawResponse.unknowns.some((entry) => entry.includes("delivery source was not used"))).toBe(true);
 
@@ -1843,9 +1870,9 @@ describe("score validation", () => {
         "boundary-map": EES_BOUNDARY_MAP_PATH,
         "delivery-export": EES_EXPORT_BAD_DELIVERY_PATH,
         "delivery-normalization-profile": EES_RAW_PROFILE_PATH,
-        "delivery-source": goodSource
+        "delivery-source": goodSource,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(exportResponse.unknowns.some((entry) => entry.includes("delivery source was not used"))).toBe(true);
   }, 30000);
@@ -1857,48 +1884,49 @@ describe("score validation", () => {
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingRevisionOne = 'billing-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingRevisionOne = 'billing-1';\n",
       },
-      "feat: billing update 1"
+      "feat: billing update 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRevisionOne = 'fulfillment-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRevisionOne = 'fulfillment-1';\n",
       },
-      "feat: fulfillment update 1"
+      "feat: fulfillment update 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingRevisionTwo = 'billing-2';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingRevisionTwo = 'billing-2';\n",
       },
-      "feat: billing update 2"
+      "feat: billing update 2",
     );
 
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingScatterOne = 'billing-a';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentScatterOne = 'fulfillment-a';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentScatterOne = 'fulfillment-a';\n",
       },
-      "feat: cross-context update 1"
+      "feat: cross-context update 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingScatterTwo = 'billing-b';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentScatterTwo = 'fulfillment-b';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentScatterTwo = 'fulfillment-b';\n",
       },
-      "feat: cross-context update 2"
+      "feat: cross-context update 2",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingScatterThree = 'billing-c';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentScatterThree = 'fulfillment-c';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentScatterThree = 'fulfillment-c';\n",
       },
-      "feat: cross-context update 3"
+      "feat: cross-context update 3",
     );
 
     const localResponse = await COMMANDS["score.compute"]!(
@@ -1906,18 +1934,18 @@ describe("score validation", () => {
         repo: localRepo,
         model: ELS_MODEL_PATH,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const scatteredResponse = await COMMANDS["score.compute"]!(
       {
         repo: scatteredRepo,
         model: ELS_MODEL_PATH,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const localEls = getMetric(localResponse, "ELS");
@@ -1935,48 +1963,52 @@ describe("score validation", () => {
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingShadowOne = 'billing-shadow-1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingShadowOne = 'billing-shadow-1';\n",
       },
-      "feat: billing shadow 1"
+      "feat: billing shadow 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentShadowOne = 'fulfillment-shadow-1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentShadowOne = 'fulfillment-shadow-1';\n",
       },
-      "feat: fulfillment shadow 1"
+      "feat: fulfillment shadow 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingShadowTwo = 'billing-shadow-2';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingShadowTwo = 'billing-shadow-2';\n",
       },
-      "feat: billing shadow 2"
+      "feat: billing shadow 2",
     );
 
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingShadowScatterOne = 'billing-shadow-s1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentShadowScatterOne = 'fulfillment-shadow-s1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentShadowScatterOne = 'fulfillment-shadow-s1';\n",
       },
-      "feat: cross-context shadow 1"
+      "feat: cross-context shadow 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingShadowScatterTwo = 'billing-shadow-s2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentShadowScatterTwo = 'fulfillment-shadow-s2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentShadowScatterTwo = 'fulfillment-shadow-s2';\n",
       },
-      "feat: cross-context shadow 2"
+      "feat: cross-context shadow 2",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingShadowScatterThree = 'billing-shadow-s3';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentShadowScatterThree = 'fulfillment-shadow-s3';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentShadowScatterThree = 'fulfillment-shadow-s3';\n",
       },
-      "feat: cross-context shadow 3"
+      "feat: cross-context shadow 3",
     );
 
     const localBaseline = await COMMANDS["score.compute"]!(
@@ -1984,9 +2016,9 @@ describe("score validation", () => {
         repo: localRepo,
         model: ELS_MODEL_PATH,
         policy: POLICY_PATH,
-        domain: "domain_design"
+        domain: "domain_design",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const localShadow = await COMMANDS["score.compute"]!(
       {
@@ -1994,9 +2026,9 @@ describe("score validation", () => {
         model: ELS_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "shadow-persistence": true
+        "shadow-persistence": true,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const scatteredShadow = await COMMANDS["score.compute"]!(
       {
@@ -2004,9 +2036,9 @@ describe("score validation", () => {
         model: ELS_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "shadow-persistence": true
+        "shadow-persistence": true,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const localBaselineEls = getMetric(localBaseline, "ELS");
@@ -2028,7 +2060,7 @@ describe("score validation", () => {
 
     expect(localShadowEls.value).toBeCloseTo(localBaselineEls.value, 8);
     expect(localShadowResult.shadow?.localityModels.persistenceCandidate.localityScore ?? 0).toBeGreaterThan(
-      scatteredShadowResult.shadow?.localityModels.persistenceCandidate.localityScore ?? 0
+      scatteredShadowResult.shadow?.localityModels.persistenceCandidate.localityScore ?? 0,
     );
   }, 20000);
 
@@ -2039,65 +2071,69 @@ describe("score validation", () => {
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceOne = 'billing-p1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceOne = 'billing-p1';\n",
       },
-      "feat: billing persistence 1"
+      "feat: billing persistence 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentPersistenceOne = 'fulfillment-p1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentPersistenceOne = 'fulfillment-p1';\n",
       },
-      "feat: fulfillment persistence 1"
+      "feat: fulfillment persistence 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceTwo = 'billing-p2';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceTwo = 'billing-p2';\n",
       },
-      "feat: billing persistence 2"
+      "feat: billing persistence 2",
     );
 
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceScatterOne = 'billing-sp1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentPersistenceScatterOne = 'fulfillment-sp1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentPersistenceScatterOne = 'fulfillment-sp1';\n",
       },
-      "feat: cross-context persistence 1"
+      "feat: cross-context persistence 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceScatterTwo = 'billing-sp2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentPersistenceScatterTwo = 'fulfillment-sp2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentPersistenceScatterTwo = 'fulfillment-sp2';\n",
       },
-      "feat: cross-context persistence 2"
+      "feat: cross-context persistence 2",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingPersistenceScatterThree = 'billing-sp3';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentPersistenceScatterThree = 'fulfillment-sp3';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentPersistenceScatterThree = 'fulfillment-sp3';\n",
       },
-      "feat: cross-context persistence 3"
+      "feat: cross-context persistence 3",
     );
 
     const localResponse = await COMMANDS["history.analyze_persistence"]!(
       {
         repo: localRepo,
         model: ELS_MODEL_PATH,
-        policy: POLICY_PATH
+        policy: POLICY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const scatteredResponse = await COMMANDS["history.analyze_persistence"]!(
       {
         repo: scatteredRepo,
         model: ELS_MODEL_PATH,
-        policy: POLICY_PATH
+        policy: POLICY_PATH,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const localResult = localResponse.result as {
@@ -2120,48 +2156,52 @@ describe("score validation", () => {
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingComparisonOne = 'billing-c1';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingComparisonOne = 'billing-c1';\n",
       },
-      "feat: billing comparison 1"
+      "feat: billing comparison 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentComparisonOne = 'fulfillment-c1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentComparisonOne = 'fulfillment-c1';\n",
       },
-      "feat: fulfillment comparison 1"
+      "feat: fulfillment comparison 1",
     );
     await appendAndCommit(
       localRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingComparisonTwo = 'billing-c2';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingComparisonTwo = 'billing-c2';\n",
       },
-      "feat: billing comparison 2"
+      "feat: billing comparison 2",
     );
 
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingComparisonScatterOne = 'billing-cs1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentComparisonScatterOne = 'fulfillment-cs1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentComparisonScatterOne = 'fulfillment-cs1';\n",
       },
-      "feat: cross-context comparison 1"
+      "feat: cross-context comparison 1",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingComparisonScatterTwo = 'billing-cs2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentComparisonScatterTwo = 'fulfillment-cs2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentComparisonScatterTwo = 'fulfillment-cs2';\n",
       },
-      "feat: cross-context comparison 2"
+      "feat: cross-context comparison 2",
     );
     await appendAndCommit(
       scatteredRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingComparisonScatterThree = 'billing-cs3';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentComparisonScatterThree = 'fulfillment-cs3';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentComparisonScatterThree = 'fulfillment-cs3';\n",
       },
-      "feat: cross-context comparison 3"
+      "feat: cross-context comparison 3",
     );
 
     const localComparison = getLocalityComparison(
@@ -2169,28 +2209,28 @@ describe("score validation", () => {
         {
           repo: localRepo,
           model: ELS_MODEL_PATH,
-          policy: POLICY_PATH
+          policy: POLICY_PATH,
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     );
     const scatteredComparison = getLocalityComparison(
       await COMMANDS["history.compare_locality_models"]!(
         {
           repo: scatteredRepo,
           model: ELS_MODEL_PATH,
-          policy: POLICY_PATH
+          policy: POLICY_PATH,
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     );
 
     expect(localComparison.els.score).toBeGreaterThan(scatteredComparison.els.score);
     expect(localComparison.persistenceCandidate.localityScore).toBeGreaterThan(
-      scatteredComparison.persistenceCandidate.localityScore
+      scatteredComparison.persistenceCandidate.localityScore,
     );
     expect(scatteredComparison.persistenceCandidate.persistentCouplingPenalty).toBeGreaterThan(
-      localComparison.persistenceCandidate.persistentCouplingPenalty
+      localComparison.persistenceCandidate.persistentCouplingPenalty,
     );
   }, 20000);
 
@@ -2201,48 +2241,52 @@ describe("score validation", () => {
     await appendAndCommit(
       directRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingRenameControl = 'billing-rename-control';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingRenameControl = 'billing-rename-control';\n",
       },
-      "refactor: billing internal cleanup"
+      "refactor: billing internal cleanup",
     );
     await appendAndCommit(
       directRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingRenameControlOne = 'billing-r1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRenameControlOne = 'fulfillment-r1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRenameControlOne = 'fulfillment-r1';\n",
       },
-      "feat: cross-context rename control 1"
+      "feat: cross-context rename control 1",
     );
     await appendAndCommit(
       directRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingRenameControlTwo = 'billing-r2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRenameControlTwo = 'fulfillment-r2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRenameControlTwo = 'fulfillment-r2';\n",
       },
-      "feat: cross-context rename control 2"
+      "feat: cross-context rename control 2",
     );
 
     await renameAndCommit(
       renamedRepo,
       "src/billing/internal/billing-service.ts",
       "src/billing/internal/billing-core.ts",
-      "refactor: rename billing service"
+      "refactor: rename billing service",
     );
     await appendAndCommit(
       renamedRepo,
       {
         "src/billing/internal/billing-core.ts": "\nexport const billingRenameVariantOne = 'billing-r1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRenameVariantOne = 'fulfillment-r1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRenameVariantOne = 'fulfillment-r1';\n",
       },
-      "feat: cross-context rename variant 1"
+      "feat: cross-context rename variant 1",
     );
     await appendAndCommit(
       renamedRepo,
       {
         "src/billing/internal/billing-core.ts": "\nexport const billingRenameVariantTwo = 'billing-r2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentRenameVariantTwo = 'fulfillment-r2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts":
+          "\nexport const fulfillmentRenameVariantTwo = 'fulfillment-r2';\n",
       },
-      "feat: cross-context rename variant 2"
+      "feat: cross-context rename variant 2",
     );
 
     const directEls = getMetric(
@@ -2251,11 +2295,11 @@ describe("score validation", () => {
           repo: directRepo,
           model: ELS_MODEL_PATH,
           policy: POLICY_PATH,
-          domain: "domain_design"
+          domain: "domain_design",
         },
-        { cwd: process.cwd() }
+        { cwd: process.cwd() },
       ),
-      "ELS"
+      "ELS",
     );
     const renamedEls = getMetric(
       await COMMANDS["score.compute"]!(
@@ -2263,37 +2307,37 @@ describe("score validation", () => {
           repo: renamedRepo,
           model: ELS_MODEL_PATH,
           policy: POLICY_PATH,
-          domain: "domain_design"
+          domain: "domain_design",
         },
-        { cwd: process.cwd() }
+        { cwd: process.cwd() },
       ),
-      "ELS"
+      "ELS",
     );
     const directComparison = getLocalityComparison(
       await COMMANDS["history.compare_locality_models"]!(
         {
           repo: directRepo,
           model: ELS_MODEL_PATH,
-          policy: POLICY_PATH
+          policy: POLICY_PATH,
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     );
     const renamedComparison = getLocalityComparison(
       await COMMANDS["history.compare_locality_models"]!(
         {
           repo: renamedRepo,
           model: ELS_MODEL_PATH,
-          policy: POLICY_PATH
+          policy: POLICY_PATH,
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     );
 
     expect(renamedEls.value).toBeCloseTo(directEls.value, 6);
     expect(renamedComparison.persistenceCandidate.localityScore).toBeCloseTo(
       directComparison.persistenceCandidate.localityScore,
-      6
+      6,
     );
     expect(renamedComparison.persistenceAnalysis.pairWeights).toEqual(directComparison.persistenceAnalysis.pairWeights);
   }, 20000);
@@ -2305,51 +2349,51 @@ describe("score validation", () => {
     await appendAndCommit(
       linearRepo,
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingMergeControl = 'billing-merge-control';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingMergeControl = 'billing-merge-control';\n",
       },
-      "refactor: billing merge control"
+      "refactor: billing merge control",
     );
     await appendAndCommit(
       linearRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingMergeOne = 'billing-m1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeOne = 'fulfillment-m1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeOne = 'fulfillment-m1';\n",
       },
-      "feat: cross-context merge control 1"
+      "feat: cross-context merge control 1",
     );
     await appendAndCommit(
       linearRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingMergeTwo = 'billing-m2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeTwo = 'fulfillment-m2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeTwo = 'fulfillment-m2';\n",
       },
-      "feat: cross-context merge control 2"
+      "feat: cross-context merge control 2",
     );
 
     await commitOnBranchAndMerge(
       mergedRepo,
       "merge-noise",
       {
-        "src/billing/internal/billing-service.ts": "\nexport const billingMergeControl = 'billing-merge-control';\n"
+        "src/billing/internal/billing-service.ts": "\nexport const billingMergeControl = 'billing-merge-control';\n",
       },
       "refactor: billing merge control",
-      "merge: merge billing refactor branch"
+      "merge: merge billing refactor branch",
     );
     await appendAndCommit(
       mergedRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingMergeOne = 'billing-m1';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeOne = 'fulfillment-m1';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeOne = 'fulfillment-m1';\n",
       },
-      "feat: cross-context merge control 1"
+      "feat: cross-context merge control 1",
     );
     await appendAndCommit(
       mergedRepo,
       {
         "src/billing/internal/billing-service.ts": "\nexport const billingMergeTwo = 'billing-m2';\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeTwo = 'fulfillment-m2';\n"
+        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const fulfillmentMergeTwo = 'fulfillment-m2';\n",
       },
-      "feat: cross-context merge control 2"
+      "feat: cross-context merge control 2",
     );
 
     const linearEls = getMetric(
@@ -2358,11 +2402,11 @@ describe("score validation", () => {
           repo: linearRepo,
           model: ELS_MODEL_PATH,
           policy: POLICY_PATH,
-          domain: "domain_design"
+          domain: "domain_design",
         },
-        { cwd: process.cwd() }
+        { cwd: process.cwd() },
       ),
-      "ELS"
+      "ELS",
     );
     const mergedEls = getMetric(
       await COMMANDS["score.compute"]!(
@@ -2370,37 +2414,37 @@ describe("score validation", () => {
           repo: mergedRepo,
           model: ELS_MODEL_PATH,
           policy: POLICY_PATH,
-          domain: "domain_design"
+          domain: "domain_design",
         },
-        { cwd: process.cwd() }
+        { cwd: process.cwd() },
       ),
-      "ELS"
+      "ELS",
     );
     const linearComparison = getLocalityComparison(
       await COMMANDS["history.compare_locality_models"]!(
         {
           repo: linearRepo,
           model: ELS_MODEL_PATH,
-          policy: POLICY_PATH
+          policy: POLICY_PATH,
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     );
     const mergedComparison = getLocalityComparison(
       await COMMANDS["history.compare_locality_models"]!(
         {
           repo: mergedRepo,
           model: ELS_MODEL_PATH,
-          policy: POLICY_PATH
+          policy: POLICY_PATH,
         },
-        { cwd: process.cwd() }
-      )
+        { cwd: process.cwd() },
+      ),
     );
 
     expect(mergedEls.value).toBeCloseTo(linearEls.value, 6);
     expect(mergedComparison.persistenceCandidate.localityScore).toBeCloseTo(
       linearComparison.persistenceCandidate.localityScore,
-      6
+      6,
     );
     expect(mergedComparison.persistenceAnalysis.pairWeights).toEqual(linearComparison.persistenceAnalysis.pairWeights);
   }, 20000);
@@ -2426,9 +2470,9 @@ describe("score validation", () => {
         model: ULI_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": goodDocs
+        "docs-root": goodDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badTraceResponse = await COMMANDS["score.compute"]!(
       {
@@ -2436,9 +2480,9 @@ describe("score validation", () => {
         model: ULI_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": badTraceDocs
+        "docs-root": badTraceDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badCollisionResponse = await COMMANDS["score.compute"]!(
       {
@@ -2450,9 +2494,9 @@ describe("score validation", () => {
         extractor: "cli",
         provider: "codex",
         "provider-cmd": CODEX_STUB,
-        fallback: "none"
+        fallback: "none",
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodUli = getMetric(goodResponse, "ULI");
@@ -2484,9 +2528,9 @@ describe("score validation", () => {
         model: DRF_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": goodDocs
+        "docs-root": goodDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -2494,9 +2538,9 @@ describe("score validation", () => {
         model: DRF_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": badDocs
+        "docs-root": badDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodDrf = getMetric(goodResponse, "DRF");
@@ -2527,9 +2571,9 @@ describe("score validation", () => {
         model: BFS_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": goodDocs
+        "docs-root": goodDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -2537,9 +2581,9 @@ describe("score validation", () => {
         model: BFS_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": badDocs
+        "docs-root": badDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodBfs = getMetric(goodResponse, "BFS");
@@ -2569,9 +2613,9 @@ describe("score validation", () => {
         model: AFS_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": goodDocs
+        "docs-root": goodDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     const badResponse = await COMMANDS["score.compute"]!(
       {
@@ -2579,9 +2623,9 @@ describe("score validation", () => {
         model: AFS_MODEL_PATH,
         policy: POLICY_PATH,
         domain: "domain_design",
-        "docs-root": badDocs
+        "docs-root": badDocs,
       },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
 
     const goodAfs = getMetric(goodResponse, "AFS");
@@ -2590,14 +2634,16 @@ describe("score validation", () => {
     expect(goodAfs.value).toBeGreaterThan(badAfs.value);
     expect(goodAfs.components.SIC ?? 0).toBeGreaterThan(badAfs.components.SIC ?? 0);
     expect(badAfs.components.XTC ?? 0).toBeGreaterThan(goodAfs.components.XTC ?? 0);
-    expect(goodAfs.unknowns).toContain("No aggregate definitions were found, so context is being used as an aggregate proxy.");
+    expect(goodAfs.unknowns).toContain(
+      "No aggregate definitions were found, so context is being used as an aggregate proxy.",
+    );
   }, 15000);
 });
 
 async function materializeGitFixture(
   entry: string,
   tempRoots: string[],
-  initialCommitMessage: string
+  initialCommitMessage: string,
 ): Promise<string> {
   const tempRoot = await createTemporaryWorkspace([entry]);
   tempRoots.push(tempRoot);
@@ -2606,11 +2652,7 @@ async function materializeGitFixture(
   return repoPath;
 }
 
-async function appendAndCommit(
-  repoPath: string,
-  updates: Record<string, string>,
-  message: string
-): Promise<void> {
+async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {
   for (const [relativePath, content] of Object.entries(updates)) {
     const targetPath = path.join(repoPath, relativePath);
     const current = await readFile(targetPath, "utf8");
@@ -2620,38 +2662,17 @@ async function appendAndCommit(
   await execFile("git", ["add", "."], { cwd: repoPath });
   await execFile(
     "git",
-    [
-      "-c",
-      "user.email=tester@example.com",
-      "-c",
-      "user.name=Context Probe Tester",
-      "commit",
-      "-m",
-      message
-    ],
-    { cwd: repoPath }
+    ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", "commit", "-m", message],
+    { cwd: repoPath },
   );
 }
 
-async function renameAndCommit(
-  repoPath: string,
-  fromPath: string,
-  toPath: string,
-  message: string
-): Promise<void> {
+async function renameAndCommit(repoPath: string, fromPath: string, toPath: string, message: string): Promise<void> {
   await execFile("git", ["mv", fromPath, toPath], { cwd: repoPath });
   await execFile(
     "git",
-    [
-      "-c",
-      "user.email=tester@example.com",
-      "-c",
-      "user.name=Context Probe Tester",
-      "commit",
-      "-m",
-      message
-    ],
-    { cwd: repoPath }
+    ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", "commit", "-m", message],
+    { cwd: repoPath },
   );
 }
 
@@ -2660,7 +2681,7 @@ async function commitOnBranchAndMerge(
   branchName: string,
   updates: Record<string, string>,
   commitMessage: string,
-  mergeMessage: string
+  mergeMessage: string,
 ): Promise<void> {
   const { stdout } = await execFile("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: repoPath });
   const baseBranch = stdout.trim();
@@ -2679,17 +2700,13 @@ async function commitOnBranchAndMerge(
       "--no-ff",
       branchName,
       "-m",
-      mergeMessage
+      mergeMessage,
     ],
-    { cwd: repoPath }
+    { cwd: repoPath },
   );
 }
 
-async function writeJsonFixture<T>(
-  tempRoots: string[],
-  fileName: string,
-  payload: T
-): Promise<string> {
+async function writeJsonFixture<T>(tempRoots: string[], fileName: string, payload: T): Promise<string> {
   const tempRoot = await createTemporaryWorkspace([]);
   tempRoots.push(tempRoot);
   const targetPath = path.join(tempRoot, fileName);
@@ -2701,10 +2718,7 @@ function shellQuote(value: string): string {
   return JSON.stringify(value);
 }
 
-function getMetric(
-  response: Awaited<ReturnType<NonNullable<typeof COMMANDS["score.compute"]>>>,
-  metricId: string
-) {
+function getMetric(response: Awaited<ReturnType<NonNullable<(typeof COMMANDS)["score.compute"]>>>, metricId: string) {
   const result = response.result as {
     metrics: Array<{
       metricId: string;
@@ -2722,7 +2736,7 @@ function getMetric(
 }
 
 function getLocalityComparison(
-  response: Awaited<ReturnType<NonNullable<typeof COMMANDS["history.compare_locality_models"]>>>
+  response: Awaited<ReturnType<NonNullable<(typeof COMMANDS)["history.compare_locality_models"]>>>,
 ) {
   return response.result as {
     els: {
@@ -2747,7 +2761,7 @@ function getLocalityComparison(
 
 function computeApsiFromWeights(
   components: Record<string, number>,
-  weights: { QSF: number; PCS: number; OAS: number; EES: number; CTI: number }
+  weights: { QSF: number; PCS: number; OAS: number; EES: number; CTI: number },
 ): number {
   return (
     weights.QSF * (components.QSF ?? 0.5) +

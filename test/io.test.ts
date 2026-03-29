@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -26,13 +26,9 @@ describe("listFiles", () => {
 
     await mkdir(path.dirname(sourceFile), { recursive: true });
     await mkdir(targetDirectory, { recursive: true });
-    await writeFile(sourceFile, 'export const value = 1;\n', "utf8");
+    await writeFile(sourceFile, "export const value = 1;\n", "utf8");
     await writeFile(path.join(targetDirectory, "nested.txt"), "not a source file\n", "utf8");
-    await symlink(
-      targetDirectory,
-      misleadingSymlink,
-      process.platform === "win32" ? "junction" : "dir"
-    );
+    await symlink(targetDirectory, misleadingSymlink, process.platform === "win32" ? "junction" : "dir");
 
     const files = await listFiles(tempRoot);
     const relativeFiles = files.map((filePath) => path.relative(tempRoot!, filePath).replace(/\\/g, "/"));
@@ -48,22 +44,15 @@ describe("listFiles", () => {
     tempRoot = await mkdtemp(path.join(os.tmpdir(), "context-probe-io-"));
 
     const sourceFile = path.join(tempRoot, "src", "index.ts");
-    const nestedNodeModulesFile = path.join(
-      tempRoot,
-      "apps",
-      "tooling",
-      "node_modules",
-      "example-package",
-      "index.ts"
-    );
+    const nestedNodeModulesFile = path.join(tempRoot, "apps", "tooling", "node_modules", "example-package", "index.ts");
     const nestedDistFile = path.join(tempRoot, "apps", "tooling", "dist", "generated.js");
 
     await mkdir(path.dirname(sourceFile), { recursive: true });
     await mkdir(path.dirname(nestedNodeModulesFile), { recursive: true });
     await mkdir(path.dirname(nestedDistFile), { recursive: true });
-    await writeFile(sourceFile, 'export const value = 1;\n', "utf8");
-    await writeFile(nestedNodeModulesFile, 'export const vendored = true;\n', "utf8");
-    await writeFile(nestedDistFile, 'export const generated = true;\n', "utf8");
+    await writeFile(sourceFile, "export const value = 1;\n", "utf8");
+    await writeFile(nestedNodeModulesFile, "export const vendored = true;\n", "utf8");
+    await writeFile(nestedDistFile, "export const generated = true;\n", "utf8");
 
     const files = await listFiles(tempRoot);
     const relativeFiles = files.map((filePath) => path.relative(tempRoot!, filePath).replace(/\\/g, "/"));

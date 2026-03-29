@@ -3,18 +3,14 @@ import type {
   ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeRawObservationSet,
   ScenarioDirection,
-  TelemetryNormalizationRule
+  TelemetryNormalizationRule,
 } from "../core/contracts.js";
 
 export interface PatternRuntimeNormalizationFinding {
   kind: "normalized_signal" | "missing_raw_signal" | "missing_normalization_rule";
   confidence: number;
   note: string;
-  block:
-    | "layeredRuntime"
-    | "serviceBasedRuntime"
-    | "cqrsRuntime"
-    | "eventDrivenRuntime";
+  block: "layeredRuntime" | "serviceBasedRuntime" | "cqrsRuntime" | "eventDrivenRuntime";
   rawSignal: string;
   scoreSignal: string;
   observed?: number;
@@ -68,11 +64,11 @@ export function normalizePatternRuntimeObservations(input: {
   if (!raw) {
     return {
       patternRuntimeObservations: {
-        version: "1.0"
+        version: "1.0",
       },
       confidence: 0.25,
       unknowns: ["No pattern-runtime raw observations were provided, so raw normalization is unobserved."],
-      findings
+      findings,
     };
   }
 
@@ -82,11 +78,11 @@ export function normalizePatternRuntimeObservations(input: {
         version: raw.version,
         ...(raw.patternFamily ? { patternFamily: raw.patternFamily } : {}),
         ...(raw.source ? { source: raw.source } : {}),
-        ...(raw.note ? { note: raw.note } : {})
+        ...(raw.note ? { note: raw.note } : {}),
       },
       confidence: 0.3,
       unknowns: ["No pattern-runtime normalization profile was provided, so raw runtime cannot be scored."],
-      findings
+      findings,
     };
   }
 
@@ -96,7 +92,7 @@ export function normalizePatternRuntimeObservations(input: {
     version: raw.version,
     ...(raw.patternFamily ? { patternFamily: raw.patternFamily } : {}),
     ...(raw.source ? { source: raw.source } : {}),
-    ...(raw.note ? { note: raw.note } : {})
+    ...(raw.note ? { note: raw.note } : {}),
   };
 
   const blockSpecs = [
@@ -106,8 +102,8 @@ export function normalizePatternRuntimeObservations(input: {
       profileBlock: profile.layeredRuntime,
       mappings: [
         { rawSignal: "FailureContainment", scoreSignal: "FailureContainmentScore" },
-        { rawSignal: "DependencyIsolation", scoreSignal: "DependencyIsolationScore" }
-      ]
+        { rawSignal: "DependencyIsolation", scoreSignal: "DependencyIsolationScore" },
+      ],
     },
     {
       blockName: "serviceBasedRuntime" as const,
@@ -116,8 +112,8 @@ export function normalizePatternRuntimeObservations(input: {
       mappings: [
         { rawSignal: "PartialFailureContainment", scoreSignal: "PartialFailureContainmentScore" },
         { rawSignal: "RetryAmplification", scoreSignal: "RetryAmplificationScore" },
-        { rawSignal: "SyncHopDepth", scoreSignal: "SyncHopDepthScore" }
-      ]
+        { rawSignal: "SyncHopDepth", scoreSignal: "SyncHopDepthScore" },
+      ],
     },
     {
       blockName: "cqrsRuntime" as const,
@@ -126,8 +122,8 @@ export function normalizePatternRuntimeObservations(input: {
       mappings: [
         { rawSignal: "ProjectionFreshness", scoreSignal: "ProjectionFreshnessScore" },
         { rawSignal: "ReplayDivergence", scoreSignal: "ReplayDivergenceScore" },
-        { rawSignal: "StaleReadAcceptability", scoreSignal: "StaleReadAcceptabilityScore" }
-      ]
+        { rawSignal: "StaleReadAcceptability", scoreSignal: "StaleReadAcceptabilityScore" },
+      ],
     },
     {
       blockName: "eventDrivenRuntime" as const,
@@ -136,9 +132,9 @@ export function normalizePatternRuntimeObservations(input: {
       mappings: [
         { rawSignal: "DeadLetterHealth", scoreSignal: "DeadLetterHealthScore" },
         { rawSignal: "ConsumerLag", scoreSignal: "ConsumerLagScore" },
-        { rawSignal: "ReplayRecovery", scoreSignal: "ReplayRecoveryScore" }
-      ]
-    }
+        { rawSignal: "ReplayRecovery", scoreSignal: "ReplayRecoveryScore" },
+      ],
+    },
   ];
 
   for (const blockSpec of blockSpecs) {
@@ -161,7 +157,7 @@ export function normalizePatternRuntimeObservations(input: {
           rawSignal: mapping.rawSignal,
           scoreSignal: mapping.scoreSignal,
           confidence: 0.58,
-          note: `${blockSpec.blockName} has no rule to normalize ${mapping.rawSignal}.`
+          note: `${blockSpec.blockName} has no rule to normalize ${mapping.rawSignal}.`,
         });
         continue;
       }
@@ -173,7 +169,7 @@ export function normalizePatternRuntimeObservations(input: {
           rawSignal: mapping.rawSignal,
           scoreSignal: mapping.scoreSignal,
           confidence: 0.62,
-          note: `${blockSpec.blockName} is missing the raw ${mapping.rawSignal} signal.`
+          note: `${blockSpec.blockName} is missing the raw ${mapping.rawSignal} signal.`,
         });
         continue;
       }
@@ -182,7 +178,7 @@ export function normalizePatternRuntimeObservations(input: {
         direction: rule.direction,
         observed,
         target: rule.target,
-        worstAcceptable: rule.worstAcceptable
+        worstAcceptable: rule.worstAcceptable,
       });
       normalizedBlock[mapping.scoreSignal] = normalizedValue;
       observedSignals += 1;
@@ -194,7 +190,7 @@ export function normalizePatternRuntimeObservations(input: {
         observed,
         normalized: normalizedValue,
         confidence: 0.86,
-        note: `${blockSpec.blockName} normalized ${mapping.rawSignal} from raw runtime to ${normalizedValue.toFixed(3)}.`
+        note: `${blockSpec.blockName} normalized ${mapping.rawSignal} from raw runtime to ${normalizedValue.toFixed(3)}.`,
       });
     }
 
@@ -206,16 +202,9 @@ export function normalizePatternRuntimeObservations(input: {
   return {
     patternRuntimeObservations: normalized,
     confidence: clamp01(
-      average(
-        [
-          possibleSignals > 0 ? 0.82 : 0.25,
-          observedSignals / Math.max(1, possibleSignals),
-          0.84
-        ],
-        0.35
-      )
+      average([possibleSignals > 0 ? 0.82 : 0.25, observedSignals / Math.max(1, possibleSignals), 0.84], 0.35),
     ),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }

@@ -2,7 +2,7 @@ import type {
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTelemetryObservationSet,
   ArchitectureTelemetryRawObservationSet,
-  ScenarioDirection
+  ScenarioDirection,
 } from "../core/contracts.js";
 
 export interface TelemetryNormalizationFinding {
@@ -63,11 +63,11 @@ export function normalizeTelemetryObservations(input: {
     return {
       telemetry: {
         version: "1.0",
-        bands: []
+        bands: [],
       },
       confidence: 0.25,
       unknowns: ["No telemetry raw observations were provided, so raw normalization is unobserved."],
-      findings
+      findings,
     };
   }
 
@@ -77,12 +77,12 @@ export function normalizeTelemetryObservations(input: {
         version: "1.0",
         bands: rawBands.map((band) => ({
           bandId: band.bandId,
-          trafficWeight: band.trafficWeight
-        }))
+          trafficWeight: band.trafficWeight,
+        })),
       },
       confidence: 0.3,
       unknowns: ["No telemetry normalization profile was provided, so raw telemetry cannot be scored."],
-      findings
+      findings,
     };
   }
 
@@ -90,24 +90,24 @@ export function normalizeTelemetryObservations(input: {
   const normalizedBands = rawBands.map((band) => {
     const normalizedBand: ArchitectureTelemetryObservationSet["bands"][number] = {
       bandId: band.bandId,
-      trafficWeight: band.trafficWeight
+      trafficWeight: band.trafficWeight,
     };
     const mappings = [
       {
         component: "LatencyScore" as const,
         observed: band.latencyP95,
-        rule: profile.signals.LatencyScore
+        rule: profile.signals.LatencyScore,
       },
       {
         component: "ErrorScore" as const,
         observed: band.errorRate,
-        rule: profile.signals.ErrorScore
+        rule: profile.signals.ErrorScore,
       },
       {
         component: "SaturationScore" as const,
         observed: band.saturationRatio,
-        rule: profile.signals.SaturationScore
-      }
+        rule: profile.signals.SaturationScore,
+      },
     ];
 
     for (const mapping of mappings) {
@@ -118,7 +118,7 @@ export function normalizeTelemetryObservations(input: {
           bandId: band.bandId,
           component: mapping.component,
           confidence: 0.58,
-          note: `${band.bandId} has no rule to normalize ${mapping.component}.`
+          note: `${band.bandId} has no rule to normalize ${mapping.component}.`,
         });
         continue;
       }
@@ -129,7 +129,7 @@ export function normalizeTelemetryObservations(input: {
           bandId: band.bandId,
           component: mapping.component,
           confidence: 0.62,
-          note: `${band.bandId} is missing the raw ${mapping.component} signal.`
+          note: `${band.bandId} is missing the raw ${mapping.component} signal.`,
         });
         continue;
       }
@@ -138,7 +138,7 @@ export function normalizeTelemetryObservations(input: {
         direction: mapping.rule.direction,
         observed: mapping.observed,
         target: mapping.rule.target,
-        worstAcceptable: mapping.rule.worstAcceptable
+        worstAcceptable: mapping.rule.worstAcceptable,
       });
       normalizedBand[mapping.component] = normalized;
       observedSignals += 1;
@@ -149,7 +149,7 @@ export function normalizeTelemetryObservations(input: {
         observed: mapping.observed,
         normalized,
         confidence: 0.86,
-        note: `${band.bandId} normalized ${mapping.component} from raw telemetry to ${normalized.toFixed(3)}.`
+        note: `${band.bandId} normalized ${mapping.component} from raw telemetry to ${normalized.toFixed(3)}.`,
       });
     }
 
@@ -161,19 +161,19 @@ export function normalizeTelemetryObservations(input: {
   return {
     telemetry: {
       version: "1.0",
-      bands: normalizedBands
+      bands: normalizedBands,
     },
     confidence: clamp01(
       average(
         [
           rawBands.length > 0 ? 0.82 : 0.25,
           Object.keys(profile.signals).length > 0 ? 0.84 : 0.35,
-          observedSignals / totalPossibleSignals
+          observedSignals / totalPossibleSignals,
         ],
-        0.35
-      )
+        0.35,
+      ),
     ),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }

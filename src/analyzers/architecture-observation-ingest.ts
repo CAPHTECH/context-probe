@@ -3,7 +3,7 @@ import type {
   ArchitectureDeliveryRawObservationSet,
   ArchitecturePatternRuntimeObservationSet,
   ArchitectureTelemetryExportBundle,
-  ArchitectureTelemetryRawObservationSet
+  ArchitectureTelemetryRawObservationSet,
 } from "../core/contracts.js";
 
 export interface ObservationIngestFinding {
@@ -63,13 +63,13 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
       trafficWeight: band.trafficWeight,
       ...(band.latencyP95 !== undefined ? { latencyP95: band.latencyP95 } : {}),
       ...(band.errorRate !== undefined ? { errorRate: band.errorRate } : {}),
-      ...(band.saturationRatio !== undefined ? { saturationRatio: band.saturationRatio } : {})
+      ...(band.saturationRatio !== undefined ? { saturationRatio: band.saturationRatio } : {}),
     };
 
     const mappings = [
       { component: "latencyP95", observed: band.latencyP95 },
       { component: "errorRate", observed: band.errorRate },
-      { component: "saturationRatio", observed: band.saturationRatio }
+      { component: "saturationRatio", observed: band.saturationRatio },
     ] as const;
 
     for (const mapping of mappings) {
@@ -82,7 +82,7 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
           bandId: band.bandId,
           component: mapping.component,
           ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {}),
-          ...(band.window ? { window: band.window } : {})
+          ...(band.window ? { window: band.window } : {}),
         });
         confidenceSignals.push(0.55);
         continue;
@@ -95,7 +95,7 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
         component: mapping.component,
         observed: mapping.observed,
         ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {}),
-        ...(band.window ? { window: band.window } : {})
+        ...(band.window ? { window: band.window } : {}),
       });
       confidenceSignals.push(0.84);
     }
@@ -113,7 +113,7 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
       kind: "telemetry_export_pattern_runtime_embedded",
       confidence: 0.8,
       note: "Pattern runtime observations included in the telemetry export bundle are available.",
-      ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {})
+      ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {}),
     });
     confidenceSignals.push(0.8);
   }
@@ -121,12 +121,12 @@ export function ingestTelemetryExportBundle(bundle: ArchitectureTelemetryExportB
   return {
     telemetryRawObservations: {
       version: bundle.version,
-      bands
+      bands,
     },
     ...(bundle.patternRuntime ? { patternRuntimeObservations: bundle.patternRuntime } : {}),
     confidence: clamp01(average(confidenceSignals, 0.6)),
     unknowns: unique(unknowns),
-    findings
+    findings,
   };
 }
 
@@ -141,15 +141,15 @@ export function ingestDeliveryExportBundle(bundle: ArchitectureDeliveryExportBun
     {
       component: "deployFrequency",
       scoreComponent: "DeployFrequency" as const,
-      observed: measurements.deployFrequency
+      observed: measurements.deployFrequency,
     },
     { component: "recoveryTime", scoreComponent: "RecoveryTime" as const, observed: measurements.recoveryTime },
     {
       component: "changeFailRate",
       scoreComponent: "ChangeFailRate" as const,
-      observed: measurements.changeFailRate
+      observed: measurements.changeFailRate,
     },
-    { component: "reworkRate", scoreComponent: "ReworkRate" as const, observed: measurements.reworkRate }
+    { component: "reworkRate", scoreComponent: "ReworkRate" as const, observed: measurements.reworkRate },
   ] as const;
 
   for (const mapping of mappings) {
@@ -160,7 +160,7 @@ export function ingestDeliveryExportBundle(bundle: ArchitectureDeliveryExportBun
         confidence: 0.62,
         note: `The delivery export is missing ${mapping.component}.`,
         component: mapping.component,
-        ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {})
+        ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {}),
       });
       confidenceSignals.push(0.55);
       continue;
@@ -171,7 +171,7 @@ export function ingestDeliveryExportBundle(bundle: ArchitectureDeliveryExportBun
       note: `Imported ${mapping.component} from the delivery export into raw delivery input.`,
       component: mapping.component,
       observed: mapping.observed,
-      ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {})
+      ...(bundle.sourceSystem ? { sourceSystem: bundle.sourceSystem } : {}),
     });
     confidenceSignals.push(0.84);
   }
@@ -184,13 +184,13 @@ export function ingestDeliveryExportBundle(bundle: ArchitectureDeliveryExportBun
         ...(measurements.deployFrequency !== undefined ? { DeployFrequency: measurements.deployFrequency } : {}),
         ...(measurements.recoveryTime !== undefined ? { RecoveryTime: measurements.recoveryTime } : {}),
         ...(measurements.changeFailRate !== undefined ? { ChangeFailRate: measurements.changeFailRate } : {}),
-        ...(measurements.reworkRate !== undefined ? { ReworkRate: measurements.reworkRate } : {})
+        ...(measurements.reworkRate !== undefined ? { ReworkRate: measurements.reworkRate } : {}),
       },
       ...(bundle.sourceSystem ? { source: bundle.sourceSystem } : {}),
-      ...(bundle.note ? { note: bundle.note } : {})
+      ...(bundle.note ? { note: bundle.note } : {}),
     },
     confidence: clamp01(average(confidenceSignals, 0.6)),
     unknowns: unique(unknowns),
-    findings
+    findings,
   };
 }

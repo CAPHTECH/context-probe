@@ -1,18 +1,39 @@
+import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
+import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
+import { ingestComplexityExportBundle } from "../analyzers/architecture-cti-ingest.js";
+import { normalizeDeliveryObservations } from "../analyzers/architecture-delivery-normalization.js";
+import {
+  scoreArchitectureEvolutionEfficiency,
+  scoreArchitectureEvolutionLocality,
+} from "../analyzers/architecture-evolution.js";
+import {
+  ingestDeliveryExportBundle,
+  ingestTelemetryExportBundle,
+} from "../analyzers/architecture-observation-ingest.js";
+import { scoreOperationalAdequacy } from "../analyzers/architecture-operations.js";
+import { normalizePatternRuntimeObservations } from "../analyzers/architecture-pattern-runtime-normalization.js";
+import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
+import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
+import type { ResolvedCanonicalSource } from "../analyzers/architecture-source-loader.js";
+import { normalizeTelemetryObservations } from "../analyzers/architecture-telemetry-normalization.js";
+import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
+import { parseCodebase } from "../analyzers/code.js";
+import { scoreComplexityTax } from "../analyzers/cti.js";
 import type {
   ArchitectureBoundaryMap,
   ArchitectureComplexityExportBundle,
   ArchitectureConstraints,
+  ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
-  ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryRawObservationSet,
-  ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeNormalizationProfile,
+  ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeRawObservationSet,
   ArchitectureScenarioCatalog,
+  ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTelemetryObservationSet,
-  ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryRawObservationSet,
   ArchitectureTopologyModel,
   CochangeCommit,
@@ -21,34 +42,13 @@ import type {
   PolicyConfig,
   ProvenanceRef,
   ScenarioObservationSet,
-  TopologyRuntimeObservationSet
+  TopologyRuntimeObservationSet,
 } from "./contracts.js";
 import { evaluateFormula } from "./formula.js";
 import { normalizeHistory } from "./history.js";
 import { getDomainPolicy } from "./policy.js";
 import { confidenceFromSignals, createResponse, toEvidence, toProvenance } from "./response.js";
 import { toMetricScore, weightedAverage } from "./scoring-shared.js";
-import { detectDirectionViolations, scoreDependencyDirection } from "../analyzers/architecture.js";
-import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contracts.js";
-import { scoreOperationalAdequacy } from "../analyzers/architecture-operations.js";
-import { ingestComplexityExportBundle } from "../analyzers/architecture-cti-ingest.js";
-import { normalizeDeliveryObservations } from "../analyzers/architecture-delivery-normalization.js";
-import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
-import {
-  ingestDeliveryExportBundle,
-  ingestTelemetryExportBundle
-} from "../analyzers/architecture-observation-ingest.js";
-import type { ResolvedCanonicalSource } from "../analyzers/architecture-source-loader.js";
-import { normalizePatternRuntimeObservations } from "../analyzers/architecture-pattern-runtime-normalization.js";
-import { normalizeTelemetryObservations } from "../analyzers/architecture-telemetry-normalization.js";
-import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
-import {
-  scoreArchitectureEvolutionEfficiency,
-  scoreArchitectureEvolutionLocality
-} from "../analyzers/architecture-evolution.js";
-import { scoreComplexityTax } from "../analyzers/cti.js";
-import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
-import { parseCodebase } from "../analyzers/code.js";
 
 export async function computeArchitectureScores(options: {
   repoPath: string;
@@ -98,22 +98,22 @@ export async function computeArchitectureScores(options: {
   const protocolScore = await scoreInterfaceProtocolStability({
     root: repoPath,
     codebase,
-    constraints
+    constraints,
   });
   const scenarioObservationsInput = options.scenarioObservations ?? options.scenarioObservationSource?.data;
   const scenarioScore = scoreQualityScenarioFit({
     ...(options.scenarioCatalog ? { catalog: options.scenarioCatalog } : {}),
-    ...(scenarioObservationsInput ? { observations: scenarioObservationsInput } : {})
+    ...(scenarioObservationsInput ? { observations: scenarioObservationsInput } : {}),
   });
   const topologyScore = scoreTopologyIsolation({
     ...(options.topologyModel ? { topology: options.topologyModel } : {}),
-    ...(options.runtimeObservations ? { observations: options.runtimeObservations } : {})
+    ...(options.runtimeObservations ? { observations: options.runtimeObservations } : {}),
   });
   const topologyValue = policy.metrics.TIS
     ? evaluateFormula(policy.metrics.TIS.formula, {
         FI: topologyScore.FI,
         RC: topologyScore.RC,
-        SDR: topologyScore.SDR
+        SDR: topologyScore.SDR,
       })
     : 0.4 * topologyScore.FI + 0.3 * topologyScore.RC + 0.3 * (1 - topologyScore.SDR);
   const telemetryExportBundle = options.telemetryExport ?? options.telemetrySource?.data;
@@ -122,19 +122,18 @@ export async function computeArchitectureScores(options: {
     : undefined;
   const usableTelemetryRaw = Boolean(options.telemetryRawObservations && options.telemetryNormalizationProfile);
   const usablePatternRuntimeRaw = Boolean(
-    options.patternRuntimeRawObservations && options.patternRuntimeNormalizationProfile
+    options.patternRuntimeRawObservations && options.patternRuntimeNormalizationProfile,
   );
-  const patternRuntimeNormalizationResult =
-    options.patternRuntimeObservations
-      ? undefined
-      : options.patternRuntimeRawObservations || options.patternRuntimeNormalizationProfile
-        ? normalizePatternRuntimeObservations({
-            ...(options.patternRuntimeRawObservations ? { raw: options.patternRuntimeRawObservations } : {}),
-            ...(options.patternRuntimeNormalizationProfile
-              ? { profile: options.patternRuntimeNormalizationProfile }
-              : {})
-          })
-        : undefined;
+  const patternRuntimeNormalizationResult = options.patternRuntimeObservations
+    ? undefined
+    : options.patternRuntimeRawObservations || options.patternRuntimeNormalizationProfile
+      ? normalizePatternRuntimeObservations({
+          ...(options.patternRuntimeRawObservations ? { raw: options.patternRuntimeRawObservations } : {}),
+          ...(options.patternRuntimeNormalizationProfile
+            ? { profile: options.patternRuntimeNormalizationProfile }
+            : {}),
+        })
+      : undefined;
   const telemetryRawInput = options.telemetryObservations
     ? undefined
     : usableTelemetryRaw
@@ -142,20 +141,18 @@ export async function computeArchitectureScores(options: {
       : telemetryExportBundle
         ? telemetryExportIngestResult?.telemetryRawObservations
         : options.telemetryRawObservations;
-  const patternRuntimeInput = options.patternRuntimeObservations
-    ?? (usablePatternRuntimeRaw ? patternRuntimeNormalizationResult?.patternRuntimeObservations : undefined)
-    ?? telemetryExportIngestResult?.patternRuntimeObservations;
-  const telemetryNormalizationResult =
-    options.telemetryObservations
-      ? undefined
-      : telemetryRawInput || options.telemetryNormalizationProfile
-        ? normalizeTelemetryObservations({
-            ...(telemetryRawInput ? { raw: telemetryRawInput } : {}),
-            ...(options.telemetryNormalizationProfile
-              ? { profile: options.telemetryNormalizationProfile }
-              : {})
-          })
-        : undefined;
+  const patternRuntimeInput =
+    options.patternRuntimeObservations ??
+    (usablePatternRuntimeRaw ? patternRuntimeNormalizationResult?.patternRuntimeObservations : undefined) ??
+    telemetryExportIngestResult?.patternRuntimeObservations;
+  const telemetryNormalizationResult = options.telemetryObservations
+    ? undefined
+    : telemetryRawInput || options.telemetryNormalizationProfile
+      ? normalizeTelemetryObservations({
+          ...(telemetryRawInput ? { raw: telemetryRawInput } : {}),
+          ...(options.telemetryNormalizationProfile ? { profile: options.telemetryNormalizationProfile } : {}),
+        })
+      : undefined;
   const operationsScore = scoreOperationalAdequacy({
     ...(options.telemetryObservations
       ? { telemetry: options.telemetryObservations }
@@ -163,7 +160,7 @@ export async function computeArchitectureScores(options: {
         ? { telemetry: telemetryNormalizationResult.telemetry }
         : {}),
     ...(patternRuntimeInput ? { patternRuntime: patternRuntimeInput } : {}),
-    topologyIsolationBridge: topologyValue
+    topologyIsolationBridge: topologyValue,
   });
   const deliveryExportBundle = options.deliveryExport ?? options.deliverySource?.data;
   const deliveryExportIngestResult = deliveryExportBundle
@@ -177,22 +174,19 @@ export async function computeArchitectureScores(options: {
       : deliveryExportBundle
         ? deliveryExportIngestResult?.deliveryRawObservations
         : options.deliveryRawObservations;
-  const deliveryNormalizationResult =
-    options.deliveryObservations
-      ? undefined
-      : deliveryRawInput || options.deliveryNormalizationProfile
-        ? normalizeDeliveryObservations({
-            ...(deliveryRawInput ? { raw: deliveryRawInput } : {}),
-            ...(options.deliveryNormalizationProfile
-              ? { profile: options.deliveryNormalizationProfile }
-              : {})
-          })
-        : undefined;
+  const deliveryNormalizationResult = options.deliveryObservations
+    ? undefined
+    : deliveryRawInput || options.deliveryNormalizationProfile
+      ? normalizeDeliveryObservations({
+          ...(deliveryRawInput ? { raw: deliveryRawInput } : {}),
+          ...(options.deliveryNormalizationProfile ? { profile: options.deliveryNormalizationProfile } : {}),
+        })
+      : undefined;
   const complexityExportBundle = options.complexityExport ?? options.complexitySource?.data;
   const complexityExportIngestResult = complexityExportBundle
     ? ingestComplexityExportBundle({
         bundle: complexityExportBundle,
-        ...(options.constraints.complexity ? { existing: options.constraints.complexity } : {})
+        ...(options.constraints.complexity ? { existing: options.constraints.complexity } : {}),
       })
     : undefined;
   const complexityScore = scoreComplexityTax({
@@ -200,9 +194,9 @@ export async function computeArchitectureScores(options: {
     constraints: complexityExportIngestResult
       ? {
           ...constraints,
-          complexity: complexityExportIngestResult.complexity
+          complexity: complexityExportIngestResult.complexity,
         }
-      : constraints
+      : constraints,
   });
   let architectureCommits: CochangeCommit[] = [];
   let architectureHistoryDiagnostics: string[] = [];
@@ -210,23 +204,25 @@ export async function computeArchitectureScores(options: {
     architectureCommits = await normalizeHistory(repoPath, policyConfig, profileName);
   } catch (error) {
     architectureHistoryDiagnostics = [
-      error instanceof Error ? `Skipped architecture history analysis: ${error.message}` : "Skipped architecture history analysis"
+      error instanceof Error
+        ? `Skipped architecture history analysis: ${error.message}`
+        : "Skipped architecture history analysis",
     ];
   }
   const evolutionLocalityScore = scoreArchitectureEvolutionLocality({
     commits: architectureCommits,
     constraints,
-    ...(options.boundaryMap ? { boundaryMap: options.boundaryMap } : {})
+    ...(options.boundaryMap ? { boundaryMap: options.boundaryMap } : {}),
   });
   const localityValue = policy.metrics.AELS
     ? evaluateFormula(policy.metrics.AELS.formula, {
         CrossBoundaryCoChange: evolutionLocalityScore.CrossBoundaryCoChange,
         WeightedPropagationCost: evolutionLocalityScore.WeightedPropagationCost,
-        WeightedClusteringCost: evolutionLocalityScore.WeightedClusteringCost
+        WeightedClusteringCost: evolutionLocalityScore.WeightedClusteringCost,
       })
     : 0.4 * (1 - evolutionLocalityScore.CrossBoundaryCoChange) +
-        0.3 * (1 - evolutionLocalityScore.WeightedPropagationCost) +
-        0.3 * (1 - evolutionLocalityScore.WeightedClusteringCost);
+      0.3 * (1 - evolutionLocalityScore.WeightedPropagationCost) +
+      0.3 * (1 - evolutionLocalityScore.WeightedClusteringCost);
   const evolutionEfficiencyScore = scoreArchitectureEvolutionEfficiency({
     ...(options.deliveryObservations
       ? { deliveryObservations: options.deliveryObservations }
@@ -235,7 +231,7 @@ export async function computeArchitectureScores(options: {
         : {}),
     locality: localityValue,
     localityConfidence: evolutionLocalityScore.confidence,
-    localityUnknowns: evolutionLocalityScore.unknowns
+    localityUnknowns: evolutionLocalityScore.unknowns,
   });
   const violations = detectDirectionViolations(codebase, constraints);
   const evidence = violations.map((violation) =>
@@ -243,11 +239,11 @@ export async function computeArchitectureScores(options: {
       `${violation.sourceLayer} -> ${violation.targetLayer} direction violation`,
       {
         source: violation.source,
-        target: violation.target
+        target: violation.target,
       },
       undefined,
-      0.95
-    )
+      0.95,
+    ),
   );
   const purityEvidence = purityScore.findings.map((finding) =>
     toEvidence(
@@ -258,11 +254,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.source ? { source: finding.source } : {}),
         ...(finding.target ? { target: finding.target } : {}),
         ...(finding.sourceLayer ? { sourceLayer: finding.sourceLayer } : {}),
-        ...(finding.targetLayer ? { targetLayer: finding.targetLayer } : {})
+        ...(finding.targetLayer ? { targetLayer: finding.targetLayer } : {}),
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const protocolEvidence = protocolScore.findings.map((finding) =>
     toEvidence(
@@ -270,11 +266,11 @@ export async function computeArchitectureScores(options: {
       {
         kind: finding.kind,
         path: finding.path,
-        ...(finding.symbol ? { symbol: finding.symbol } : {})
+        ...(finding.symbol ? { symbol: finding.symbol } : {}),
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const scenarioEvidence = scenarioScore.findings.map((finding) =>
     toEvidence(
@@ -283,11 +279,11 @@ export async function computeArchitectureScores(options: {
         scenarioId: finding.scenarioId,
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
-        source: finding.source
+        source: finding.source,
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const scenarioSourceEvidence = (options.scenarioObservationSource?.findings ?? []).map((finding) =>
     toEvidence(
@@ -298,11 +294,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.sourcePath ? { sourcePath: finding.sourcePath } : {}),
         ...(finding.command ? { command: finding.command } : {}),
         ...(finding.cwd ? { cwd: finding.cwd } : {}),
-        source: "scenario_observation_source"
+        source: "scenario_observation_source",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const topologyEvidence = topologyScore.findings.map((finding) =>
     toEvidence(
@@ -311,11 +307,11 @@ export async function computeArchitectureScores(options: {
         kind: finding.kind,
         ...(finding.nodeId ? { nodeId: finding.nodeId } : {}),
         ...(finding.source ? { source: finding.source } : {}),
-        ...(finding.target ? { target: finding.target } : {})
+        ...(finding.target ? { target: finding.target } : {}),
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const operationsEvidence = operationsScore.findings.map((finding) =>
     toEvidence(
@@ -326,11 +322,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.component ? { component: finding.component } : {}),
         ...(finding.patternFamily ? { patternFamily: finding.patternFamily } : {}),
         ...(finding.signal ? { signal: finding.signal } : {}),
-        ...(finding.source ? { source: finding.source } : {})
+        ...(finding.source ? { source: finding.source } : {}),
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const telemetrySourceEvidence = (options.telemetrySource?.findings ?? []).map((finding) =>
     toEvidence(
@@ -341,11 +337,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.sourcePath ? { sourcePath: finding.sourcePath } : {}),
         ...(finding.command ? { command: finding.command } : {}),
         ...(finding.cwd ? { cwd: finding.cwd } : {}),
-        source: "telemetry_source"
+        source: "telemetry_source",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const telemetryNormalizationEvidence = (telemetryNormalizationResult?.findings ?? []).map((finding) =>
     toEvidence(
@@ -355,11 +351,11 @@ export async function computeArchitectureScores(options: {
         bandId: finding.bandId,
         component: finding.component,
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
-        ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {})
+        ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const patternRuntimeNormalizationEvidence = (patternRuntimeNormalizationResult?.findings ?? []).map((finding) =>
     toEvidence(
@@ -371,11 +367,11 @@ export async function computeArchitectureScores(options: {
         scoreSignal: finding.scoreSignal,
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
-        source: "pattern_runtime_raw_normalized"
+        source: "pattern_runtime_raw_normalized",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const telemetryExportEvidence = (telemetryExportIngestResult?.findings ?? []).map((finding) =>
     toEvidence(
@@ -387,11 +383,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.sourceSystem ? { sourceSystem: finding.sourceSystem } : {}),
         ...(finding.window ? { window: finding.window } : {}),
-        source: "telemetry_export"
+        source: "telemetry_export",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const deliverySourceEvidence = (options.deliverySource?.findings ?? []).map((finding) =>
     toEvidence(
@@ -402,11 +398,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.sourcePath ? { sourcePath: finding.sourcePath } : {}),
         ...(finding.command ? { command: finding.command } : {}),
         ...(finding.cwd ? { cwd: finding.cwd } : {}),
-        source: "delivery_source"
+        source: "delivery_source",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const deliveryNormalizationEvidence = (deliveryNormalizationResult?.findings ?? []).map((finding) =>
     toEvidence(
@@ -417,11 +413,11 @@ export async function computeArchitectureScores(options: {
         scoreComponent: finding.scoreComponent,
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.normalized !== undefined ? { normalized: finding.normalized } : {}),
-        source: "raw_normalized"
+        source: "raw_normalized",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const complexitySourceEvidence = (options.complexitySource?.findings ?? []).map((finding) =>
     toEvidence(
@@ -432,11 +428,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.sourcePath ? { sourcePath: finding.sourcePath } : {}),
         ...(finding.command ? { command: finding.command } : {}),
         ...(finding.cwd ? { cwd: finding.cwd } : {}),
-        source: "complexity_source"
+        source: "complexity_source",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const deliveryExportEvidence = (deliveryExportIngestResult?.findings ?? []).map((finding) =>
     toEvidence(
@@ -446,11 +442,11 @@ export async function computeArchitectureScores(options: {
         ...(finding.component ? { component: finding.component } : {}),
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.sourceSystem ? { sourceSystem: finding.sourceSystem } : {}),
-        source: "delivery_export"
+        source: "delivery_export",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const complexityExportEvidence = (complexityExportIngestResult?.findings ?? []).map((finding) =>
     toEvidence(
@@ -460,11 +456,11 @@ export async function computeArchitectureScores(options: {
         component: finding.component,
         ...(finding.observed !== undefined ? { observed: finding.observed } : {}),
         ...(finding.sourceSystem ? { sourceSystem: finding.sourceSystem } : {}),
-        source: "complexity_export"
+        source: "complexity_export",
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const complexityEvidence = complexityScore.findings.map((finding) =>
     toEvidence(
@@ -473,11 +469,11 @@ export async function computeArchitectureScores(options: {
         component: finding.component,
         observed: finding.observed,
         normalized: finding.normalized,
-        source: finding.source
+        source: finding.source,
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const evolutionEvidence = evolutionLocalityScore.findings.concat(evolutionEfficiencyScore.findings).map((finding) =>
     toEvidence(
@@ -485,11 +481,11 @@ export async function computeArchitectureScores(options: {
       {
         kind: finding.kind,
         ...(finding.commitHash ? { commitHash: finding.commitHash } : {}),
-        ...(finding.component ? { component: finding.component } : {})
+        ...(finding.component ? { component: finding.component } : {}),
       },
       undefined,
-      finding.confidence
-    )
+      finding.confidence,
+    ),
   );
   const deliveryInputEvidence = options.deliveryObservations
     ? [
@@ -497,8 +493,8 @@ export async function computeArchitectureScores(options: {
           "Using the normalized scores from delivery observations as-is.",
           { source: "normalized_input" },
           undefined,
-          0.84
-        )
+          0.84,
+        ),
       ]
     : options.deliveryRawObservations
       ? [
@@ -506,8 +502,8 @@ export async function computeArchitectureScores(options: {
             "Using raw delivery observations after scoring them through the normalization profile.",
             { source: "raw_normalized" },
             undefined,
-            0.82
-          )
+            0.82,
+          ),
         ]
       : options.deliveryExport
         ? [
@@ -515,8 +511,8 @@ export async function computeArchitectureScores(options: {
               "Ingested the delivery export as the delivery input for EES.",
               { source: "delivery_export" },
               undefined,
-              0.8
-            )
+              0.8,
+            ),
           ]
         : options.deliverySource
           ? [
@@ -526,11 +522,11 @@ export async function computeArchitectureScores(options: {
                   source: "delivery_source",
                   sourceType: options.deliverySource.sourceType,
                   ...(options.deliverySource.resolvedPath ? { sourcePath: options.deliverySource.resolvedPath } : {}),
-                  ...(options.deliverySource.command ? { command: options.deliverySource.command } : {})
+                  ...(options.deliverySource.command ? { command: options.deliverySource.command } : {}),
                 },
                 undefined,
-                0.78
-              )
+                0.78,
+              ),
             ]
           : deliveryNormalizationResult
             ? [
@@ -538,8 +534,8 @@ export async function computeArchitectureScores(options: {
                   "Using raw delivery observations after scoring them through the normalization profile.",
                   { source: "raw_normalized" },
                   undefined,
-                  0.82
-                )
+                  0.82,
+                ),
               ]
             : [];
   const telemetryInputEvidence = options.telemetryObservations
@@ -548,8 +544,8 @@ export async function computeArchitectureScores(options: {
           "Using the normalized scores from telemetry observations as-is.",
           { source: "normalized_input" },
           undefined,
-          0.84
-        )
+          0.84,
+        ),
       ]
     : options.telemetryRawObservations
       ? [
@@ -557,8 +553,8 @@ export async function computeArchitectureScores(options: {
             "Using raw telemetry observations after scoring them through the normalization profile.",
             { source: "raw_normalized" },
             undefined,
-            0.82
-          )
+            0.82,
+          ),
         ]
       : options.telemetryExport
         ? [
@@ -566,8 +562,8 @@ export async function computeArchitectureScores(options: {
               "Ingested the telemetry export as the CommonOps input for OAS.",
               { source: "telemetry_export" },
               undefined,
-              0.8
-            )
+              0.8,
+            ),
           ]
         : options.telemetrySource
           ? [
@@ -577,11 +573,11 @@ export async function computeArchitectureScores(options: {
                   source: "telemetry_source",
                   sourceType: options.telemetrySource.sourceType,
                   ...(options.telemetrySource.resolvedPath ? { sourcePath: options.telemetrySource.resolvedPath } : {}),
-                  ...(options.telemetrySource.command ? { command: options.telemetrySource.command } : {})
+                  ...(options.telemetrySource.command ? { command: options.telemetrySource.command } : {}),
                 },
                 undefined,
-                0.78
-              )
+                0.78,
+              ),
             ]
           : telemetryNormalizationResult
             ? [
@@ -589,8 +585,8 @@ export async function computeArchitectureScores(options: {
                   "Using raw telemetry observations after scoring them through the normalization profile.",
                   { source: "raw_normalized" },
                   undefined,
-                  0.82
-                )
+                  0.82,
+                ),
               ]
             : [];
   const scores: MetricScore[] = [];
@@ -600,28 +596,28 @@ export async function computeArchitectureScores(options: {
       ...(options.scenarioObservationSource?.unknowns ?? []),
       ...(options.scenarioObservations && options.scenarioObservationSourceRequested
         ? ["Scenario observations were provided explicitly, so the scenario observation source was not used."]
-        : [])
+        : []),
     ];
     scores.push(
       toMetricScore(
         "QSF",
         evaluateFormula(policy.metrics.QSF.formula, {
-          QSF: scenarioScore.QSF
+          QSF: scenarioScore.QSF,
         }),
         {
           scenario_count: scenarioScore.scenarioCount,
           weighted_coverage: scenarioScore.weightedCoverage,
           average_normalized_score: scenarioScore.averageNormalizedScore,
-          QSF: scenarioScore.QSF
+          QSF: scenarioScore.QSF,
         },
         [...scenarioSourceEvidence, ...scenarioEvidence].map((entry) => entry.evidenceId),
         confidenceFromSignals(
           options.scenarioObservationSource
             ? [scenarioScore.confidence, options.scenarioObservationSource.confidence]
-            : [scenarioScore.confidence]
+            : [scenarioScore.confidence],
         ),
-        Array.from(new Set(qsfUnknowns))
-      )
+        Array.from(new Set(qsfUnknowns)),
+      ),
     );
   }
   if (policy.metrics.DDS) {
@@ -631,17 +627,19 @@ export async function computeArchitectureScores(options: {
         evaluateFormula(policy.metrics.DDS.formula, {
           IDR: directionScore.IDR,
           LRC: directionScore.LRC,
-          APM: directionScore.APM
+          APM: directionScore.APM,
         }),
         {
           IDR: directionScore.IDR,
           LRC: directionScore.LRC,
-          APM: directionScore.APM
+          APM: directionScore.APM,
         },
         evidence.map((entry) => entry.evidenceId),
         directionScore.applicableEdges > 0 ? 0.9 : 0.55,
-        directionScore.applicableEdges > 0 ? [] : ["There are too few dependencies that can be classified into layers."]
-      )
+        directionScore.applicableEdges > 0
+          ? []
+          : ["There are too few dependencies that can be classified into layers."],
+      ),
     );
   }
   if (policy.metrics.BPS) {
@@ -651,17 +649,17 @@ export async function computeArchitectureScores(options: {
         evaluateFormula(policy.metrics.BPS.formula, {
           ALR: purityScore.ALR,
           FCC: purityScore.FCC,
-          SICR: purityScore.SICR
+          SICR: purityScore.SICR,
         }),
         {
           ALR: purityScore.ALR,
           FCC: purityScore.FCC,
-          SICR: purityScore.SICR
+          SICR: purityScore.SICR,
         },
         purityEvidence.map((entry) => entry.evidenceId),
         purityScore.confidence,
-        purityScore.unknowns
-      )
+        purityScore.unknowns,
+      ),
     );
   }
   if (policy.metrics.IPS) {
@@ -671,17 +669,17 @@ export async function computeArchitectureScores(options: {
         evaluateFormula(policy.metrics.IPS.formula, {
           CBC: protocolScore.CBC,
           BCR: protocolScore.BCR,
-          SLA: protocolScore.SLA
+          SLA: protocolScore.SLA,
         }),
         {
           CBC: protocolScore.CBC,
           BCR: protocolScore.BCR,
-          SLA: protocolScore.SLA
+          SLA: protocolScore.SLA,
         },
         protocolEvidence.map((entry) => entry.evidenceId),
         protocolScore.confidence,
-        protocolScore.unknowns
-      )
+        protocolScore.unknowns,
+      ),
     );
   }
   if (policy.metrics.TIS) {
@@ -691,17 +689,17 @@ export async function computeArchitectureScores(options: {
         evaluateFormula(policy.metrics.TIS.formula, {
           FI: topologyScore.FI,
           RC: topologyScore.RC,
-          SDR: topologyScore.SDR
+          SDR: topologyScore.SDR,
         }),
         {
           FI: topologyScore.FI,
           RC: topologyScore.RC,
-          SDR: topologyScore.SDR
+          SDR: topologyScore.SDR,
         },
         topologyEvidence.map((entry) => entry.evidenceId),
         topologyScore.confidence,
-        topologyScore.unknowns
-      )
+        topologyScore.unknowns,
+      ),
     );
   }
   if (policy.metrics.OAS) {
@@ -711,7 +709,7 @@ export async function computeArchitectureScores(options: {
       ...telemetryExportEvidence,
       ...telemetryNormalizationEvidence,
       ...patternRuntimeNormalizationEvidence,
-      ...operationsEvidence
+      ...operationsEvidence,
     ].map((entry) => entry.evidenceId);
     const oasUnknowns = [
       ...(options.telemetrySource?.unknowns ?? []),
@@ -737,7 +735,7 @@ export async function computeArchitectureScores(options: {
         : []),
       ...(options.patternRuntimeObservations && telemetryExportIngestResult?.patternRuntimeObservations
         ? [
-            "Pattern runtime observations were provided explicitly, so pattern runtime data inside the telemetry export was not used."
+            "Pattern runtime observations were provided explicitly, so pattern runtime data inside the telemetry export was not used.",
           ]
         : []),
       ...(options.patternRuntimeObservations &&
@@ -746,21 +744,23 @@ export async function computeArchitectureScores(options: {
         ? ["Pattern runtime observations were provided explicitly, so raw pattern runtime input was not used."]
         : []),
       ...(usablePatternRuntimeRaw && telemetryExportIngestResult?.patternRuntimeObservations
-        ? ["Raw pattern runtime input was provided explicitly, so pattern runtime data inside the telemetry export was not used."]
-        : [])
+        ? [
+            "Raw pattern runtime input was provided explicitly, so pattern runtime data inside the telemetry export was not used.",
+          ]
+        : []),
     ];
     scores.push(
       toMetricScore(
         "OAS",
         evaluateFormula(policy.metrics.OAS.formula, {
           CommonOps: operationsScore.CommonOps,
-          PatternRuntime: operationsScore.PatternRuntime
+          PatternRuntime: operationsScore.PatternRuntime,
         }),
         {
           CommonOps: operationsScore.CommonOps,
           PatternRuntime: operationsScore.PatternRuntime,
           band_count: operationsScore.bandCount,
-          weighted_band_coverage: operationsScore.weightedBandCoverage
+          weighted_band_coverage: operationsScore.weightedBandCoverage,
         },
         oasEvidenceRefs,
         confidenceFromSignals([
@@ -772,10 +772,10 @@ export async function computeArchitectureScores(options: {
               ? [options.telemetrySource.confidence, telemetryExportIngestResult?.confidence ?? 0.8]
               : telemetryExportIngestResult
                 ? [telemetryExportIngestResult.confidence]
-                : [0.85])
+                : [0.85]),
         ]),
-        Array.from(new Set(oasUnknowns))
-      )
+        Array.from(new Set(oasUnknowns)),
+      ),
     );
   }
   if (policy.metrics.CTI) {
@@ -784,13 +784,19 @@ export async function computeArchitectureScores(options: {
         "CTI",
         evaluateFormula(policy.metrics.CTI.formula, complexityScore.components),
         complexityScore.components,
-        [...complexitySourceEvidence, ...complexityExportEvidence, ...complexityEvidence].map((entry) => entry.evidenceId),
+        [...complexitySourceEvidence, ...complexityExportEvidence, ...complexityEvidence].map(
+          (entry) => entry.evidenceId,
+        ),
         confidenceFromSignals(
           complexityExportIngestResult
             ? options.complexitySource
-              ? [complexityScore.confidence, complexityExportIngestResult.confidence, options.complexitySource.confidence]
+              ? [
+                  complexityScore.confidence,
+                  complexityExportIngestResult.confidence,
+                  options.complexitySource.confidence,
+                ]
               : [complexityScore.confidence, complexityExportIngestResult.confidence]
-            : [complexityScore.confidence]
+            : [complexityScore.confidence],
         ),
         Array.from(
           new Set([
@@ -799,10 +805,10 @@ export async function computeArchitectureScores(options: {
             ...complexityScore.unknowns,
             ...(options.complexityExport && options.complexitySourceRequested
               ? ["A complexity export was provided explicitly, so the complexity source was not used."]
-              : [])
-          ])
-        )
-      )
+              : []),
+          ]),
+        ),
+      ),
     );
   }
   if (policy.metrics.AELS) {
@@ -813,12 +819,12 @@ export async function computeArchitectureScores(options: {
         {
           CrossBoundaryCoChange: evolutionLocalityScore.CrossBoundaryCoChange,
           WeightedPropagationCost: evolutionLocalityScore.WeightedPropagationCost,
-          WeightedClusteringCost: evolutionLocalityScore.WeightedClusteringCost
+          WeightedClusteringCost: evolutionLocalityScore.WeightedClusteringCost,
         },
         evolutionEvidence.map((entry) => entry.evidenceId),
         evolutionLocalityScore.confidence,
-        evolutionLocalityScore.unknowns
-      )
+        evolutionLocalityScore.unknowns,
+      ),
     );
   }
   if (policy.metrics.EES) {
@@ -842,25 +848,25 @@ export async function computeArchitectureScores(options: {
         (options.deliveryRawObservations && options.deliveryNormalizationProfile) ||
         options.deliveryExport)
         ? ["A higher-priority delivery input was present, so the delivery source was not used."]
-        : [])
+        : []),
     ];
     scores.push(
       toMetricScore(
         "EES",
         evaluateFormula(policy.metrics.EES.formula, {
           Delivery: evolutionEfficiencyScore.Delivery,
-          Locality: evolutionEfficiencyScore.Locality
+          Locality: evolutionEfficiencyScore.Locality,
         }),
         {
           Delivery: evolutionEfficiencyScore.Delivery,
-          Locality: evolutionEfficiencyScore.Locality
+          Locality: evolutionEfficiencyScore.Locality,
         },
         [
           ...deliverySourceEvidence,
           ...deliveryInputEvidence,
           ...deliveryExportEvidence,
           ...deliveryNormalizationEvidence,
-          ...evolutionEvidence
+          ...evolutionEvidence,
         ].map((entry) => entry.evidenceId),
         confidenceFromSignals([
           evolutionEfficiencyScore.confidence,
@@ -870,10 +876,10 @@ export async function computeArchitectureScores(options: {
               ? [options.deliverySource.confidence, deliveryExportIngestResult?.confidence ?? 0.8]
               : deliveryExportIngestResult
                 ? [deliveryExportIngestResult.confidence]
-                : [0.85])
+                : [0.85]),
         ]),
-        Array.from(new Set(eesUnknowns))
-      )
+        Array.from(new Set(eesUnknowns)),
+      ),
     );
   }
   if (policy.metrics.APSI) {
@@ -890,9 +896,9 @@ export async function computeArchitectureScores(options: {
       [
         { value: ddsMetric?.value, weight: 0.4 },
         { value: bpsMetric?.value, weight: 0.35 },
-        { value: ipsMetric?.value, weight: 0.25 }
+        { value: ipsMetric?.value, weight: 0.25 },
       ],
-      0.5
+      0.5,
     );
     const OAS = oasMetric?.value ?? tisMetric?.value ?? 0.5;
     const apsiComponents = {
@@ -900,7 +906,7 @@ export async function computeArchitectureScores(options: {
       PCS,
       OAS,
       EES: eesMetric?.value ?? 0.5,
-      CTI: ctiMetric?.value ?? 0.5
+      CTI: ctiMetric?.value ?? 0.5,
     };
     const apsiUnknowns = ["PCS is a proxy composite of DDS, BPS, and IPS."];
     if (!qsfMetric) {
@@ -931,17 +937,18 @@ export async function computeArchitectureScores(options: {
         apsiComponents,
         Array.from(
           new Set(
-            [qsfMetric, ddsMetric, bpsMetric, ipsMetric, oasMetric, tisMetric, eesMetric, ctiMetric]
-              .flatMap((metric) => metric?.evidenceRefs ?? [])
-          )
+            [qsfMetric, ddsMetric, bpsMetric, ipsMetric, oasMetric, tisMetric, eesMetric, ctiMetric].flatMap(
+              (metric) => metric?.evidenceRefs ?? [],
+            ),
+          ),
         ),
         confidenceFromSignals(
-          [qsfMetric, ddsMetric, bpsMetric, ipsMetric, oasMetric, tisMetric, eesMetric, ctiMetric].flatMap(
-            (metric) => (metric ? [metric.confidence] : [])
-          )
+          [qsfMetric, ddsMetric, bpsMetric, ipsMetric, oasMetric, tisMetric, eesMetric, ctiMetric].flatMap((metric) =>
+            metric ? [metric.confidence] : [],
+          ),
         ),
-        Array.from(new Set(apsiUnknowns))
-      )
+        Array.from(new Set(apsiUnknowns)),
+      ),
     );
   }
 
@@ -949,7 +956,7 @@ export async function computeArchitectureScores(options: {
     {
       domainId: "architecture_design",
       metrics: scores,
-      violations
+      violations,
     },
     {
       status: architectureHistoryDiagnostics.length > 0 ? "warning" : "ok",
@@ -973,7 +980,7 @@ export async function computeArchitectureScores(options: {
         ...complexitySourceEvidence,
         ...complexityExportEvidence,
         ...complexityEvidence,
-        ...evolutionEvidence
+        ...evolutionEvidence,
       ],
       confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
       unknowns: Array.from(new Set(scores.flatMap((score) => score.unknowns))),
@@ -981,8 +988,8 @@ export async function computeArchitectureScores(options: {
       provenance: [
         toProvenance(repoPath, "architecture_design"),
         toProvenance(repoPath, `profile=${profileName}`),
-        ...(options.additionalProvenance ?? [])
-      ]
-    }
+        ...(options.additionalProvenance ?? []),
+      ],
+    },
   );
 }

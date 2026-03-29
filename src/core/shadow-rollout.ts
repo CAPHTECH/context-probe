@@ -7,25 +7,23 @@ import type {
   DomainDesignShadowRolloutGateCategorySummary,
   DomainDesignShadowRolloutGateEvaluation,
   DomainDesignShadowRolloutGateObservation,
-  DomainDesignShadowRolloutRegistry
+  DomainDesignShadowRolloutRegistry,
 } from "./contracts.js";
 import { readDataFile } from "./io.js";
 
-export const SHADOW_ROLLOUT_MIN_REAL_REPO_OBSERVATIONS = 4;
-export const SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS = 3;
-export const SHADOW_ROLLOUT_MAX_WEIGHTED_AVERAGE_DELTA = 0.05;
-export const SHADOW_ROLLOUT_MAX_DELTA_RANGE = 0.15;
+const SHADOW_ROLLOUT_MIN_REAL_REPO_OBSERVATIONS = 4;
+const SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS = 3;
+const SHADOW_ROLLOUT_MAX_WEIGHTED_AVERAGE_DELTA = 0.05;
+const SHADOW_ROLLOUT_MAX_DELTA_RANGE = 0.15;
 
-export function inferShadowRolloutModelSource(
-  modelPath: string
-): "repo_owned" | "versioned_manifest" {
+export function inferShadowRolloutModelSource(modelPath: string): "repo_owned" | "versioned_manifest" {
   return modelPath.includes(`${path.sep}fixtures${path.sep}validation${path.sep}shadow-rollout${path.sep}`)
     ? "versioned_manifest"
     : "repo_owned";
 }
 
 export function summarizeShadowRolloutBatchObservations(
-  observations: DomainDesignShadowRolloutBatchObservation[]
+  observations: DomainDesignShadowRolloutBatchObservation[],
 ): DomainDesignShadowRolloutBatchAggregate {
   if (observations.length === 0) {
     return {
@@ -38,8 +36,8 @@ export function summarizeShadowRolloutBatchObservations(
       driftCounts: {
         aligned: 0,
         candidateHigher: 0,
-        candidateLower: 0
-      }
+        candidateLower: 0,
+      },
     };
   }
 
@@ -47,12 +45,10 @@ export function summarizeShadowRolloutBatchObservations(
   const totalRelevantCommits = observations.reduce((sum, entry) => sum + entry.relevantCommitCount, 0);
   const weightedDeltaTotal = observations.reduce(
     (sum, entry) => sum + entry.policyDelta * entry.relevantCommitCount,
-    0
+    0,
   );
-  const averageDelta =
-    observations.reduce((sum, entry) => sum + entry.policyDelta, 0) / observations.length;
-  const weightedAverageDelta =
-    totalRelevantCommits === 0 ? averageDelta : weightedDeltaTotal / totalRelevantCommits;
+  const averageDelta = observations.reduce((sum, entry) => sum + entry.policyDelta, 0) / observations.length;
+  const weightedAverageDelta = totalRelevantCommits === 0 ? averageDelta : weightedDeltaTotal / totalRelevantCommits;
   const minDelta = deltas[0] ?? 0;
   const maxDelta = deltas.at(-1) ?? 0;
 
@@ -66,36 +62,32 @@ export function summarizeShadowRolloutBatchObservations(
     driftCounts: {
       aligned: observations.filter((entry) => entry.driftCategory === "aligned").length,
       candidateHigher: observations.filter((entry) => entry.driftCategory === "candidate_higher").length,
-      candidateLower: observations.filter((entry) => entry.driftCategory === "candidate_lower").length
-    }
+      candidateLower: observations.filter((entry) => entry.driftCategory === "candidate_lower").length,
+    },
   };
 }
 
-export async function loadShadowRolloutRegistry(
-  registryPath: string
-): Promise<DomainDesignShadowRolloutRegistry> {
+export async function loadShadowRolloutRegistry(registryPath: string): Promise<DomainDesignShadowRolloutRegistry> {
   return readDataFile<DomainDesignShadowRolloutRegistry>(registryPath);
 }
 
 export function registryToGateObservations(
   registry: DomainDesignShadowRolloutRegistry,
-  registryPath: string
+  registryPath: string,
 ): DomainDesignShadowRolloutGateObservation[] {
   const registryDirectory = path.dirname(registryPath);
   return registry.repos.map((entry) => ({
     repoId: entry.repoId,
     category: entry.category,
     modelSource: entry.modelSource,
-    ...(entry.manifestPath
-      ? { modelPath: path.resolve(registryDirectory, entry.manifestPath) }
-      : {}),
+    ...(entry.manifestPath ? { modelPath: path.resolve(registryDirectory, entry.manifestPath) } : {}),
     relevantCommitCount: entry.observation.relevantCommitCount,
-    delta: entry.observation.delta
+    delta: entry.observation.delta,
   }));
 }
 
 export function batchToGateObservations(
-  observations: DomainDesignShadowRolloutBatchObservation[]
+  observations: DomainDesignShadowRolloutBatchObservation[],
 ): DomainDesignShadowRolloutGateObservation[] {
   return observations.map((entry) => ({
     repoId: entry.repoId,
@@ -103,12 +95,12 @@ export function batchToGateObservations(
     modelSource: entry.modelSource,
     modelPath: entry.modelPath,
     relevantCommitCount: entry.relevantCommitCount,
-    delta: entry.policyDelta
+    delta: entry.policyDelta,
   }));
 }
 
 function summarizeGateObservations(
-  observations: DomainDesignShadowRolloutGateObservation[]
+  observations: DomainDesignShadowRolloutGateObservation[],
 ): DomainDesignShadowRolloutGateAggregate {
   if (observations.length === 0) {
     return {
@@ -120,16 +112,13 @@ function summarizeGateObservations(
       maxDelta: 0,
       deltaRange: 0,
       positiveDeltaCount: 0,
-      negativeDeltaCount: 0
+      negativeDeltaCount: 0,
     };
   }
 
   const deltas = observations.map((entry) => entry.delta).sort((left, right) => left - right);
   const totalRelevantCommits = observations.reduce((sum, entry) => sum + entry.relevantCommitCount, 0);
-  const weightedDeltaTotal = observations.reduce(
-    (sum, entry) => sum + entry.delta * entry.relevantCommitCount,
-    0
-  );
+  const weightedDeltaTotal = observations.reduce((sum, entry) => sum + entry.delta * entry.relevantCommitCount, 0);
   const middleIndex = Math.floor(deltas.length / 2);
   const medianDelta =
     deltas.length % 2 === 0
@@ -141,14 +130,13 @@ function summarizeGateObservations(
   return {
     repoCount: observations.length,
     averageDelta: observations.reduce((sum, entry) => sum + entry.delta, 0) / observations.length,
-    weightedAverageDelta:
-      totalRelevantCommits === 0 ? 0 : weightedDeltaTotal / totalRelevantCommits,
+    weightedAverageDelta: totalRelevantCommits === 0 ? 0 : weightedDeltaTotal / totalRelevantCommits,
     medianDelta,
     minDelta,
     maxDelta,
     deltaRange: maxDelta - minDelta,
     positiveDeltaCount: observations.filter((entry) => entry.delta > 0).length,
-    negativeDeltaCount: observations.filter((entry) => entry.delta < 0).length
+    negativeDeltaCount: observations.filter((entry) => entry.delta < 0).length,
   };
 }
 
@@ -160,12 +148,11 @@ function evaluateGateReasons(
     hasMissingVersionedManifestPath?: boolean;
     minObservationCount?: number;
     insufficientObservationReason?: string;
-  }
+  },
 ): string[] {
   const reasons: string[] = [];
   const minObservationCount = options?.minObservationCount ?? SHADOW_ROLLOUT_MIN_REAL_REPO_OBSERVATIONS;
-  const insufficientObservationReason =
-    options?.insufficientObservationReason ?? "insufficient_real_repo_observations";
+  const insufficientObservationReason = options?.insufficientObservationReason ?? "insufficient_real_repo_observations";
 
   if (observationCount < minObservationCount) {
     reasons.push(insufficientObservationReason);
@@ -184,49 +171,51 @@ function evaluateGateReasons(
 }
 
 export function evaluateShadowRolloutGate(
-  observations: DomainDesignShadowRolloutGateObservation[]
+  observations: DomainDesignShadowRolloutGateObservation[],
 ): DomainDesignShadowRolloutGateEvaluation {
   const overall = summarizeGateObservations(observations);
   const repoOwnedCount = observations.filter((entry) => entry.modelSource === "repo_owned").length;
-  const versionedManifestCount = observations.filter(
-    (entry) => entry.modelSource === "versioned_manifest"
-  ).length;
+  const versionedManifestCount = observations.filter((entry) => entry.modelSource === "versioned_manifest").length;
   const categories = Array.from(
-    observations.reduce((groups, observation) => {
-      const current = groups.get(observation.category) ?? [];
-      current.push(observation);
-      groups.set(observation.category, current);
-      return groups;
-    }, new Map<string, DomainDesignShadowRolloutGateObservation[]>()).entries()
+    observations
+      .reduce((groups, observation) => {
+        const current = groups.get(observation.category) ?? [];
+        current.push(observation);
+        groups.set(observation.category, current);
+        return groups;
+      }, new Map<string, DomainDesignShadowRolloutGateObservation[]>())
+      .entries(),
   )
-    .map(([category, categoryObservations]): DomainDesignShadowRolloutGateCategorySummary => ({
-      category,
-      repoIds: categoryObservations.map((entry) => entry.repoId),
-      summary: summarizeGateObservations(categoryObservations),
-      gate: (() => {
-        const summary = summarizeGateObservations(categoryObservations);
-        const reasons = evaluateGateReasons(summary, categoryObservations.length, {
-          requireManifestPaths: true,
-          hasMissingVersionedManifestPath: categoryObservations.some(
-            (entry) => entry.modelSource === "versioned_manifest" && !entry.modelPath
-          ),
-          minObservationCount: SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS,
-          insufficientObservationReason: "insufficient_category_observations"
-        });
-        return {
-          reasons,
-          replacementVerdict: reasons.length === 0 ? "go" : "no_go",
-          rolloutDisposition: reasons.length === 0 ? "replace" : "shadow_only"
-        };
-      })()
-    }))
+    .map(
+      ([category, categoryObservations]): DomainDesignShadowRolloutGateCategorySummary => ({
+        category,
+        repoIds: categoryObservations.map((entry) => entry.repoId),
+        summary: summarizeGateObservations(categoryObservations),
+        gate: (() => {
+          const summary = summarizeGateObservations(categoryObservations);
+          const reasons = evaluateGateReasons(summary, categoryObservations.length, {
+            requireManifestPaths: true,
+            hasMissingVersionedManifestPath: categoryObservations.some(
+              (entry) => entry.modelSource === "versioned_manifest" && !entry.modelPath,
+            ),
+            minObservationCount: SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS,
+            insufficientObservationReason: "insufficient_category_observations",
+          });
+          return {
+            reasons,
+            replacementVerdict: reasons.length === 0 ? "go" : "no_go",
+            rolloutDisposition: reasons.length === 0 ? "replace" : "shadow_only",
+          };
+        })(),
+      }),
+    )
     .sort((left, right) => left.category.localeCompare(right.category));
 
   const reasons = evaluateGateReasons(overall, observations.length, {
     requireManifestPaths: true,
     hasMissingVersionedManifestPath: observations.some(
-      (entry) => entry.modelSource === "versioned_manifest" && !entry.modelPath
-    )
+      (entry) => entry.modelSource === "versioned_manifest" && !entry.modelPath,
+    ),
   });
 
   return {
@@ -238,6 +227,6 @@ export function evaluateShadowRolloutGate(
     categories,
     reasons,
     replacementVerdict: reasons.length === 0 ? "go" : "no_go",
-    rolloutDisposition: reasons.length === 0 ? "replace" : "shadow_only"
+    rolloutDisposition: reasons.length === 0 ? "replace" : "shadow_only",
   };
 }

@@ -1,3 +1,4 @@
+import { buildFragmentContextMentions, collectStatementContexts, collectTermContexts } from "./boundary-fitness.js";
 import type {
   AggregateDefinition,
   DomainModel,
@@ -5,13 +6,8 @@ import type {
   Fragment,
   GlossaryTerm,
   InvariantCandidate,
-  TermTraceLink
+  TermTraceLink,
 } from "./contracts.js";
-import {
-  buildFragmentContextMentions,
-  collectStatementContexts,
-  collectTermContexts
-} from "./boundary-fitness.js";
 import { toEvidence } from "./response.js";
 
 const STRONG_CONSISTENCY_SIGNALS = [
@@ -23,7 +19,7 @@ const STRONG_CONSISTENCY_SIGNALS = [
   /跨/u,
   /同じ.*(?:更新|確定)/u,
   /\bconsistent\b/i,
-  /\bsame transaction\b/i
+  /\bsame transaction\b/i,
 ];
 const OBLIGATION_SIGNALS = [/なければならない/u, /べき/u, /\bmust\b/i];
 
@@ -75,7 +71,7 @@ function impliesStrongConsistencyWrite(statement: string): boolean {
 function collectAggregateTargets(
   aggregateDefinitions: AggregateDefinition[],
   contexts: string[],
-  invariant: InvariantCandidate
+  invariant: InvariantCandidate,
 ): { targets: string[]; unknowns: string[] } {
   if (aggregateDefinitions.length === 0) {
     return { targets: [], unknowns: [] };
@@ -111,12 +107,12 @@ function collectAggregateTargets(
     if (sameContextAggregates.length === 1) {
       return {
         targets: [`${sameContextAggregates[0]?.context}::${sameContextAggregates[0]?.name}`],
-        unknowns
+        unknowns,
       };
     }
     if (sameContextAggregates.length > 1) {
       unknowns.push(
-        `Invariant "${invariant.invariantId}" could not be mapped to a specific aggregate within ${contexts[0]}.`
+        `Invariant "${invariant.invariantId}" could not be mapped to a specific aggregate within ${contexts[0]}.`,
       );
     }
   }
@@ -142,7 +138,7 @@ export function computeAggregateFitness(input: {
   const mappedTerms = input.terms
     .map((term) => ({
       canonicalTerm: term.canonicalTerm,
-      contexts: collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model)
+      contexts: collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model),
     }))
     .filter((entry) => entry.contexts.length > 0);
 
@@ -152,7 +148,7 @@ export function computeAggregateFitness(input: {
       invariant.fragmentIds,
       fragmentContextMentions,
       mappedTerms,
-      input.model
+      input.model,
     );
     const aggregateTargets = collectAggregateTargets(aggregateDefinitions, contexts, invariant);
     const localityTargets = aggregateTargets.targets.length > 0 ? aggregateTargets.targets : contexts;
@@ -163,7 +159,7 @@ export function computeAggregateFitness(input: {
       localityTargets,
       localization: localizationScore(localityTargets),
       usedContextProxy: aggregateTargets.targets.length === 0,
-      aggregateTargets: aggregateTargets.targets
+      aggregateTargets: aggregateTargets.targets,
     };
   });
 
@@ -175,7 +171,13 @@ export function computeAggregateFitness(input: {
   const SIC =
     mappedInvariants.length === 0
       ? 0.45
-      : clamp01(sicSignals.reduce((sum, value) => sum + value, 0) / Math.max(0.0001, sicWeights.reduce((sum, value) => sum + value, 0)));
+      : clamp01(
+          sicSignals.reduce((sum, value) => sum + value, 0) /
+            Math.max(
+              0.0001,
+              sicWeights.reduce((sum, value) => sum + value, 0),
+            ),
+        );
 
   if (mappedInvariantCount === 0) {
     unknowns.push("Invariant responsibility assignment could not be observed, so SIC is provisional.");
@@ -187,7 +189,7 @@ export function computeAggregateFitness(input: {
   }
 
   const strongConsistencyInvariants = mappedInvariants.filter((entry) =>
-    impliesStrongConsistencyWrite(entry.invariant.statement)
+    impliesStrongConsistencyWrite(entry.invariant.statement),
   );
   let XTC = 0.25;
   if (strongConsistencyInvariants.length === 0) {
@@ -205,7 +207,10 @@ export function computeAggregateFitness(input: {
     const xtcWeights = strongConsistencyInvariants.map((entry) => entry.invariant.confidence);
     XTC = clamp01(
       xtcSignals.reduce((sum, value) => sum + value, 0) /
-        Math.max(0.0001, xtcWeights.reduce((sum, value) => sum + value, 0))
+        Math.max(
+          0.0001,
+          xtcWeights.reduce((sum, value) => sum + value, 0),
+        ),
     );
   }
 
@@ -219,11 +224,11 @@ export function computeAggregateFitness(input: {
           invariantId: entry.invariant.invariantId,
           contexts: entry.contexts,
           localityTargets: entry.localityTargets,
-          fragmentIds: entry.invariant.fragmentIds
+          fragmentIds: entry.invariant.fragmentIds,
         },
         [entry.invariant.invariantId],
-        clamp01(entry.invariant.confidence)
-      )
+        clamp01(entry.invariant.confidence),
+      ),
     );
   }
   for (const entry of crossContextInvariants.slice(0, 4)) {
@@ -235,32 +240,36 @@ export function computeAggregateFitness(input: {
           invariantId: entry.invariant.invariantId,
           contexts: entry.contexts,
           localityTargets: entry.localityTargets,
-          fragmentIds: entry.invariant.fragmentIds
+          fragmentIds: entry.invariant.fragmentIds,
         },
         [entry.invariant.invariantId],
-        clamp01(Math.min(entry.invariant.confidence, 0.82))
-      )
+        clamp01(Math.min(entry.invariant.confidence, 0.82)),
+      ),
     );
   }
 
   const confidence = clamp01(
     average(
       [
-        average(input.invariants.map((invariant) => invariant.confidence), 0.5),
+        average(
+          input.invariants.map((invariant) => invariant.confidence),
+          0.5,
+        ),
         mappedInvariantCount > 0 ? 0.78 : 0.45,
         strongConsistencyInvariants.length > 0 ? 0.76 : 0.55,
         hasExplicitAggregates ? 0.84 : input.model.contexts.length >= 2 ? 0.82 : 0.4,
-        hasExplicitAggregates && mappedInvariants.every((entry) => !entry.usedContextProxy || entry.contexts.length === 0)
+        hasExplicitAggregates &&
+        mappedInvariants.every((entry) => !entry.usedContextProxy || entry.contexts.length === 0)
           ? 0.8
-          : 0.6
+          : 0.6,
       ],
-      0.55
-    )
+      0.55,
+    ),
   );
 
   if (hasExplicitAggregates) {
     diagnostics.push(
-      `Used ${aggregateDefinitions.length} explicit aggregate definition(s) across ${unique(aggregateDefinitions.map((aggregate) => aggregate.context)).length} context(s).`
+      `Used ${aggregateDefinitions.length} explicit aggregate definition(s) across ${unique(aggregateDefinitions.map((aggregate) => aggregate.context)).length} context(s).`,
     );
   }
 
@@ -275,7 +284,7 @@ export function computeAggregateFitness(input: {
       mappedInvariants: mappedInvariantCount,
       localizedInvariants: localizedInvariants.length,
       crossContextInvariants: crossContextInvariants.length,
-      strongConsistencyInvariants: strongConsistencyInvariants.length
-    }
+      strongConsistencyInvariants: strongConsistencyInvariants.length,
+    },
   };
 }

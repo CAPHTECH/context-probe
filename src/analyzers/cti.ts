@@ -2,7 +2,7 @@ import type {
   ArchitectureConstraints,
   CodebaseAnalysis,
   ComplexityTaxBaseline,
-  ComplexityTaxComponentName
+  ComplexityTaxComponentName,
 } from "../core/contracts.js";
 import { collectContractFilePaths } from "./contract-files.js";
 
@@ -37,7 +37,7 @@ const DEFAULT_BASELINES: Record<ComplexityTaxComponentName, Required<ComplexityT
   DatastoresPerServiceGroup: { target: 1, worst: 5 },
   OnCallSurface: { target: 2, worst: 20 },
   SyncDepthOverhead: { target: 1, worst: 6 },
-  RunCostPerBusinessTransaction: { target: 1, worst: 10 }
+  RunCostPerBusinessTransaction: { target: 1, worst: 10 },
 };
 
 function clamp01(value: number): number {
@@ -53,12 +53,12 @@ function average(values: number[], fallback: number): number {
 
 function getBaseline(
   constraints: ArchitectureConstraints,
-  component: ComplexityTaxComponentName
+  component: ComplexityTaxComponentName,
 ): Required<ComplexityTaxBaseline> {
   const override = constraints.complexity?.normalization?.[component];
   return {
     target: override?.target ?? DEFAULT_BASELINES[component].target,
-    worst: override?.worst ?? DEFAULT_BASELINES[component].worst
+    worst: override?.worst ?? DEFAULT_BASELINES[component].worst,
   };
 }
 
@@ -96,7 +96,7 @@ export function scoreComplexityTax(options: {
     DatastoresPerServiceGroup: 0.5,
     OnCallSurface: 0.5,
     SyncDepthOverhead: 0.5,
-    RunCostPerBusinessTransaction: 0.5
+    RunCostPerBusinessTransaction: 0.5,
   };
 
   const recorded = new Set<ComplexityTaxComponentName>();
@@ -116,8 +116,7 @@ export function scoreComplexityTax(options: {
     }
     const baseline = getBaseline(constraints, input.component);
     const normalized = normalizeTax(input.observed, baseline);
-    const sourceConfidence =
-      input.source === "constraints" ? 0.88 : input.source === "codebase" ? 0.72 : 0.6;
+    const sourceConfidence = input.source === "constraints" ? 0.88 : input.source === "codebase" ? 0.72 : 0.6;
     components[input.component] = normalized;
     confidenceSignals.push(sourceConfidence);
     recorded.add(input.component);
@@ -128,7 +127,7 @@ export function scoreComplexityTax(options: {
       normalized: round(normalized),
       confidence: sourceConfidence,
       source: input.source,
-      note: `${input.note} (observed=${round(input.observed)}, target=${baseline.target}, worst=${baseline.worst})`
+      note: `${input.note} (observed=${round(input.observed)}, target=${baseline.target}, worst=${baseline.worst})`,
     });
   }
 
@@ -143,7 +142,7 @@ export function scoreComplexityTax(options: {
         : undefined,
     source: "constraints",
     note: "Evaluating deployables per team as a complexity-tax component.",
-    missingUnknown: "DeployablesPerTeam cannot be approximated because teamCount or deployableCount is missing."
+    missingUnknown: "DeployablesPerTeam cannot be approximated because teamCount or deployableCount is missing.",
   });
 
   recordObservedComponent({
@@ -155,15 +154,16 @@ export function scoreComplexityTax(options: {
         : undefined,
     source: "constraints",
     note: "Evaluating pipelines per deployable as a complexity-tax component.",
-    missingUnknown: "PipelinesPerDeployable cannot be approximated because pipelineCount or deployableCount is missing."
+    missingUnknown:
+      "PipelinesPerDeployable cannot be approximated because pipelineCount or deployableCount is missing.",
   });
 
   const observedContractCount =
-    metadata?.contractOrSchemaCount
-    ?? collectContractFilePaths({
+    metadata?.contractOrSchemaCount ??
+    collectContractFilePaths({
       codebase,
       constraints,
-      allowDartDomainFallback: false
+      allowDartDomainFallback: false,
     }).length;
   const serviceCount = metadata?.serviceCount ?? metadata?.deployableCount;
   recordObservedComponent({
@@ -173,7 +173,7 @@ export function scoreComplexityTax(options: {
     source: metadata?.contractOrSchemaCount !== undefined ? "constraints" : "codebase",
     note: "Evaluating contracts or schemas per service as a complexity-tax component.",
     missingUnknown:
-      "ContractsOrSchemasPerService cannot be approximated because serviceCount or deployableCount is missing."
+      "ContractsOrSchemasPerService cannot be approximated because serviceCount or deployableCount is missing.",
   });
   if (metadata?.contractOrSchemaCount === undefined && observedContractCount === 0) {
     unknowns.push("Contract/schema observations are sparse, so ContractsOrSchemasPerService is conservative.");
@@ -191,7 +191,7 @@ export function scoreComplexityTax(options: {
     source: "constraints",
     note: "Evaluating datastores per service group as a complexity-tax component.",
     missingUnknown:
-      "DatastoresPerServiceGroup cannot be approximated because datastoreCount or serviceGroupCount is missing."
+      "DatastoresPerServiceGroup cannot be approximated because datastoreCount or serviceGroupCount is missing.",
   });
 
   recordObservedComponent({
@@ -203,7 +203,7 @@ export function scoreComplexityTax(options: {
         : undefined,
     source: "constraints",
     note: "Evaluating on-call surface per team as a complexity-tax component.",
-    missingUnknown: "OnCallSurface cannot be approximated because onCallSurface or teamCount is missing."
+    missingUnknown: "OnCallSurface cannot be approximated because onCallSurface or teamCount is missing.",
   });
 
   recordObservedComponent({
@@ -212,7 +212,7 @@ export function scoreComplexityTax(options: {
     observed: metadata?.syncDepthP95,
     source: "constraints",
     note: "Evaluating p95 synchronous hop depth as a complexity-tax component.",
-    missingUnknown: "SyncDepthOverhead cannot be approximated because syncDepthP95 is missing."
+    missingUnknown: "SyncDepthOverhead cannot be approximated because syncDepthP95 is missing.",
   });
 
   recordObservedComponent({
@@ -222,7 +222,7 @@ export function scoreComplexityTax(options: {
     source: "constraints",
     note: "Evaluating run cost per business transaction as a complexity-tax component.",
     missingUnknown:
-      "RunCostPerBusinessTransaction cannot be approximated because runCostPerBusinessTransaction is missing."
+      "RunCostPerBusinessTransaction cannot be approximated because runCostPerBusinessTransaction is missing.",
   });
 
   if (!metadata) {
@@ -236,6 +236,6 @@ export function scoreComplexityTax(options: {
     components,
     confidence: clamp01(average(confidenceSignals, 0.45)),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }

@@ -9,7 +9,10 @@ class FormulaParser {
 
   private index = 0;
 
-  constructor(private readonly expression: string, private readonly variables: Record<string, number>) {
+  constructor(
+    private readonly expression: string,
+    private readonly variables: Record<string, number>,
+  ) {
     this.tokens = tokenize(expression);
   }
 
@@ -59,10 +62,10 @@ class FormulaParser {
     }
     if (token.type === "identifier") {
       const value = this.variables[token.value];
-      if (!Number.isFinite(value)) {
+      if (value === undefined || !Number.isFinite(value)) {
         throw new Error(`Unknown identifier "${token.value}" in formula: ${this.expression}`);
       }
-      return value!;
+      return value;
     }
     if (token.type === "operator" && token.value === "-") {
       return -this.parseFactor();

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import process from "node:process";
-
+import { COMMANDS, listCommands, maybeWriteOutput } from "./commands.js";
 import type { CommandContext } from "./core/contracts.js";
 import { createResponse } from "./core/response.js";
-import { COMMANDS, listCommands, maybeWriteOutput } from "./commands.js";
 
 function parseArgs(argv: string[]): { command: string | undefined; args: Record<string, string | boolean> } {
   const [first, ...remainder] = argv;
@@ -37,25 +36,25 @@ function parseArgs(argv: string[]): { command: string | undefined; args: Record<
   }
   return {
     command,
-    args
+    args,
   };
 }
 
 async function main(): Promise<void> {
   const { command, args } = parseArgs(process.argv.slice(2));
   const context: CommandContext = {
-    cwd: process.cwd()
+    cwd: process.cwd(),
   };
 
   if (!command || args.help === true) {
     process.stdout.write(
-      JSON.stringify(
+      `${JSON.stringify(
         createResponse({
-          commands: listCommands()
+          commands: listCommands(),
         }),
         null,
-        2
-      ) + "\n"
+        2,
+      )}\n`,
     );
     return;
   }
@@ -81,8 +80,8 @@ async function main(): Promise<void> {
       {
         status: "error",
         confidence: 0,
-        diagnostics: [message]
-      }
+        diagnostics: [message],
+      },
     );
     process.stdout.write(`${JSON.stringify(response, null, 2)}\n`);
     process.exitCode = 1;

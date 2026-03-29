@@ -2,7 +2,7 @@ import type {
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
   ArchitectureDeliveryRawObservationSet,
-  ScenarioDirection
+  ScenarioDirection,
 } from "../core/contracts.js";
 
 export interface DeliveryNormalizationFinding {
@@ -10,12 +10,7 @@ export interface DeliveryNormalizationFinding {
   confidence: number;
   note: string;
   component: "LeadTime" | "DeployFrequency" | "RecoveryTime" | "ChangeFailRate" | "ReworkRate";
-  scoreComponent:
-    | "LeadTimeScore"
-    | "DeployFreqScore"
-    | "RecoveryScore"
-    | "ChangeFailScore"
-    | "ReworkScore";
+  scoreComponent: "LeadTimeScore" | "DeployFreqScore" | "RecoveryScore" | "ChangeFailScore" | "ReworkScore";
   observed?: number;
   normalized?: number;
 }
@@ -68,11 +63,11 @@ export function normalizeDeliveryObservations(input: {
     return {
       deliveryObservations: {
         version: "1.0",
-        scores: {}
+        scores: {},
       },
       confidence: 0.25,
       unknowns: ["No delivery raw observations were provided, so raw normalization is unobserved."],
-      findings
+      findings,
     };
   }
 
@@ -80,11 +75,11 @@ export function normalizeDeliveryObservations(input: {
     return {
       deliveryObservations: {
         version: "1.0",
-        scores: {}
+        scores: {},
       },
       confidence: 0.3,
       unknowns: ["No delivery normalization profile was provided, so raw delivery cannot be scored."],
-      findings
+      findings,
     };
   }
 
@@ -96,36 +91,36 @@ export function normalizeDeliveryObservations(input: {
       scoreComponent: "LeadTimeScore" as const,
       observed: rawValues.LeadTime,
       rule: profile.signals.LeadTime,
-      invertForStorage: false
+      invertForStorage: false,
     },
     {
       component: "DeployFrequency" as const,
       scoreComponent: "DeployFreqScore" as const,
       observed: rawValues.DeployFrequency,
       rule: profile.signals.DeployFrequency,
-      invertForStorage: false
+      invertForStorage: false,
     },
     {
       component: "RecoveryTime" as const,
       scoreComponent: "RecoveryScore" as const,
       observed: rawValues.RecoveryTime,
       rule: profile.signals.RecoveryTime,
-      invertForStorage: false
+      invertForStorage: false,
     },
     {
       component: "ChangeFailRate" as const,
       scoreComponent: "ChangeFailScore" as const,
       observed: rawValues.ChangeFailRate,
       rule: profile.signals.ChangeFailRate,
-      invertForStorage: true
+      invertForStorage: true,
     },
     {
       component: "ReworkRate" as const,
       scoreComponent: "ReworkScore" as const,
       observed: rawValues.ReworkRate,
       rule: profile.signals.ReworkRate,
-      invertForStorage: true
-    }
+      invertForStorage: true,
+    },
   ];
 
   for (const mapping of mappings) {
@@ -136,7 +131,7 @@ export function normalizeDeliveryObservations(input: {
         component: mapping.component,
         scoreComponent: mapping.scoreComponent,
         confidence: 0.58,
-        note: `There is no rule to normalize ${mapping.component}.`
+        note: `There is no rule to normalize ${mapping.component}.`,
       });
       continue;
     }
@@ -147,7 +142,7 @@ export function normalizeDeliveryObservations(input: {
         component: mapping.component,
         scoreComponent: mapping.scoreComponent,
         confidence: 0.62,
-        note: `The raw ${mapping.component} signal is missing.`
+        note: `The raw ${mapping.component} signal is missing.`,
       });
       continue;
     }
@@ -156,7 +151,7 @@ export function normalizeDeliveryObservations(input: {
       direction: mapping.rule.direction,
       observed: mapping.observed,
       target: mapping.rule.target,
-      worstAcceptable: mapping.rule.worstAcceptable
+      worstAcceptable: mapping.rule.worstAcceptable,
     });
     const storedScore = mapping.invertForStorage ? 1 - normalized : normalized;
     normalizedScores[mapping.scoreComponent] = storedScore;
@@ -168,26 +163,26 @@ export function normalizeDeliveryObservations(input: {
       observed: mapping.observed,
       normalized: storedScore,
       confidence: 0.86,
-      note: `${mapping.component} was normalized from raw delivery input to ${storedScore.toFixed(3)}.`
+      note: `${mapping.component} was normalized from raw delivery input to ${storedScore.toFixed(3)}.`,
     });
   }
 
   return {
     deliveryObservations: {
       version: "1.0",
-      scores: normalizedScores
+      scores: normalizedScores,
     },
     confidence: clamp01(
       average(
         [
           Object.keys(rawValues).length > 0 ? 0.82 : 0.25,
           Object.keys(profile.signals).length > 0 ? 0.84 : 0.35,
-          observedSignals / mappings.length
+          observedSignals / mappings.length,
         ],
-        0.35
-      )
+        0.35,
+      ),
     ),
     unknowns: uniqueUnknowns(unknowns),
-    findings
+    findings,
   };
 }
