@@ -159,8 +159,12 @@ function buildHistoryObservationQuality(input: {
     input.contextsSeen.length < 2 ? 0.35 : 0.85
   ];
   if (input.pairWeightCount !== undefined) {
-    confidenceSignals.push(input.pairWeightCount === 0 ? 0.55 : 0.8);
-    confidenceSignals.push(input.hasWeightRange === false ? 0.55 : 0.78);
+    if (input.relevantCommitCount > 0) {
+      confidenceSignals.push(input.pairWeightCount === 0 ? 0.55 : 0.8);
+    }
+    if (input.pairWeightCount > 0) {
+      confidenceSignals.push(input.hasWeightRange === false ? 0.55 : 0.78);
+    }
   }
 
   return {
@@ -484,6 +488,23 @@ export function scorePersistenceLocalityCandidate(
   unknowns: string[];
 } {
   const result = analyzeCochangePersistence(commits, model);
+  if (result.analysis.relevantCommitCount === 0 || result.analysis.contextsSeen.length === 0) {
+    const fallbackElsScore = computeEvolutionLocalityScore(scoreEvolutionLocality(commits, model));
+    return {
+      analysis: result.analysis,
+      candidate: {
+        localityScore: fallbackElsScore,
+        persistentCouplingPenalty: clamp01(1 - fallbackElsScore),
+        strongestPair: null,
+        strongestCluster: null,
+        clusterPenalty: 0,
+        pairPenalty: 0,
+        coherencePenalty: 0
+      },
+      confidence: result.confidence,
+      unknowns: result.unknowns
+    };
+  }
   const strongestPair = result.analysis.pairWeights[0] ?? null;
   const strongestCluster = result.analysis.stableChangeClusters[0] ?? null;
   const clusterPenalty = computeClusterPenalty(strongestCluster, result.analysis.contextsSeen.length);

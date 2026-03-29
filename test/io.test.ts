@@ -28,7 +28,11 @@ describe("listFiles", () => {
     await mkdir(targetDirectory, { recursive: true });
     await writeFile(sourceFile, 'export const value = 1;\n', "utf8");
     await writeFile(path.join(targetDirectory, "nested.txt"), "not a source file\n", "utf8");
-    await symlink(targetDirectory, misleadingSymlink, "dir");
+    await symlink(
+      targetDirectory,
+      misleadingSymlink,
+      process.platform === "win32" ? "junction" : "dir"
+    );
 
     const files = await listFiles(tempRoot);
     const relativeFiles = files.map((filePath) => path.relative(tempRoot!, filePath).replace(/\\/g, "/"));

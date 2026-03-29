@@ -9,6 +9,7 @@ import type {
   CommandResponse,
   DomainDesignShadowRolloutGateResult
 } from "../src/core/contracts.js";
+import { evaluateShadowRolloutGate } from "../src/core/shadow-rollout.js";
 import { createTemporaryGitRepoFromFixture } from "./helpers.js";
 
 const FIXTURE_REPO = path.resolve("fixtures/domain-design/sample-repo");
@@ -134,6 +135,63 @@ describe("shadow rollout gate command", () => {
       expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" })
     );
   }, 20000);
+
+  test("blocks category replacement when a versioned manifest path is missing", () => {
+    const evaluation = evaluateShadowRolloutGate([
+      {
+        repoId: "app-a",
+        category: "application",
+        modelSource: "versioned_manifest",
+        relevantCommitCount: 50,
+        delta: 0.01
+      },
+      {
+        repoId: "app-b",
+        category: "application",
+        modelSource: "versioned_manifest",
+        modelPath: "/tmp/app-b-model.yaml",
+        relevantCommitCount: 60,
+        delta: 0.02
+      },
+      {
+        repoId: "app-c",
+        category: "application",
+        modelSource: "versioned_manifest",
+        modelPath: "/tmp/app-c-model.yaml",
+        relevantCommitCount: 55,
+        delta: 0.015
+      },
+      {
+        repoId: "tool-a",
+        category: "tooling",
+        modelSource: "repo_owned",
+        modelPath: "/tmp/tool-a-model.yaml",
+        relevantCommitCount: 40,
+        delta: 0.01
+      },
+      {
+        repoId: "tool-b",
+        category: "tooling",
+        modelSource: "repo_owned",
+        modelPath: "/tmp/tool-b-model.yaml",
+        relevantCommitCount: 42,
+        delta: 0.015
+      },
+      {
+        repoId: "tool-c",
+        category: "tooling",
+        modelSource: "repo_owned",
+        modelPath: "/tmp/tool-c-model.yaml",
+        relevantCommitCount: 43,
+        delta: 0.02
+      }
+    ]);
+
+    const application = evaluation.categories.find((entry) => entry.category === "application");
+
+    expect(application?.gate.rolloutDisposition).toBe("shadow_only");
+    expect(application?.gate.reasons).toContain("missing_versioned_manifest_path");
+  });
 });
 
 async function appendAndCommit(
