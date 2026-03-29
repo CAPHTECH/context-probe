@@ -57,6 +57,12 @@ npm install
 npm run dev -- --help
 ```
 
+If you want to try the published package entry point:
+
+```bash
+npx context-probe --help
+```
+
 If you want the compiled CLI as well:
 
 ```bash

@@ -57,6 +57,12 @@ npm install
 npm run dev -- --help
 ```
 
+公開済みパッケージの入口をそのまま試す場合は次を使います。
+
+```bash
+npx context-probe --help
+```
+
 ビルド済み CLI も確認したい場合は次を使います。
 
 ```bash

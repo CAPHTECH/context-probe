@@ -1,7 +1,7 @@
 {
   "name": "context-probe",
   "version": "0.1.0",
-  "description": "AI支援設計計測プラットフォームのCLI実装",
+  "description": "CLI for evidence-based design measurement",
   "license": "Apache-2.0",
   "type": "module",
   "homepage": "https://github.com/CAPHTECH/context-probe",
@@ -15,10 +15,18 @@
   "bin": {
     "context-probe": "./dist/src/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx src/cli.ts",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run check && npm test",
     "test": "vitest run",
     "test:watch": "vitest"
   },
