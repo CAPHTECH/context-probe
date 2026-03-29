@@ -1,0 +1,42 @@
+version: "1.0"
+contexts:
+  - name: CoreKernel
+    pathGlobs:
+      - crates/core/**
+      - crates/pcj/**
+  - name: RuntimeAndCli
+    pathGlobs:
+      - crates/cli/**
+      - crates/host-runtime/**
+  - name: Integrations
+    pathGlobs:
+      - crates/integrations/**
+  - name: ServicePlugins
+    pathGlobs:
+      - plugins/github-service/**
+      - plugins/slack-service/**
+      - plugins/notion-service/**
+      - plugins/memory-service/**
+  - name: WorkflowAgents
+    pathGlobs:
+      - plugins/approval-agent/**
+      - plugins/chat-agent/**
+      - plugins/chat-router/**
+      - plugins/demo-planner/**
+      - plugins/docs-bot/**
+      - plugins/feature-designer/**
+      - plugins/generic-workflow-executor/**
+      - plugins/incident-response/**
+      - plugins/issue-triage-agent/**
+      - plugins/requirement-agent/**
+      - plugins/status-agent/**
+      - plugins/task-agent/**
+  - name: SamplePlugins
+    pathGlobs:
+      - plugins/sample/**
+      - plugins/sample-fsm/**
+      - plugins/sample-integrations/**
+      - plugins/sample-llm/**
+      - plugins/sample-rag/**
+      - plugins/sample-script-py/**
+      - plugins/sample-shared-ns/**

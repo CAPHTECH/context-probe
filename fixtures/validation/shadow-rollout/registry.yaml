@@ -1,0 +1,56 @@
+version: "1.0"
+repos:
+  - repoId: "context-probe"
+    label: "Context Probe"
+    category: "tooling"
+    modelSource: "repo_owned"
+    observation:
+      relevantCommitCount: 27
+      delta: 0.13333333333333336
+  - repoId: "sample_app"
+    label: "Sample App"
+    category: "application"
+    modelSource: "repo_owned"
+    observation:
+      relevantCommitCount: 2508
+      delta: 0.041732196676254496
+  - repoId: "sim_prism"
+    label: "Sim Prism"
+    category: "application"
+    modelSource: "versioned_manifest"
+    manifestPath: "sim_prism-domain-model.yaml"
+    observation:
+      relevantCommitCount: 169
+      delta: -0.08938050770826689
+  - repoId: "pce-memory"
+    label: "PCE Memory"
+    category: "tooling"
+    modelSource: "versioned_manifest"
+    manifestPath: "pce-memory-domain-model.yaml"
+    observation:
+      relevantCommitCount: 142
+      delta: 0.16615362732477523
+  - repoId: "zakki"
+    label: "Zakki"
+    category: "application"
+    modelSource: "versioned_manifest"
+    manifestPath: "zakki-domain-model.yaml"
+    observation:
+      relevantCommitCount: 200
+      delta: 0.04821513002364075
+  - repoId: "assay-kit"
+    label: "Assay Kit"
+    category: "tooling"
+    modelSource: "versioned_manifest"
+    manifestPath: "assay-kit-domain-model.yaml"
+    observation:
+      relevantCommitCount: 126
+      delta: 0.03618532818532816
+  - repoId: "project_logica"
+    label: "Project Logica"
+    category: "tooling"
+    modelSource: "versioned_manifest"
+    manifestPath: "project_logica-domain-model.yaml"
+    observation:
+      relevantCommitCount: 153
+      delta: 0.08313751378153011

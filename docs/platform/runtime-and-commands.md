@@ -48,11 +48,44 @@ Wraps `score.compute` and applies policy thresholds.
 
 Turns unknowns, low-confidence signals, and collisions into review items.
 
+### `history.analyze_persistence`
+
+Experimental history-topology inspection for co-change structure.
+
+This command is score-neutral. It surfaces stable clusters, natural split levels, and noise characteristics, but it does not replace `ELS` or change existing scoring formulas.
+
+### `history.compare_locality_models`
+
+Experimental side-by-side comparison between the current `ELS` locality surface and the beta0 persistence candidate.
+
+This command is also score-neutral. It is meant for calibration and adoption decisions, not for replacing `ELS` inside `score.compute`.
+
+### `score.observe_shadow_rollout`
+
+Single-repository observation wrapper around `score.compute --shadow-persistence`.
+
+It keeps `ELS` as the source of truth and exposes the candidate delta, drift category, and shadow payload for one repository.
+
+### `score.observe_shadow_rollout_batch`
+
+Batch observation wrapper for multiple repositories.
+
+This command reads a YAML or JSON `--batch-spec`, runs `score.observe_shadow_rollout` per entry, and returns both per-repository observations and category or overall aggregates such as weighted delta and delta range.
+
+### `gate.evaluate_shadow_rollout`
+
+Adoption-gate evaluation for the beta0 persistence shadow rollout.
+
+This command either reads a versioned `--registry` of curated real-repo observations or reuses a live `--batch-spec` observation run, then returns the current replacement verdict, rollout disposition, reasons, and category summaries.
+Category summaries also carry their own `replace` or `shadow_only` decision so rollout can diverge by repo typology even when the overall gate stays closed.
+
 ### Document/Trace Commands
 
 - `doc.extract_glossary`
 - `doc.extract_rules`
 - `doc.extract_invariants`
+- `history.analyze_persistence`
+- `history.compare_locality_models`
 - `trace.link_terms`
 - `trace.link_model_to_code`
 
@@ -70,8 +103,26 @@ Required:
 Optional:
 
 - `--docs-root`
+- `--shadow-persistence`
+- `--pilot-persistence`
+- `--rollout-category <category>`
+- `--shadow-rollout-registry <path>`
+- `--batch-spec`
+- `--registry`
 - extraction backend settings
 - policy/profile overrides
+
+`--shadow-persistence` computes the beta0 persistence comparison in parallel with normal domain scoring and returns it under `result.shadow.localityModels`. It does not change `ELS`, thresholds, or aggregate scores.
+
+`--pilot-persistence` is a category-gated rollout mode. It forces the same shadow comparison, loads a curated shadow-rollout registry, and only replaces `ELS` when the selected `--rollout-category` currently has a category verdict of `replace`. The pilot result is returned under `result.pilot`, including the baseline `ELS`, persistence candidate value, effective `ELS`, and both overall and category gate states.
+
+For rollout calibration across multiple repositories, use `score.observe_shadow_rollout_batch --batch-spec <path>`. The batch spec is YAML or JSON and lists repo/model pairs plus optional category and policy overrides. The command returns per-repo observations together with category and overall aggregates.
+
+Use `gate.evaluate_shadow_rollout --registry <path>` to evaluate the current curated adoption gate without rerunning measurements, or `gate.evaluate_shadow_rollout --batch-spec <path>` to evaluate a live batch observation run.
+
+`--batch-spec` is used by `score.observe_shadow_rollout_batch` and `gate.evaluate_shadow_rollout`. The spec is YAML or JSON and contains a version plus an `entries` array. Each entry provides `repo`, `model`, `repoId`, and optional `label`, `category`, `modelSource`, `policy`, and `tieTolerance`. Relative paths are resolved from the batch-spec file location.
+
+`--registry` is used by `gate.evaluate_shadow_rollout`. It points at a versioned YAML or JSON registry of curated real-repo observations, such as `fixtures/validation/shadow-rollout/registry.yaml`.
 
 ### Architecture Design
 

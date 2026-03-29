@@ -67,6 +67,11 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 | `doc.extract_invariants` | 不変条件を抽出する | Invariant Catalog |
 | `trace.link_terms` | 用語追跡リンクを作る | Traceability Graph |
 | `trace.link_model_to_code` | モデルとコードを紐づける | Model-Code Links |
+| `history.analyze_persistence` | co-change の持続構造を調べる | Experimental History Topology |
+| `history.compare_locality_models` | `ELS` と beta0 persistence 候補を比較する | Experimental Locality Comparison |
+| `score.observe_shadow_rollout` | 1 repo の shadow 差分を観測する | Shadow Rollout Observation |
+| `score.observe_shadow_rollout_batch` | 複数 repo の shadow 差分を集計する | Shadow Rollout Batch Report |
+| `gate.evaluate_shadow_rollout` | beta0 persistence の採用 gate を評価する | Shadow Rollout Gate |
 | `code.parse` | AST / シンボル情報や Dart directive graph を構築する | AST / Symbol Table |
 | `code.detect_dependencies` | 静的依存を抽出する | Dependency Graph |
 | `code.detect_contract_usage` | 契約経由性を検証する | Contract Usage Report |
@@ -89,6 +94,26 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 | `graph.score_decomposition` | 境界分割案を採点する |
 | `model.score_aggregate_fitness` | Aggregate適合度を採点する |
 | `history.score_evolution_locality` | 進化局所性を採点する |
+| `history.analyze_persistence` | co-change の持続構造を調べる |
+| `history.compare_locality_models` | `ELS` と beta0 persistence 候補を比較する |
+| `score.observe_shadow_rollout` | 1 repo の shadow 差分を観測する |
+| `score.observe_shadow_rollout_batch` | 複数 repo の shadow 差分を集計する |
+| `gate.evaluate_shadow_rollout` | curated な観測値または live batch から採用 gate を評価する |
+
+補足:
+
+- `history.analyze_persistence` は experimental な inspection コマンドです
+- `history.compare_locality_models` は採用判断や calibration のための experimental 比較コマンドです
+- `score.observe_shadow_rollout` は `score.compute --shadow-persistence` を 1 repo 向けに読みやすくした wrapper です
+- `score.observe_shadow_rollout_batch` は YAML / JSON の `--batch-spec` を読み、複数 repo の差分と category / overall 集計を返します
+- `gate.evaluate_shadow_rollout` は YAML / JSON の `--registry` または `--batch-spec` を読み、現在の置換可否と `shadow_only` / `replace` 判定を返します
+- `gate.evaluate_shadow_rollout` の category summary には category ごとの `shadow_only` / `replace` 判定も含まれます
+- `score.compute` の `ELS` を置き換えるものではなく、補助診断として使います
+- `score.compute --shadow-persistence` は beta0 persistence 比較を `result.shadow.localityModels` に追加するだけで、`ELS` の値や閾値は変えません
+- `score.compute --pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` は category-gated な pilot です
+- pilot は `result.shadow.localityModels` を必ず計算し、category gate が `replace` のときだけ `ELS` を persistence candidate に切り替えます
+- pilot の適用結果は `result.pilot` に入り、baseline `ELS`、candidate 値、effective `ELS`、overall/category gate 状態を返します
+- score-neutral であり、既存の policy 式や閾値を変更しません
 
 ## 6. アーキテクチャ設計パック用コマンド案
 

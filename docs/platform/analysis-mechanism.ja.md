@@ -83,16 +83,25 @@ gate.evaluate
 2. `parseCodebase` でコードベースを解析する
 3. `detectContractUsage` と `detectBoundaryLeaks` で `MCCS` 系の材料を集める
 4. `normalizeHistory` と `scoreEvolutionLocality` で `ELS` の材料を集める
-5. `--docs-root` がある場合だけ、`extractGlossary` / `extractRules` / `extractInvariants` を lazy cache 付きで実行する
-6. `buildTermTraceLinks`、`computeBoundaryFitness`、`computeAggregateFitness` で文書起点メトリクスを組み立てる
-7. `evaluateFormula` で metric ごとの値を計算する
-8. `createResponse` で `metrics` `leakFindings` `history` `crossContextReferences` を返す
+5. 必要に応じて experimental な `history.analyze_persistence` で co-change の持続構造を補助診断する
+6. 必要に応じて `history.compare_locality_models` で `ELS` と beta0 persistence 候補を比較するか、`score.compute --shadow-persistence` で同じ比較結果を shadow payload として付与する
+7. `--docs-root` がある場合だけ、`extractGlossary` / `extractRules` / `extractInvariants` を lazy cache 付きで実行する
+8. `buildTermTraceLinks`、`computeBoundaryFitness`、`computeAggregateFitness` で文書起点メトリクスを組み立てる
+9. `evaluateFormula` で metric ごとの値を計算する
+10. `createResponse` で `metrics` `leakFindings` `history` `crossContextReferences` を返す
 
 current implementation 上の特徴:
 
 - 文書抽出系は `--docs-root` がないと実行されません
 - `DRF` `ULI` `BFS` `AFS` は docs 依存です
 - `MCCS` と `ELS` は docs なしでも動きます
+- `history.analyze_persistence` は score-neutral の補助診断であり、`ELS` の置き換えではありません
+- `history.compare_locality_models` は score-neutral の比較コマンドであり、`ELS` と beta0 persistence 候補の calibration にだけ使います
+- `score.compute --shadow-persistence` を有効にしても、source-of-truth の metric は `ELS` のままで、`result.shadow.localityModels` が増えるだけです
+- `score.compute --pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` は同じ shadow payload を計算しつつ、選択した category gate が `replace` のときだけ実効 `ELS` を persistence candidate に切り替えます
+- pilot mode の適用結果は `result.pilot` に入り、baseline `ELS`、candidate 値、実効 locality source、overall/category gate 状態を返します
+- `score.observe_shadow_rollout_batch` は curated な repo 集合で shadow 差分を比較するためのコマンドで、本番 scoring 自体は変えません
+- `gate.evaluate_shadow_rollout` は versioned registry または live batch 観測から採用 gate を評価するためのコマンドで、本番 scoring 自体は変えません
 - heuristic glossary は CLI flag、path、artifact ID、response field path、snake_case 設定名のような構造参照を用語候補から除外します
 - response の `unknowns` は、メトリクス単位の `unknowns` とは別に、スキップや履歴不足も集約されます
 
@@ -106,6 +115,8 @@ current implementation 上の特徴:
 | `AFS` | 不変条件、用語、trace link | `computeAggregateFitness` | 実装済み | invariant の責務割当が曖昧、強整合 invariant が少ない | `computeAggregateFitness` が生成する evidence |
 | `MCCS` | repo、model | `detectContractUsage`, `detectBoundaryLeaks` | 実装済み | context 間参照が観測されず適用対象が少ない | boundary leak の derived evidence |
 | `ELS` | repo、policy、Git 履歴 | `normalizeHistory`, `scoreEvolutionLocality` | 実装済み | Git 履歴がない、履歴が少ない、履歴解析に失敗する | metric 自体の `evidenceRefs` は空、代わりに `result.history` が返る |
+| `history.analyze_persistence` | repo、policy、Git 履歴 | `normalizeHistory` を基にした co-change topology inspection | experimental | 履歴が薄い、重みが退化する、context が 1 個しかない | score を返さない補助診断のため、inspection summary を返す |
+| `history.compare_locality_models` | repo、policy、Git 履歴 | `scoreEvolutionLocality` と beta0 persistence 候補の side-by-side 比較 | experimental | 履歴が薄い、重みが退化する、context が 1 個しかない | `ELS` の既存面と persistence 候補を並べて返す |
 
 ### 4.3 docs 依存メトリクスの current implementation
 

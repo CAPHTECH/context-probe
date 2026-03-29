@@ -10,7 +10,12 @@ export const DOMAIN_DESIGN_PACK: DomainPack = {
     "code.detect_boundary_leaks",
     "history.mine_cochange",
     "history.score_evolution_locality",
+    "history.analyze_persistence",
+    "history.compare_locality_models",
     "score.compute",
+    "score.observe_shadow_rollout",
+    "score.observe_shadow_rollout_batch",
+    "gate.evaluate_shadow_rollout",
     "review.list_unknowns"
   ],
   metrics: ["MCCS", "ELS"],

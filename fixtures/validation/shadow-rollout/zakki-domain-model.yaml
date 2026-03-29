@@ -1,0 +1,20 @@
+version: "1.0"
+contexts:
+  - name: MobileApp
+    pathGlobs:
+      - apps/mobile/lib/**
+      - apps/mobile/test/**
+      - apps/mobile/integration_test/**
+  - name: WebsiteApp
+    pathGlobs:
+      - apps/website/src/**
+      - apps/website/tests/**
+      - apps/website/public/**
+  - name: WorkerBackend
+    pathGlobs:
+      - apps/workers/src/**
+      - apps/workers/test/**
+  - name: DataAndSchema
+    pathGlobs:
+      - supabase/migrations/**
+      - supabase/tests/**
