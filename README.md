@@ -145,6 +145,7 @@ npm run dev -- score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
+  --complexity-export config/self-measurement/architecture-complexity-export.yaml \
   --boundary-map config/self-measurement/architecture-boundary-map.yaml \
   --contract-baseline config/self-measurement/architecture-contract-baseline.yaml \
   --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
@@ -157,7 +158,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `complexity-export`, `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
 
 For this repository specifically, some architecture unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` remain evidence-limited, and `PCS` remains a proxy composite. Treat those as self-measurement caveats, not immediate defects.
 
@@ -212,7 +213,7 @@ npm run dev -- doc.extract_glossary \
 
 ## Measure This Repository
 
-Minimal self-measurement definitions are stored in [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml) and [config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml).
+Minimal self-measurement definitions are stored in [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml), [config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml), and [config/self-measurement/architecture-complexity-export.yaml](config/self-measurement/architecture-complexity-export.yaml).
 
 ### 1. Enable Git History
 
@@ -241,6 +242,7 @@ npm run dev -- score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
+  --complexity-export config/self-measurement/architecture-complexity-export.yaml \
   --boundary-map config/self-measurement/architecture-boundary-map.yaml \
   --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
   --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \

@@ -11,6 +11,7 @@ import { cleanupTemporaryRepo, createTemporaryWorkspace, initializeTemporaryGitR
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const MODEL_ENTRY = "config/self-measurement/domain-model.yaml";
 const CONSTRAINTS_ENTRY = "config/self-measurement/architecture-constraints.yaml";
+const COMPLEXITY_EXPORT_ENTRY = "config/self-measurement/architecture-complexity-export.yaml";
 const BOUNDARY_MAP_ENTRY = "config/self-measurement/architecture-boundary-map.yaml";
 const CONTRACT_BASELINE_ENTRY = "config/self-measurement/architecture-contract-baseline.yaml";
 const SCENARIO_CATALOG_ENTRY = "config/self-measurement/architecture-scenarios.yaml";
@@ -63,6 +64,7 @@ describe("self measurement", () => {
         constraints: path.join(repoPath, CONSTRAINTS_ENTRY),
         policy: POLICY_PATH,
         domain: "architecture_design",
+        "complexity-export": path.join(repoPath, COMPLEXITY_EXPORT_ENTRY),
         "boundary-map": path.join(repoPath, BOUNDARY_MAP_ENTRY),
         "contract-baseline": path.join(repoPath, CONTRACT_BASELINE_ENTRY),
         "scenario-catalog": path.join(repoPath, SCENARIO_CATALOG_ENTRY),
@@ -116,6 +118,7 @@ describe("self measurement", () => {
     ).toBe(false);
     expect(architectureResponse.provenance.map((entry) => entry.path)).toEqual(
       expect.arrayContaining([
+        path.join(repoPath, COMPLEXITY_EXPORT_ENTRY),
         path.join(repoPath, BOUNDARY_MAP_ENTRY),
         path.join(repoPath, CONTRACT_BASELINE_ENTRY),
         path.join(repoPath, SCENARIO_CATALOG_ENTRY),

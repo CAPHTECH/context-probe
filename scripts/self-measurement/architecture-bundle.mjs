@@ -4,6 +4,7 @@ import path from "node:path";
 
 export const ARCHITECTURE_SELF_MEASUREMENT_PATHS = {
   constraints: "config/self-measurement/architecture-constraints.yaml",
+  complexityExport: "config/self-measurement/architecture-complexity-export.yaml",
   boundaryMap: "config/self-measurement/architecture-boundary-map.yaml",
   contractBaseline: "config/self-measurement/architecture-contract-baseline.yaml",
   scenarios: "config/self-measurement/architecture-scenarios.yaml",
@@ -26,6 +27,7 @@ export const ARCHITECTURE_BOUNDARY_NAME_ALIASES = {
 };
 
 export const ARCHITECTURE_CURATED_SNAPSHOT_PATHS = [
+  ARCHITECTURE_SELF_MEASUREMENT_PATHS.complexityExport,
   ARCHITECTURE_SELF_MEASUREMENT_PATHS.scenarios,
   ARCHITECTURE_SELF_MEASUREMENT_PATHS.topology,
   ARCHITECTURE_SELF_MEASUREMENT_PATHS.runtimeObservations,
@@ -56,6 +58,8 @@ function scoreComputeArgs(paths, repoRoot) {
     repoRoot,
     "--constraints",
     paths.constraints,
+    "--complexity-export",
+    paths.complexityExport,
     "--boundary-map",
     paths.boundaryMap,
     "--scenario-catalog",
@@ -90,6 +94,8 @@ function reportGenerateArgs(paths, repoRoot) {
     repoRoot,
     "--constraints",
     paths.constraints,
+    "--complexity-export",
+    paths.complexityExport,
     "--boundary-map",
     paths.boundaryMap,
     "--scenario-catalog",

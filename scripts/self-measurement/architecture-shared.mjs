@@ -98,6 +98,8 @@ export function isOlderThanThreshold(isoTimestamp, nowIsoTimestamp, days) {
 function relativePathToKey(relativePath) {
   const fileName = path.basename(relativePath);
   switch (fileName) {
+    case "architecture-complexity-export.yaml":
+      return "complexityExport";
     case "architecture-scenarios.yaml":
       return "scenarios";
     case "architecture-topology.yaml":

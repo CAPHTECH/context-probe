@@ -117,6 +117,7 @@ npm run dev -- score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
+  --complexity-export config/self-measurement/architecture-complexity-export.yaml \
   --boundary-map config/self-measurement/architecture-boundary-map.yaml \
   --contract-baseline config/self-measurement/architecture-contract-baseline.yaml \
   --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
@@ -129,7 +130,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are maintained as curated observation snapshots. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices when curated snapshots are stale. `npm run self:architecture:baseline` captures a reviewable `IPS` baseline from the current contract surface and intentionally stays outside `refresh` so baseline deltas remain stable. `npm run self:architecture:audit` is the CI-friendly advisory version of that freshness check.
+Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks, while `complexity-export`, `telemetry`, `pattern runtime`, and `delivery` are maintained as curated observation snapshots. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices when curated snapshots are stale. `npm run self:architecture:baseline` captures a reviewable `IPS` baseline from the current contract surface and intentionally stays outside `refresh` so baseline deltas remain stable. `npm run self:architecture:audit` is the CI-friendly advisory version of that freshness check.
 
 On this repository, some unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` are evidence-limited, and `PCS` remains a proxy composite. That is a self-measurement caveat, not an automatic bug report.
 

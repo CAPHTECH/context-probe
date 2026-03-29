@@ -75,6 +75,14 @@ describe("architecture self-measurement audit", () => {
     };
     await writeYaml(telemetryPath, staleTelemetry);
 
+    const complexityExportPath = path.join(repoPath, "config/self-measurement/architecture-complexity-export.yaml");
+    const staleComplexityExport = await readYaml<Record<string, unknown>>(complexityExportPath);
+    staleComplexityExport.snapshot = {
+      sourceKind: "curated",
+      reviewedAt: "2025-01-01T00:00:00Z",
+    };
+    await writeYaml(complexityExportPath, staleComplexityExport);
+
     const boundaryMapPath = path.join(repoPath, "config/self-measurement/architecture-boundary-map.yaml");
     const staleBoundaryMap = await readYaml<Record<string, unknown>>(boundaryMapPath);
     staleBoundaryMap.snapshot = {
@@ -95,9 +103,12 @@ describe("architecture self-measurement audit", () => {
       },
     );
 
-    expect(stdout).toContain("architecture self-measurement freshness: 3 warning(s)");
+    expect(stdout).toContain("architecture self-measurement freshness: 4 warning(s)");
     expect(stderr).toContain(
       "Measured snapshot config/self-measurement/architecture-scenario-observations.yaml was captured at 2025-01-01T00:00:00Z",
+    );
+    expect(stderr).toContain(
+      "Curated snapshot config/self-measurement/architecture-complexity-export.yaml was last reviewed at 2025-01-01T00:00:00Z",
     );
     expect(stderr).toContain(
       "Curated snapshot config/self-measurement/architecture-telemetry-observations.yaml was last reviewed at 2025-01-01T00:00:00Z",
@@ -131,6 +142,33 @@ describe("architecture self-measurement audit", () => {
     expect(stdout).toContain("architecture self-measurement freshness: 1 warning(s)");
     expect(stderr).toContain(
       "Contract baseline config/self-measurement/architecture-contract-baseline.yaml is missing.",
+    );
+  }, 60000);
+
+  test("warns when the curated complexity export is missing without failing", async () => {
+    repoPath = await createTemporaryWorkspace(PROJECT_ENTRIES);
+    await execFile(process.execPath, [REFRESH_SCRIPT_PATH, "--repo-root", repoPath, "--now", "2026-03-30T00:00:00Z"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CONTEXT_PROBE_SELF_MEASUREMENT_S003_COMMAND: "true",
+      },
+    });
+
+    const complexityExportPath = path.join(repoPath, "config/self-measurement/architecture-complexity-export.yaml");
+    await rm(complexityExportPath, { force: true });
+
+    const { stdout, stderr } = await execFile(
+      process.execPath,
+      [AUDIT_SCRIPT_PATH, "--repo-root", repoPath, "--now", "2026-03-30T00:00:00Z"],
+      {
+        cwd: process.cwd(),
+      },
+    );
+
+    expect(stdout).toContain("architecture self-measurement freshness: 1 warning(s)");
+    expect(stderr).toContain(
+      "Curated snapshot config/self-measurement/architecture-complexity-export.yaml is missing.",
     );
   }, 60000);
 });

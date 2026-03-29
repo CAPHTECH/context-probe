@@ -76,6 +76,8 @@ For `CTI`:
 2. `complexity-source`
 3. constraints metadata and codebase-derived proxies
 
+The repository self-measurement bundle uses an explicit curated `complexity-export` file instead of keeping operational metadata inside `architecture-constraints.yaml`.
+
 ### Contract baseline inputs
 
 1. `contract-baseline`

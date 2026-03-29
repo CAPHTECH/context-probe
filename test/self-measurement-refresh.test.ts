@@ -13,6 +13,7 @@ const execFile = promisify(execFileCallback);
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const REFRESH_SCRIPT_PATH = path.resolve("scripts/self-measurement/refresh-architecture-inputs.mjs");
+const COMPLEXITY_EXPORT_PATH = "config/self-measurement/architecture-complexity-export.yaml";
 const PROJECT_ENTRIES = ["src", "config/self-measurement"];
 
 describe("architecture self-measurement refresh", () => {
@@ -27,6 +28,7 @@ describe("architecture self-measurement refresh", () => {
 
   test("refreshes measured and derived self-measurement inputs with loadable output", async () => {
     repoPath = await createTemporaryWorkspace(PROJECT_ENTRIES);
+    const complexityExportBefore = await readFile(path.join(repoPath, COMPLEXITY_EXPORT_PATH), "utf8");
 
     await execFile(process.execPath, [REFRESH_SCRIPT_PATH, "--repo-root", repoPath, "--now", "2026-03-30T00:00:00Z"], {
       cwd: process.cwd(),
@@ -85,12 +87,16 @@ describe("architecture self-measurement refresh", () => {
       "application",
     ]);
 
+    const complexityExportAfter = await readFile(path.join(repoPath, COMPLEXITY_EXPORT_PATH), "utf8");
+    expect(complexityExportAfter).toBe(complexityExportBefore);
+
     const response = await COMMANDS["score.compute"]!(
       {
         repo: repoPath,
         constraints: path.join(repoPath, "config/self-measurement/architecture-constraints.yaml"),
         policy: POLICY_PATH,
         domain: "architecture_design",
+        "complexity-export": path.join(repoPath, COMPLEXITY_EXPORT_PATH),
         "boundary-map": path.join(repoPath, "config/self-measurement/architecture-boundary-map.yaml"),
         "scenario-catalog": path.join(repoPath, "config/self-measurement/architecture-scenarios.yaml"),
         "scenario-observations": path.join(repoPath, "config/self-measurement/architecture-scenario-observations.yaml"),

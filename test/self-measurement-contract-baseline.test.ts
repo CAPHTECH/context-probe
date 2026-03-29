@@ -13,6 +13,7 @@ const execFile = promisify(execFileCallback);
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const CONSTRAINTS_ENTRY = "config/self-measurement/architecture-constraints.yaml";
+const COMPLEXITY_EXPORT_ENTRY = "config/self-measurement/architecture-complexity-export.yaml";
 const CONTRACT_BASELINE_ENTRY = "config/self-measurement/architecture-contract-baseline.yaml";
 const BOUNDARY_MAP_ENTRY = "config/self-measurement/architecture-boundary-map.yaml";
 const SCENARIO_CATALOG_ENTRY = "config/self-measurement/architecture-scenarios.yaml";
@@ -64,6 +65,7 @@ describe("architecture self-measurement contract baseline", () => {
         constraints: path.join(repoPath, CONSTRAINTS_ENTRY),
         policy: POLICY_PATH,
         domain: "architecture_design",
+        "complexity-export": path.join(repoPath, COMPLEXITY_EXPORT_ENTRY),
         "boundary-map": path.join(repoPath, BOUNDARY_MAP_ENTRY),
         "contract-baseline": path.join(repoPath, CONTRACT_BASELINE_ENTRY),
         "scenario-catalog": path.join(repoPath, SCENARIO_CATALOG_ENTRY),

@@ -1,16 +1,5 @@
 version: "1.0"
 direction: inward
-complexity:
-  teamCount: 1
-  deployableCount: 1
-  pipelineCount: 1
-  contractOrSchemaCount: 1
-  serviceCount: 1
-  serviceGroupCount: 1
-  datastoreCount: 0
-  onCallSurface: 2
-  syncDepthP95: 1
-  runCostPerBusinessTransaction: 1
 layers:
   - name: contracts
     rank: 0
