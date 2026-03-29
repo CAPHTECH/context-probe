@@ -90,7 +90,7 @@
 - `APSI` へ入れる前に単独 metric として運用評価する
 
 完了条件:
-- `TSI` の意味が `AELS` / `TIS` / `APSI` と衝突しない
+- `TSI` の意味が `AELS` / `TSI` / `APSI` と衝突しない
 - locality の二重計上が起きない
 
 ### Task 4: BFS 候補比較を別コマンドとして試作する
