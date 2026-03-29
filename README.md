@@ -128,6 +128,12 @@ Refresh the measured and derived architecture snapshots before a self-measuremen
 npm run self:architecture:refresh
 ```
 
+Audit freshness drift without rewriting snapshots:
+
+```bash
+npm run self:architecture:audit
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -144,7 +150,9 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots.
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
+
+For this repository specifically, some architecture unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` remain evidence-limited, and `PCS` remains a proxy composite. Treat those as self-measurement caveats, not immediate defects.
 
 ### Ingest Brownfield Evidence Through Source Config
 

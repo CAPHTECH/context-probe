@@ -3,25 +3,25 @@
   "sourceSystem": "benchmark-summary",
   "snapshot": {
     "sourceKind": "measured",
-    "capturedAt": "2026-03-29T20:53:33.471Z"
+    "capturedAt": "2026-03-29T21:05:21.757Z"
   },
   "benchmarkSummary": {
     "observations": [
       {
         "scenarioId": "S-001",
-        "observed": 0.743,
+        "observed": 0.769,
         "source": "local-benchmark-2026-03-29",
         "note": "`npm run dev -- score.compute --domain architecture_design ...`"
       },
       {
         "scenarioId": "S-002",
-        "observed": 0.708,
+        "observed": 0.722,
         "source": "local-benchmark-2026-03-29",
         "note": "`npm run dev -- report.generate --domain architecture_design ... --format md`"
       },
       {
         "scenarioId": "S-003",
-        "observed": 10.564,
+        "observed": 10.297,
         "source": "local-benchmark-2026-03-29",
         "note": "`npm run check && npm test`"
       }

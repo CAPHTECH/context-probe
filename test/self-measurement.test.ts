@@ -100,6 +100,9 @@ describe("self measurement", () => {
     expect(architectureResponse.unknowns).not.toContain(
       "No boundary map was provided, so AELS is using constraint layers as a boundary proxy.",
     );
+    expect(architectureResponse.unknowns).not.toContain(
+      "RunCostPerBusinessTransaction cannot be approximated because runCostPerBusinessTransaction is missing.",
+    );
     expect(architectureResponse.unknowns).toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
     expect(
       architectureResponse.evidence.some((entry) =>

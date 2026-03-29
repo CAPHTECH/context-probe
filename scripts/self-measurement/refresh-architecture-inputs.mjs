@@ -1,101 +1,30 @@
 #!/usr/bin/env node
 
 import { execFile as execFileCallback } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import YAML from "yaml";
-
 import {
-  ARCHITECTURE_CURATED_SNAPSHOT_PATHS,
-  ARCHITECTURE_SELF_MEASUREMENT_FRESHNESS,
   createArchitectureBenchmarkPlan,
-  mapLayerNameToBoundaryName,
   resolveArchitectureSelfMeasurementPaths,
 } from "./architecture-bundle.mjs";
+import {
+  collectArchitectureSelfMeasurementWarnings,
+  deriveBoundaryMap,
+  formatSourceDate,
+  normalizeRelativePath,
+  parseRepoRootAndNowArgs,
+  sha256File,
+  writeCanonicalJson,
+  writeCanonicalYaml,
+} from "./architecture-shared.mjs";
 
 const execFile = promisify(execFileCallback);
 const MAX_BUFFER = 10 * 1024 * 1024;
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const TOOL_ROOT = path.resolve(scriptDir, "../..");
 const SCENARIO_COLLECTOR = path.join(TOOL_ROOT, "scripts/collectors/architecture/scenario-actualization-to-qsf.mjs");
-
-function parseArgs(argv) {
-  const args = {
-    repoRoot: TOOL_ROOT,
-    now: new Date().toISOString(),
-  };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--repo-root") {
-      args.repoRoot = path.resolve(argv[index + 1] ?? "");
-      index += 1;
-      continue;
-    }
-    if (token === "--now") {
-      args.now = argv[index + 1] ?? "";
-      index += 1;
-    }
-  }
-
-  if (!args.repoRoot) {
-    throw new Error("--repo-root requires a value");
-  }
-  if (!isValidIsoTimestamp(args.now)) {
-    throw new Error(`--now must be a valid ISO-8601 timestamp: ${args.now}`);
-  }
-
-  return args;
-}
-
-function isValidIsoTimestamp(value) {
-  if (!value) {
-    return false;
-  }
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp);
-}
-
-function normalizeRelativePath(repoRoot, absolutePath) {
-  const relativePath = path.relative(repoRoot, absolutePath);
-  return relativePath.split(path.sep).join("/");
-}
-
-function formatSourceDate(isoTimestamp) {
-  return isoTimestamp.slice(0, 10);
-}
-
-async function readStructuredFile(filePath) {
-  const raw = await readFile(filePath, "utf8");
-  const extension = path.extname(filePath).toLowerCase();
-  if (extension === ".json") {
-    return JSON.parse(raw);
-  }
-  if (extension === ".yaml" || extension === ".yml") {
-    return YAML.parse(raw);
-  }
-  throw new Error(`unsupported structured file extension: ${extension}`);
-}
-
-async function writeCanonicalJson(filePath, value) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-}
-
-async function writeCanonicalYaml(filePath, value) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, YAML.stringify(value, null, { lineWidth: 0 }), "utf8");
-}
-
-async function sha256File(filePath) {
-  const content = await readFile(filePath);
-  return createHash("sha256").update(content).digest("hex");
-}
 
 async function runExecStep(step, cwd) {
   const startedAt = process.hrtime.bigint();
@@ -143,131 +72,6 @@ async function measureScenario(planEntry, cwd, sourceDate) {
   };
 }
 
-function isOlderThanThreshold(isoTimestamp, nowIsoTimestamp, days) {
-  const capturedAt = Date.parse(isoTimestamp);
-  const now = Date.parse(nowIsoTimestamp);
-  if (!Number.isFinite(capturedAt) || !Number.isFinite(now)) {
-    return false;
-  }
-  return now - capturedAt > days * 24 * 60 * 60 * 1000;
-}
-
-async function collectCuratedSnapshotWarnings(nowIsoTimestamp, paths) {
-  const warnings = [];
-
-  for (const relativePath of ARCHITECTURE_CURATED_SNAPSHOT_PATHS) {
-    const absolutePath = paths[relativePathToKey(relativePath)];
-    if (!existsSync(absolutePath)) {
-      warnings.push(`Curated snapshot ${relativePath} is missing.`);
-      continue;
-    }
-
-    const document = await readStructuredFile(absolutePath);
-    const reviewedAt = document?.snapshot?.reviewedAt;
-    if (!isValidIsoTimestamp(reviewedAt)) {
-      warnings.push(`Curated snapshot ${relativePath} is missing snapshot.reviewedAt.`);
-      continue;
-    }
-    if (isOlderThanThreshold(reviewedAt, nowIsoTimestamp, ARCHITECTURE_SELF_MEASUREMENT_FRESHNESS.curatedDays)) {
-      warnings.push(
-        `Curated snapshot ${relativePath} was last reviewed at ${reviewedAt} and is older than ${ARCHITECTURE_SELF_MEASUREMENT_FRESHNESS.curatedDays} days.`,
-      );
-    }
-  }
-
-  return warnings;
-}
-
-async function collectMeasuredRefreshWarnings(repoRoot, nowIsoTimestamp, paths) {
-  const warnings = [];
-  const relativePath = normalizeRelativePath(repoRoot, paths.scenarioObservations);
-  if (!existsSync(paths.scenarioObservations)) {
-    warnings.push(`Measured snapshot ${relativePath} is missing and will be regenerated.`);
-    return warnings;
-  }
-
-  const document = await readStructuredFile(paths.scenarioObservations);
-  const capturedAt = document?.snapshot?.capturedAt;
-  if (!isValidIsoTimestamp(capturedAt)) {
-    warnings.push(`Measured snapshot ${relativePath} is missing snapshot.capturedAt and will be refreshed.`);
-    return warnings;
-  }
-  if (isOlderThanThreshold(capturedAt, nowIsoTimestamp, ARCHITECTURE_SELF_MEASUREMENT_FRESHNESS.measuredDays)) {
-    warnings.push(
-      `Measured snapshot ${relativePath} was captured at ${capturedAt} and is older than ${ARCHITECTURE_SELF_MEASUREMENT_FRESHNESS.measuredDays} days; refreshing it now.`,
-    );
-  }
-  return warnings;
-}
-
-async function collectDerivedBoundaryWarnings(repoRoot, paths, constraintsHash) {
-  const warnings = [];
-  const relativePath = normalizeRelativePath(repoRoot, paths.boundaryMap);
-  if (!existsSync(paths.boundaryMap)) {
-    warnings.push(`Derived boundary map ${relativePath} is missing and will be regenerated.`);
-    return warnings;
-  }
-
-  const document = await readStructuredFile(paths.boundaryMap);
-  const derivedFrom = document?.snapshot?.derivedFrom;
-  const expectedPath = normalizeRelativePath(repoRoot, paths.constraints);
-
-  if (!derivedFrom?.sha256) {
-    warnings.push(`Derived boundary map ${relativePath} is missing snapshot.derivedFrom.sha256 and will be regenerated.`);
-  } else if (derivedFrom.sha256 !== constraintsHash) {
-    warnings.push(`Derived boundary map ${relativePath} was generated from a different constraints hash and will be regenerated.`);
-  }
-
-  if (!derivedFrom?.path) {
-    warnings.push(`Derived boundary map ${relativePath} is missing snapshot.derivedFrom.path and will be regenerated.`);
-  } else if (derivedFrom.path !== expectedPath) {
-    warnings.push(`Derived boundary map ${relativePath} points to ${derivedFrom.path} instead of ${expectedPath} and will be regenerated.`);
-  }
-
-  return warnings;
-}
-
-function relativePathToKey(relativePath) {
-  const fileName = path.basename(relativePath);
-  switch (fileName) {
-    case "architecture-scenarios.yaml":
-      return "scenarios";
-    case "architecture-topology.yaml":
-      return "topology";
-    case "architecture-runtime-observations.yaml":
-      return "runtimeObservations";
-    case "architecture-telemetry-observations.yaml":
-      return "telemetryObservations";
-    case "architecture-pattern-runtime-observations.yaml":
-      return "patternRuntimeObservations";
-    case "architecture-delivery-observations.yaml":
-      return "deliveryObservations";
-    default:
-      throw new Error(`unmapped self-measurement path: ${relativePath}`);
-  }
-}
-
-async function deriveBoundaryMap(nowIsoTimestamp, repoRoot, paths, constraintsHash) {
-  const constraints = await readStructuredFile(paths.constraints);
-  return {
-    version: constraints.version ?? "1.0",
-    snapshot: {
-      sourceKind: "derived",
-      capturedAt: nowIsoTimestamp,
-      derivedFrom: {
-        path: normalizeRelativePath(repoRoot, paths.constraints),
-        sha256: constraintsHash,
-      },
-    },
-    boundaries: Array.isArray(constraints.layers)
-      ? constraints.layers.map((layer) => ({
-          name: mapLayerNameToBoundaryName(layer.name),
-          pathGlobs: Array.isArray(layer.globs) ? [...layer.globs] : [],
-        }))
-      : [],
-  };
-}
-
 async function buildScenarioObservationSet(paths) {
   const { stdout } = await execFile(process.execPath, [SCENARIO_COLLECTOR, paths.scenarioBenchmarkSummary], {
     cwd: TOOL_ROOT,
@@ -278,18 +82,24 @@ async function buildScenarioObservationSet(paths) {
 }
 
 async function main() {
-  const { repoRoot, now } = parseArgs(process.argv.slice(2));
+  const { repoRoot, now } = parseRepoRootAndNowArgs(process.argv.slice(2), TOOL_ROOT);
   const paths = resolveArchitectureSelfMeasurementPaths(repoRoot);
   const sourceDate = formatSourceDate(now);
   const constraintsHash = await sha256File(paths.constraints);
 
-  const warnings = [
-    ...(await collectMeasuredRefreshWarnings(repoRoot, now, paths)),
-    ...(await collectCuratedSnapshotWarnings(now, paths)),
-    ...(await collectDerivedBoundaryWarnings(repoRoot, paths, constraintsHash)),
-  ];
+  const warnings = await collectArchitectureSelfMeasurementWarnings({
+    repoRoot,
+    nowIsoTimestamp: now,
+    paths,
+    constraintsHash,
+  });
 
-  const derivedBoundaryMap = await deriveBoundaryMap(now, repoRoot, paths, constraintsHash);
+  const derivedBoundaryMap = await deriveBoundaryMap({
+    nowIsoTimestamp: now,
+    repoRoot,
+    paths,
+    constraintsHash,
+  });
   await writeCanonicalYaml(paths.boundaryMap, derivedBoundaryMap);
 
   const benchmarkPlan = createArchitectureBenchmarkPlan({ paths, repoRoot });

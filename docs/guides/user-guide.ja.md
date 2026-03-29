@@ -106,6 +106,12 @@ architecture の full self-measurement bundle を回す前に、measured / deriv
 npm run self:architecture:refresh
 ```
 
+snapshot を書き換えずに鮮度だけ確認したい場合は次を使います。
+
+```bash
+npm run self:architecture:audit
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -122,7 +128,9 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、curated snapshot が古いときは warn-only で知らせます。
+ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、curated snapshot が古いときは warn-only で知らせます。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。
+
+このリポジトリでは small CLI codebase という性質上、`ALR` `FCC` `SICR` `SLA` は evidence-limited の unknown が残りやすく、`PCS` も proxy composite のままです。これは自己計測の limitation として読みます。
 
 ### 2. Markdown レポートを生成する
 

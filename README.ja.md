@@ -128,6 +128,12 @@ architecture の自己計測前には、measured / derived snapshot を先に更
 npm run self:architecture:refresh
 ```
 
+snapshot の鮮度だけを advisory に確認したい場合は次を使います。
+
+```bash
+npm run self:architecture:audit
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -144,7 +150,9 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。`npm run self:architecture:refresh` は repo-local automation で、measured な `scenario-observations` と derived な `boundary-map` を更新し、古い curated snapshot には warn-only の freshness notice を出します。
+これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。`npm run self:architecture:refresh` は repo-local automation で、measured な `scenario-observations` と derived な `boundary-map` を更新し、古い curated snapshot には warn-only の freshness notice を出します。`npm run self:architecture:audit` は CI に載せやすい advisory check です。
+
+このリポジトリ固有の注意として、small CLI codebase なので `ALR` `FCC` `SICR` `SLA` は evidence-limited のまま残りやすく、`PCS` も proxy composite のままです。これらは直ちに不具合を示すというより、自己計測の limitation として読みます。
 
 ### source config を使った brownfield evidence の取り込み例
 

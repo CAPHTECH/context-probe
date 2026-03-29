@@ -10,6 +10,7 @@ complexity:
   datastoreCount: 0
   onCallSurface: 2
   syncDepthP95: 1
+  runCostPerBusinessTransaction: 1
 layers:
   - name: contracts
     rank: 0
