@@ -24,6 +24,8 @@ import type {
   ArchitectureTelemetrySourceConfig,
   CommandContext,
   CommandResponse,
+  MarkdownReportResult,
+  MeasurementGateResult,
   DomainDesignScoreResult,
   DomainDesignShadowRolloutGateResult,
   DomainDesignShadowRolloutBatchAggregate,
@@ -1142,23 +1144,25 @@ export const COMMANDS: Record<string, CommandHandler> = {
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = (await scoreCompute(args, context)) as CommandResponse<{
-      domainId: string;
-      metrics: Array<{
-        metricId: string;
-        value: number;
-        components: Record<string, number>;
-        confidence: number;
-        evidenceRefs: string[];
-        unknowns: string[];
-      }>;
-      leakFindings?: unknown[];
-      violations?: unknown[];
-    }>;
+    const response = (await scoreCompute(args, context)) as CommandResponse<
+      DomainDesignScoreResult | {
+        domainId: string;
+        metrics: Array<{
+          metricId: string;
+          value: number;
+          components: Record<string, number>;
+          confidence: number;
+          evidenceRefs: string[];
+          unknowns: string[];
+        }>;
+        leakFindings?: unknown[];
+        violations?: unknown[];
+      }
+    >;
     const format = typeof args.format === "string" ? args.format : "json";
     if (format === "md") {
       const profileName = getProfile(args);
-      return createResponse(
+      return createResponse<MarkdownReportResult>(
         {
           format,
           report: renderMarkdownReport(response, profileName)
@@ -1181,31 +1185,42 @@ export const COMMANDS: Record<string, CommandHandler> = {
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = (await scoreCompute(args, context)) as CommandResponse<{
-      domainId: string;
-      metrics: Array<{
-        metricId: string;
-        value: number;
-        components: Record<string, number>;
-        confidence: number;
-        evidenceRefs: string[];
-        unknowns: string[];
-      }>;
-    }>;
+    const response = (await scoreCompute(args, context)) as CommandResponse<
+      DomainDesignScoreResult | {
+        domainId: string;
+        metrics: Array<{
+          metricId: string;
+          value: number;
+          components: Record<string, number>;
+          confidence: number;
+          evidenceRefs: string[];
+          unknowns: string[];
+        }>;
+      }
+    >;
     const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
     const gate = evaluateGate(response, policyConfig, getProfile(args));
-    return createResponse(
+    const pilot =
+      response.result.domainId === "domain_design" && "pilot" in response.result
+        ? response.result.pilot
+        : undefined;
+    return createResponse<MeasurementGateResult>(
       {
-        domainId: response.result.domainId,
+        domainId: response.result.domainId as "domain_design" | "architecture_design",
         gate,
-        metrics: response.result.metrics
+        metrics: response.result.metrics,
+        ...(pilot ? { pilot } : {})
       },
       {
         status: gate.status,
         evidence: response.evidence,
         confidence: response.confidence,
         unknowns: response.unknowns,
-        diagnostics: [...response.diagnostics, `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`]
+        diagnostics: [
+          ...response.diagnostics,
+          ...(pilot ? [`Pilot locality source: ${pilot.localitySource} for category ${pilot.category}.`] : []),
+          `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`
+        ]
       }
     );
   }

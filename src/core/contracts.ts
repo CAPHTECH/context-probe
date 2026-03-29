@@ -724,6 +724,24 @@ export interface DomainDesignShadowRolloutGateResult {
   evaluation: DomainDesignShadowRolloutGateEvaluation;
 }
 
+export interface MarkdownReportResult {
+  format: "md";
+  report: string;
+}
+
+export interface MetricGateDecision {
+  status: CommandStatus;
+  failures: string[];
+  warnings: string[];
+}
+
+export interface MeasurementGateResult {
+  domainId: "domain_design" | "architecture_design";
+  gate: MetricGateDecision;
+  metrics: MetricScore[];
+  pilot?: DomainDesignPilotAnalysis;
+}
+
 export interface MetricThresholds {
   warn?: number;
   fail?: number;

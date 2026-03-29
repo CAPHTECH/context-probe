@@ -60,6 +60,8 @@ profiles:
 
 ## 4. CIシナリオ
 
+`domain_design` で `--pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` を有効にすると、返却される `ELS` が persistence candidate に置き換わることがあります。これは curated gate でその category が現在 `replace` の場合に限ります。CI の gate semantics 自体は変えません。`gate.evaluate` は、返ってきた metric 値をそのまま policy threshold に当てて判定します。
+
 ### 4.1 ドメイン設計向け
 
 - 新規 `boundary leak` が増えたら fail
