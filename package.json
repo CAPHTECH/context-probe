@@ -36,6 +36,7 @@
     "prepack": "npm run build",
     "prepublishOnly": "npm run check && npm test",
     "self:architecture:audit": "node scripts/self-measurement/audit-architecture-freshness.mjs",
+    "self:architecture:baseline": "tsx scripts/self-measurement/capture-architecture-contract-baseline.ts",
     "self:architecture:refresh": "node scripts/self-measurement/refresh-architecture-inputs.mjs",
     "test": "vitest run",
     "test:pbt": "vitest run test/pbt/*.test.ts",

@@ -76,6 +76,12 @@ For `CTI`:
 2. `complexity-source`
 3. constraints metadata and codebase-derived proxies
 
+### Contract baseline inputs
+
+1. `contract-baseline`
+2. `contract-baseline-source`
+3. otherwise `CBC` / `BCR` remain current-state proxies
+
 ## Metric Input Map
 
 | Metric | Main inputs | Current notes |
@@ -83,7 +89,7 @@ For `CTI`:
 | `QSF` | scenario catalog, observations | depends on normalized scenario observations |
 | `DDS` | repo, constraints | static and direct |
 | `BPS` | repo, constraints | static and direct |
-| `IPS` | repo, constraints | static and heuristic-backed |
+| `IPS` | repo, constraints, optional contract baseline | static; `CBC` / `BCR` become baseline-backed when a contract baseline is provided |
 | `TIS` | topology model, runtime observations | used as an explicit bridge signal |
 | `OAS` | telemetry, pattern runtime, `TIS` bridge | can include normalization and fallback paths |
 | `AELS` | Git history, boundary map or constraint layers | uses boundary proxy when explicit map is missing |

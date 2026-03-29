@@ -31,6 +31,12 @@ Goal:
 
 - convert benchmark and incident evidence into canonical scenario observations
 
+### `IPS`
+
+Goal:
+
+- capture or provide a canonical contract baseline snapshot for `CBC` / `BCR` deltas
+
 ## Input Precedence
 
 Typical precedence is:
@@ -40,8 +46,16 @@ Typical precedence is:
 - export bundle
 - source config
 
+`IPS` uses a smaller precedence rule:
+
+- explicit `contract-baseline`
+- `contract-baseline-source`
+- otherwise baseline-free heuristic scoring
+
 If a higher-priority source is present, lower-priority sources should be ignored and surfaced through `unknowns`.
 
 ## Operating Rule
 
 Keep vendor-specific collectors outside the scoring core. The scoring core should consume canonical inputs, not vendor APIs directly.
+
+The example contract baseline source lives at [fixtures/examples/architecture-sources/contract-baseline-source.file.yaml](../../fixtures/examples/architecture-sources/contract-baseline-source.file.yaml).

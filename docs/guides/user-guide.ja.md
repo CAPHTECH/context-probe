@@ -106,6 +106,12 @@ architecture の full self-measurement bundle を回す前に、measured / deriv
 npm run self:architecture:refresh
 ```
 
+意図的に固定する `IPS` contract baseline は別コマンドで capture します。
+
+```bash
+npm run self:architecture:baseline
+```
+
 snapshot を書き換えずに鮮度だけ確認したい場合は次を使います。
 
 ```bash
@@ -118,6 +124,7 @@ npm run dev -- score.compute \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
   --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --contract-baseline config/self-measurement/architecture-contract-baseline.yaml \
   --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
   --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
   --topology-model config/self-measurement/architecture-topology.yaml \
@@ -128,7 +135,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、curated snapshot が古いときは warn-only で知らせます。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。
+ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、curated snapshot が古いときは warn-only で知らせます。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。
 
 このリポジトリでは small CLI codebase という性質上、`ALR` `FCC` `SICR` `SLA` は evidence-limited の unknown が残りやすく、`PCS` も proxy composite のままです。これは自己計測の limitation として読みます。
 

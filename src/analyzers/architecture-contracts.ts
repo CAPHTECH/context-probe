@@ -4,13 +4,17 @@ import ts from "typescript";
 
 import type {
   ArchitectureConstraints,
+  ArchitectureContractBaseline,
+  ArchitectureContractBaselineEntry,
+  ArchitectureContractBaselineSymbol,
+  ArchitectureContractBaselineSymbolKind,
   CodebaseAnalysis,
   LayerDefinition,
   ParsedSourceFile,
 } from "../core/contracts.js";
 import { readText } from "../core/io.js";
 import { getScorableDependencies } from "./code.js";
-import { classifyArchitectureLayer, collectContractFilePaths } from "./contract-files.js";
+import { classifyArchitectureLayer, collectContractFilePaths, isMeasuredContractFilePath } from "./contract-files.js";
 
 export interface ContractStabilityFinding {
   kind: "contract_backward_compatibility_risk" | "breaking_change_risk" | "schema_language_violation";
@@ -38,6 +42,15 @@ interface ContractFileStats {
   totalImports: number;
   nonContractImports: number;
   internalImports: number;
+  symbols: ArchitectureContractBaselineSymbol[];
+  findings: ContractStabilityFinding[];
+}
+
+interface BaselineComparisonSummary {
+  CBC: number;
+  BCR: number;
+  confidence: number;
+  unknowns: string[];
   findings: ContractStabilityFinding[];
 }
 
@@ -133,12 +146,52 @@ function collectDartTopLevelLines(sourceText: string): string[] {
   return topLevelLines;
 }
 
+function createContractSymbol(input: {
+  name: string;
+  kind: ArchitectureContractBaselineSymbolKind;
+  stability: "stable" | "risky";
+  loose: boolean;
+}): ArchitectureContractBaselineSymbol {
+  return {
+    name: input.name,
+    kind: input.kind,
+    stability: input.stability,
+    looseness: input.loose ? "loose" : "strict",
+  };
+}
+
+function uniqueSymbols(symbols: ArchitectureContractBaselineSymbol[]): ArchitectureContractBaselineSymbol[] {
+  const seen = new Set<string>();
+  const results: ArchitectureContractBaselineSymbol[] = [];
+
+  for (const symbol of symbols) {
+    const key = `${symbol.name}:${symbol.kind}:${symbol.stability}:${symbol.looseness}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    results.push(symbol);
+  }
+
+  return results;
+}
+
+function getVariableDeclarationNames(node: ts.VariableStatement): string[] {
+  return node.declarationList.declarations.flatMap((declaration) => {
+    if (ts.isIdentifier(declaration.name)) {
+      return [declaration.name.text];
+    }
+    return [];
+  });
+}
+
 function analyzeEcmaContractDeclarations(
   pathValue: string,
   sourceText: string,
 ): Omit<ContractFileStats, "path" | "totalImports" | "nonContractImports" | "internalImports"> {
   const sourceFile = ts.createSourceFile(pathValue, sourceText, ts.ScriptTarget.ES2022, true);
   const findings: ContractStabilityFinding[] = [];
+  const symbols: ArchitectureContractBaselineSymbol[] = [];
   let exportCount = 0;
   let stableExports = 0;
   let riskyExports = 0;
@@ -148,13 +201,74 @@ function analyzeEcmaContractDeclarations(
     if (!hasExportModifier(node) && !ts.isExportAssignment(node)) {
       return;
     }
-    exportCount += 1;
-    if (isStableEcmaExport(node)) {
-      stableExports += 1;
+
+    const loose = declarationContainsAny(node, sourceFile);
+    if (loose) {
+      anyExports += 1;
     }
-    if (isRiskyEcmaExport(node)) {
-      riskyExports += 1;
+
+    if (isStableEcmaExport(node)) {
+      exportCount += 1;
+      stableExports += 1;
       const symbol = getDeclarationName(node);
+      const kind: ArchitectureContractBaselineSymbolKind = ts.isInterfaceDeclaration(node)
+        ? "interface"
+        : ts.isTypeAliasDeclaration(node)
+          ? "type_alias"
+          : "enum";
+      if (symbol) {
+        symbols.push(
+          createContractSymbol({
+            name: symbol,
+            kind,
+            stability: "stable",
+            loose,
+          }),
+        );
+      }
+      if (loose) {
+        findings.push({
+          kind: "breaking_change_risk",
+          path: pathValue,
+          confidence: 0.88,
+          note: `${pathValue} contains 'any' in a public contract.`,
+          ...(symbol ? { symbol } : {}),
+        });
+      }
+      return;
+    }
+
+    if (!isRiskyEcmaExport(node)) {
+      return;
+    }
+
+    exportCount += 1;
+    riskyExports += 1;
+
+    const symbolNames = ts.isVariableStatement(node)
+      ? getVariableDeclarationNames(node)
+      : [getDeclarationName(node) ?? (ts.isExportAssignment(node) ? "default" : "default")];
+    const kind: ArchitectureContractBaselineSymbolKind = ts.isClassDeclaration(node)
+      ? "class"
+      : ts.isFunctionDeclaration(node)
+        ? "function"
+        : ts.isVariableStatement(node)
+          ? "value"
+          : "default_export";
+
+    if (symbolNames.length === 0) {
+      symbolNames.push("default");
+    }
+
+    for (const symbol of symbolNames) {
+      symbols.push(
+        createContractSymbol({
+          name: symbol,
+          kind,
+          stability: "risky",
+          loose,
+        }),
+      );
       findings.push({
         kind: "contract_backward_compatibility_risk",
         path: pathValue,
@@ -162,17 +276,15 @@ function analyzeEcmaContractDeclarations(
         note: `${pathValue} exports a public contract outside interface/type/enum declarations.`,
         ...(symbol ? { symbol } : {}),
       });
-    }
-    if (declarationContainsAny(node, sourceFile)) {
-      anyExports += 1;
-      const symbol = getDeclarationName(node);
-      findings.push({
-        kind: "breaking_change_risk",
-        path: pathValue,
-        confidence: 0.88,
-        note: `${pathValue} contains 'any' in a public contract.`,
-        ...(symbol ? { symbol } : {}),
-      });
+      if (loose) {
+        findings.push({
+          kind: "breaking_change_risk",
+          path: pathValue,
+          confidence: 0.88,
+          note: `${pathValue} contains 'any' in a public contract.`,
+          ...(symbol ? { symbol } : {}),
+        });
+      }
     }
   });
 
@@ -181,6 +293,7 @@ function analyzeEcmaContractDeclarations(
     stableExports,
     riskyExports,
     anyExports,
+    symbols: uniqueSymbols(symbols),
     findings,
   };
 }
@@ -190,6 +303,7 @@ function analyzeDartContractDeclarations(
   sourceText: string,
 ): Omit<ContractFileStats, "path" | "totalImports" | "nonContractImports" | "internalImports"> {
   const findings: ContractStabilityFinding[] = [];
+  const symbols: ArchitectureContractBaselineSymbol[] = [];
   const topLevelLines = collectDartTopLevelLines(sourceText);
   let exportCount = 0;
   let stableExports = 0;
@@ -198,29 +312,52 @@ function analyzeDartContractDeclarations(
 
   for (const line of topLevelLines) {
     let symbol: string | undefined;
+    let kind: ArchitectureContractBaselineSymbolKind | undefined;
     let stable = false;
     let risky = false;
 
-    symbol =
-      DART_MIXIN_CLASS_PATTERN.exec(line)?.[1] ??
-      DART_CLASS_PATTERN.exec(line)?.[1] ??
-      DART_ENUM_PATTERN.exec(line)?.[1] ??
-      DART_TYPEDEF_PATTERN.exec(line)?.[1] ??
-      DART_EXTENSION_TYPE_PATTERN.exec(line)?.[1];
+    symbol = DART_MIXIN_CLASS_PATTERN.exec(line)?.[1];
     if (isPublicDartSymbol(symbol)) {
       stable = true;
+      kind = "class";
     } else {
-      symbol = DART_FUNCTION_PATTERN.exec(line)?.[1] ?? DART_VALUE_PATTERN.exec(line)?.[1];
+      symbol = DART_CLASS_PATTERN.exec(line)?.[1];
       if (isPublicDartSymbol(symbol)) {
-        risky = true;
+        stable = true;
+        kind = "class";
+      } else {
+        symbol = DART_ENUM_PATTERN.exec(line)?.[1];
+        if (isPublicDartSymbol(symbol)) {
+          stable = true;
+          kind = "enum";
+        } else {
+          symbol = DART_TYPEDEF_PATTERN.exec(line)?.[1];
+          if (isPublicDartSymbol(symbol)) {
+            stable = true;
+            kind = "type_alias";
+          } else {
+            symbol = DART_EXTENSION_TYPE_PATTERN.exec(line)?.[1];
+            if (isPublicDartSymbol(symbol)) {
+              stable = true;
+              kind = "type_alias";
+            } else {
+              symbol = DART_FUNCTION_PATTERN.exec(line)?.[1] ?? DART_VALUE_PATTERN.exec(line)?.[1];
+              if (isPublicDartSymbol(symbol)) {
+                risky = true;
+                kind = DART_FUNCTION_PATTERN.test(line) ? "function" : "value";
+              }
+            }
+          }
+        }
       }
     }
 
-    if (!stable && !risky) {
+    if ((!stable && !risky) || !symbol || !kind) {
       continue;
     }
 
     exportCount += 1;
+    const loose = /\bdynamic\b/.test(line);
     if (stable) {
       stableExports += 1;
     }
@@ -234,7 +371,7 @@ function analyzeDartContractDeclarations(
         ...(symbol ? { symbol } : {}),
       });
     }
-    if (/\bdynamic\b/.test(line)) {
+    if (loose) {
       anyExports += 1;
       findings.push({
         kind: "breaking_change_risk",
@@ -244,6 +381,14 @@ function analyzeDartContractDeclarations(
         ...(symbol ? { symbol } : {}),
       });
     }
+    symbols.push(
+      createContractSymbol({
+        name: symbol,
+        kind,
+        stability: stable ? "stable" : "risky",
+        loose,
+      }),
+    );
   }
 
   return {
@@ -251,6 +396,7 @@ function analyzeDartContractDeclarations(
     stableExports,
     riskyExports,
     anyExports,
+    symbols: uniqueSymbols(symbols),
     findings,
   };
 }
@@ -315,48 +461,31 @@ async function analyzeContractFile(options: {
     totalImports: dependencies.length,
     nonContractImports,
     internalImports,
+    symbols: declarationStats.symbols,
     findings,
   };
 }
 
-export async function scoreInterfaceProtocolStability(options: {
-  root: string;
-  codebase: CodebaseAnalysis;
-  constraints: ArchitectureConstraints;
-}): Promise<InterfaceProtocolStabilityScore> {
-  const contractPaths = collectContractFilePaths({
-    codebase: options.codebase,
-    constraints: options.constraints,
-    allowDartDomainFallback: true,
-  });
-  const contractFiles = new Set(contractPaths);
-  const fileMap = getParsedFileMap(options.codebase);
-  const unknowns: string[] = ["CBC/BCR are current-state contract-stability proxies, not baseline deltas."];
+function toContractBaselineEntry(stats: ContractFileStats): ArchitectureContractBaselineEntry {
+  return {
+    path: stats.path,
+    symbols: stats.symbols,
+    imports: {
+      total: stats.totalImports,
+      nonContract: stats.nonContractImports,
+      internal: stats.internalImports,
+    },
+  };
+}
 
-  if (contractPaths.length === 0) {
-    return {
-      CBC: 0.5,
-      BCR: 0.5,
-      SLA: 0.5,
-      confidence: 0.45,
-      unknowns: [...unknowns, "There are too few contract files, so IPS is conservative."],
-      findings: [],
-    };
-  }
-
-  const stats = await Promise.all(
-    contractPaths.map((filePath) =>
-      analyzeContractFile({
-        root: options.root,
-        path: filePath,
-        codebase: options.codebase,
-        constraints: options.constraints,
-        contractFiles,
-        fileMap,
-      }),
-    ),
-  );
-
+function buildCurrentStateScore(stats: ContractFileStats[]): {
+  CBC: number;
+  BCR: number;
+  SLA: number;
+  confidence: number;
+  unknowns: string[];
+  findings: ContractStabilityFinding[];
+} {
   const totalExports = stats.reduce((sum, entry) => sum + entry.exportCount, 0);
   const stableExports = stats.reduce((sum, entry) => sum + entry.stableExports, 0);
   const totalImports = stats.reduce((sum, entry) => sum + entry.totalImports, 0);
@@ -364,6 +493,7 @@ export async function scoreInterfaceProtocolStability(options: {
   const internalImports = stats.reduce((sum, entry) => sum + entry.internalImports, 0);
   const riskyExports = stats.reduce((sum, entry) => sum + entry.riskyExports + entry.anyExports, 0);
   const riskSignals = riskyExports + nonContractImports + internalImports;
+  const unknowns: string[] = ["CBC/BCR are current-state contract-stability proxies, not baseline deltas."];
 
   const stableExportRatio = totalExports === 0 ? 0.5 : stableExports / totalExports;
   const importAdherence = totalImports === 0 ? 1 : 1 - nonContractImports / Math.max(1, totalImports);
@@ -396,7 +526,7 @@ export async function scoreInterfaceProtocolStability(options: {
     confidence: clamp01(
       average(
         [
-          contractPaths.length > 0 ? 0.8 : 0.45,
+          stats.length > 0 ? 0.8 : 0.45,
           totalExports > 0 ? 0.82 : 0.55,
           totalImports > 0 ? 0.75 : 0.6,
           riskSignals > 0 ? 0.85 : 0.72,
@@ -406,5 +536,274 @@ export async function scoreInterfaceProtocolStability(options: {
     ),
     unknowns: Array.from(new Set(unknowns)),
     findings: stats.flatMap((entry) => entry.findings),
+  };
+}
+
+function compareAgainstBaseline(options: {
+  baseline: ArchitectureContractBaseline;
+  currentStats: ContractFileStats[];
+  constraints: ArchitectureConstraints;
+}): BaselineComparisonSummary | undefined {
+  const unknowns: string[] = [];
+  const findings: ContractStabilityFinding[] = [];
+  const currentByPath = new Map(options.currentStats.map((entry) => [entry.path, entry]));
+  const baselineContracts = Array.isArray(options.baseline.contracts) ? options.baseline.contracts : [];
+  const inScopeBaselineEntries = baselineContracts.filter((entry) =>
+    isMeasuredContractFilePath({
+      filePath: entry.path,
+      constraints: options.constraints,
+      allowDartDomainFallback: true,
+    }),
+  );
+  const ignoredBaselineEntries = baselineContracts.length - inScopeBaselineEntries.length;
+
+  if (ignoredBaselineEntries > 0) {
+    unknowns.push(
+      `${ignoredBaselineEntries} contract baseline entries are outside the current architecture scope and were ignored.`,
+    );
+  }
+
+  if (inScopeBaselineEntries.length === 0) {
+    return undefined;
+  }
+
+  let baselineSymbolCount = 0;
+  let comparedFiles = 0;
+  let baselineEntriesWithoutImportStats = 0;
+  let removedSymbols = 0;
+  let regressedSymbols = 0;
+  let loosenedSymbols = 0;
+  let newRiskySymbols = 0;
+  let importRiskDeltas = 0;
+  let baselineImportTotal = 0;
+
+  for (const baselineEntry of inScopeBaselineEntries) {
+    const baselineSymbols = baselineEntry.symbols ?? [];
+    baselineSymbolCount += baselineSymbols.length;
+    const currentEntry = currentByPath.get(baselineEntry.path);
+    if (!currentEntry) {
+      const removedCount = Math.max(1, baselineSymbols.length);
+      removedSymbols += removedCount;
+      findings.push({
+        kind: "contract_backward_compatibility_risk",
+        path: baselineEntry.path,
+        confidence: 0.94,
+        note: `${baselineEntry.path} existed in the contract baseline but is no longer present in the current contract surface.`,
+      });
+      continue;
+    }
+
+    comparedFiles += 1;
+    const currentSymbolsByName = new Map(currentEntry.symbols.map((symbol) => [symbol.name, symbol]));
+    for (const baselineSymbol of baselineSymbols) {
+      const currentSymbol = currentSymbolsByName.get(baselineSymbol.name);
+      if (!currentSymbol) {
+        removedSymbols += 1;
+        findings.push({
+          kind: "contract_backward_compatibility_risk",
+          path: baselineEntry.path,
+          confidence: 0.94,
+          note: `${baselineEntry.path} removed public contract symbol ${baselineSymbol.name} since the baseline snapshot.`,
+          symbol: baselineSymbol.name,
+        });
+        continue;
+      }
+      if (baselineSymbol.stability === "stable" && currentSymbol.stability === "risky") {
+        regressedSymbols += 1;
+        findings.push({
+          kind: "contract_backward_compatibility_risk",
+          path: baselineEntry.path,
+          confidence: 0.93,
+          note: `${baselineEntry.path} regressed ${baselineSymbol.name} from a stable contract declaration to an implementation-coupled export.`,
+          symbol: baselineSymbol.name,
+        });
+      }
+      if (baselineSymbol.looseness === "strict" && currentSymbol.looseness === "loose") {
+        loosenedSymbols += 1;
+        findings.push({
+          kind: "breaking_change_risk",
+          path: baselineEntry.path,
+          confidence: 0.92,
+          note: `${baselineEntry.path} loosened ${baselineSymbol.name} since the baseline snapshot.`,
+          symbol: baselineSymbol.name,
+        });
+      }
+    }
+
+    const baselineSymbolNames = new Set(baselineSymbols.map((symbol) => symbol.name));
+    newRiskySymbols += currentEntry.symbols.filter(
+      (symbol) =>
+        !baselineSymbolNames.has(symbol.name) && (symbol.stability === "risky" || symbol.looseness === "loose"),
+    ).length;
+
+    if (baselineEntry.imports) {
+      baselineImportTotal += baselineEntry.imports.total;
+      importRiskDeltas += Math.max(0, currentEntry.nonContractImports - baselineEntry.imports.nonContract);
+      importRiskDeltas += Math.max(0, currentEntry.internalImports - baselineEntry.imports.internal);
+    } else {
+      baselineEntriesWithoutImportStats += 1;
+    }
+  }
+
+  if (baselineEntriesWithoutImportStats > 0) {
+    unknowns.push(
+      `${baselineEntriesWithoutImportStats} contract baseline entries do not include import statistics, so BCR import deltas are partial.`,
+    );
+  }
+
+  if (comparedFiles < inScopeBaselineEntries.length) {
+    unknowns.push(
+      `The contract baseline covered ${comparedFiles}/${inScopeBaselineEntries.length} in-scope baseline files in the current repo.`,
+    );
+  }
+
+  const currentContractFileCount = options.currentStats.length;
+  const currentPaths = new Set(options.currentStats.map((entry) => entry.path));
+  const baselinePaths = new Set(inScopeBaselineEntries.map((entry) => entry.path));
+  const currentFilesOutsideBaseline =
+    currentContractFileCount - Array.from(currentPaths).filter((pathValue) => baselinePaths.has(pathValue)).length;
+  if (currentFilesOutsideBaseline > 0) {
+    unknowns.push(
+      `The contract baseline does not cover ${currentFilesOutsideBaseline} current contract files, so CBC/BCR are partial.`,
+    );
+  }
+
+  const compatibilityFailures = removedSymbols + regressedSymbols + loosenedSymbols;
+  const deltaRiskSignals = compatibilityFailures + newRiskySymbols + importRiskDeltas;
+  const cbcDenominator = Math.max(1, baselineSymbolCount);
+  const bcrDenominator = Math.max(1, baselineSymbolCount + baselineImportTotal + currentFilesOutsideBaseline);
+
+  return {
+    CBC: clamp01(1 - compatibilityFailures / cbcDenominator),
+    BCR: clamp01(deltaRiskSignals / bcrDenominator),
+    confidence: clamp01(
+      average(
+        [
+          0.84,
+          comparedFiles > 0 ? comparedFiles / Math.max(1, inScopeBaselineEntries.length) : 0.4,
+          baselineSymbolCount > 0 ? 0.88 : 0.55,
+          baselineEntriesWithoutImportStats === 0 ? 0.86 : 0.7,
+        ],
+        0.65,
+      ),
+    ),
+    unknowns,
+    findings,
+  };
+}
+
+async function collectContractFileStats(options: {
+  root: string;
+  codebase: CodebaseAnalysis;
+  constraints: ArchitectureConstraints;
+}): Promise<ContractFileStats[]> {
+  const contractPaths = collectContractFilePaths({
+    codebase: options.codebase,
+    constraints: options.constraints,
+    allowDartDomainFallback: true,
+  });
+  const contractFiles = new Set(contractPaths);
+  const fileMap = getParsedFileMap(options.codebase);
+
+  return Promise.all(
+    contractPaths.map((filePath) =>
+      analyzeContractFile({
+        root: options.root,
+        path: filePath,
+        codebase: options.codebase,
+        constraints: options.constraints,
+        contractFiles,
+        fileMap,
+      }),
+    ),
+  );
+}
+
+export async function captureInterfaceProtocolBaseline(options: {
+  root: string;
+  codebase: CodebaseAnalysis;
+  constraints: ArchitectureConstraints;
+  capturedAt?: string;
+  note?: string;
+}): Promise<ArchitectureContractBaseline> {
+  const stats = await collectContractFileStats(options);
+  return {
+    version: "1.0",
+    ...(options.capturedAt || options.note
+      ? {
+          snapshot: {
+            ...(options.capturedAt ? { sourceKind: "captured", capturedAt: options.capturedAt } : {}),
+            ...(options.note ? { note: options.note } : {}),
+          },
+        }
+      : {}),
+    contracts: stats.map((entry) => toContractBaselineEntry(entry)),
+  };
+}
+
+export async function scoreInterfaceProtocolStability(options: {
+  root: string;
+  codebase: CodebaseAnalysis;
+  constraints: ArchitectureConstraints;
+  baseline?: ArchitectureContractBaseline;
+}): Promise<InterfaceProtocolStabilityScore> {
+  const stats = await collectContractFileStats(options);
+  const contractPaths = stats.map((entry) => entry.path);
+
+  if (contractPaths.length === 0) {
+    return {
+      CBC: 0.5,
+      BCR: 0.5,
+      SLA: 0.5,
+      confidence: 0.45,
+      unknowns: ["There are too few contract files, so IPS is conservative."],
+      findings: [],
+    };
+  }
+
+  const currentState = buildCurrentStateScore(stats);
+  const baselineComparison = options.baseline
+    ? compareAgainstBaseline({
+        baseline: options.baseline,
+        currentStats: stats,
+        constraints: options.constraints,
+      })
+    : undefined;
+
+  const totalImports = stats.reduce((sum, entry) => sum + entry.totalImports, 0);
+  const importAdherence =
+    totalImports === 0
+      ? 1
+      : 1 - stats.reduce((sum, entry) => sum + entry.nonContractImports, 0) / Math.max(1, totalImports);
+  const cleanContractFileRatio =
+    stats.filter(
+      (entry) =>
+        entry.riskyExports === 0 &&
+        entry.anyExports === 0 &&
+        entry.nonContractImports === 0 &&
+        entry.internalImports === 0,
+    ).length / Math.max(1, stats.length);
+  const SLA = clamp01(0.6 * importAdherence + 0.4 * cleanContractFileRatio);
+
+  const mergedUnknowns = baselineComparison
+    ? [
+        ...baselineComparison.unknowns,
+        ...(totalImports === 0 ? ["There are too few contract imports, so SLA evidence is limited."] : []),
+      ]
+    : currentState.unknowns;
+  const mergedFindings = baselineComparison
+    ? [...currentState.findings, ...baselineComparison.findings]
+    : currentState.findings;
+  const confidence = baselineComparison
+    ? clamp01(average([currentState.confidence, baselineComparison.confidence], currentState.confidence))
+    : currentState.confidence;
+
+  return {
+    CBC: baselineComparison?.CBC ?? currentState.CBC,
+    BCR: baselineComparison?.BCR ?? currentState.BCR,
+    SLA,
+    confidence,
+    unknowns: Array.from(new Set(mergedUnknowns)),
+    findings: mergedFindings,
   };
 }

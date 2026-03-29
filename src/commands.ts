@@ -3,6 +3,7 @@ import path from "node:path";
 import { detectDirectionViolations, scoreDependencyDirection } from "./analyzers/architecture.js";
 import {
   resolveComplexitySourceConfig,
+  resolveContractBaselineSourceConfig,
   resolveDeliverySourceConfig,
   resolveScenarioObservationSourceConfig,
   resolveTelemetrySourceConfig,
@@ -17,6 +18,8 @@ import {
   loadBoundaryMapIfRequested,
   loadComplexityExportIfRequested,
   loadComplexitySourceConfigIfRequested,
+  loadContractBaselineIfRequested,
+  loadContractBaselineSourceConfigIfRequested,
   loadDeliveryExportIfRequested,
   loadDeliveryNormalizationProfileIfRequested,
   loadDeliveryObservationsIfRequested,
@@ -309,6 +312,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         scenarioObservationSourceConfig,
         topologyModel,
         boundaryMap,
+        contractBaseline,
+        contractBaselineSourceConfig,
         runtimeObservations,
         deliveryObservations,
         deliveryRawObservations,
@@ -331,6 +336,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         loadScenarioObservationSourceConfigIfRequested(args, context),
         loadTopologyModelIfRequested(args, context),
         loadBoundaryMapIfRequested(args, context),
+        loadContractBaselineIfRequested(args, context),
+        loadContractBaselineSourceConfigIfRequested(args, context),
         loadRuntimeObservationsIfRequested(args, context),
         loadDeliveryObservationsIfRequested(args, context),
         loadDeliveryRawObservationsIfRequested(args, context),
@@ -351,6 +358,10 @@ export const COMMANDS: Record<string, CommandHandler> = {
 
       const usableTelemetryRaw = Boolean(telemetryRawObservations && telemetryNormalizationProfile);
       const usableDeliveryRaw = Boolean(deliveryRawObservations && deliveryNormalizationProfile);
+      const contractBaselineSource =
+        !contractBaseline && contractBaselineSourceConfig
+          ? await resolveContractBaselineSourceConfig(contractBaselineSourceConfig)
+          : undefined;
       const scenarioObservationSource =
         !scenarioObservations && scenarioObservationSourceConfig
           ? await resolveScenarioObservationSourceConfig(scenarioObservationSourceConfig)
@@ -373,6 +384,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
         { argName: "scenario-observations", note: "scenario_observations_file" },
         { argName: "topology-model", note: "topology_model_file" },
         { argName: "boundary-map", note: "boundary_map_file" },
+        { argName: "contract-baseline", note: "contract_baseline_file" },
         { argName: "runtime-observations", note: "runtime_observations_file" },
         { argName: "delivery-observations", note: "delivery_observations_file" },
         { argName: "delivery-raw-observations", note: "delivery_raw_observations_file" },
@@ -398,6 +410,14 @@ export const COMMANDS: Record<string, CommandHandler> = {
 
       const additionalProvenance = [
         ...directInputProvenance,
+        ...(contractBaselineSource
+          ? [
+              toProvenance(contractBaselineSource.configPath, "contract_baseline_source_config"),
+              ...(contractBaselineSource.resolvedPath
+                ? [toProvenance(contractBaselineSource.resolvedPath, "contract_baseline_source_file")]
+                : []),
+            ]
+          : []),
         ...(scenarioObservationSource
           ? [
               toProvenance(scenarioObservationSource.configPath, "scenario_observation_source_config"),
@@ -442,6 +462,8 @@ export const COMMANDS: Record<string, CommandHandler> = {
         ...(scenarioObservationSource ? { scenarioObservationSource } : {}),
         ...(topologyModel ? { topologyModel } : {}),
         ...(boundaryMap ? { boundaryMap } : {}),
+        ...(contractBaseline ? { contractBaseline } : {}),
+        ...(contractBaselineSource ? { contractBaselineSource } : {}),
         ...(runtimeObservations ? { runtimeObservations } : {}),
         ...(deliveryObservations ? { deliveryObservations } : {}),
         ...(deliveryRawObservations ? { deliveryRawObservations } : {}),
@@ -463,6 +485,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
         telemetrySourceRequested: Boolean(telemetrySourceConfig),
         deliverySourceRequested: Boolean(deliverySourceConfig),
         complexitySourceRequested: Boolean(complexitySourceConfig),
+        contractBaselineSourceRequested: Boolean(contractBaselineSourceConfig),
         patternRuntimeRawRequested: Boolean(patternRuntimeRawObservations),
         patternRuntimeNormalizationProfileRequested: Boolean(patternRuntimeNormalizationProfile),
       });

@@ -12,6 +12,7 @@ const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const MODEL_ENTRY = "config/self-measurement/domain-model.yaml";
 const CONSTRAINTS_ENTRY = "config/self-measurement/architecture-constraints.yaml";
 const BOUNDARY_MAP_ENTRY = "config/self-measurement/architecture-boundary-map.yaml";
+const CONTRACT_BASELINE_ENTRY = "config/self-measurement/architecture-contract-baseline.yaml";
 const SCENARIO_CATALOG_ENTRY = "config/self-measurement/architecture-scenarios.yaml";
 const SCENARIO_OBSERVATIONS_ENTRY = "config/self-measurement/architecture-scenario-observations.yaml";
 const TOPOLOGY_ENTRY = "config/self-measurement/architecture-topology.yaml";
@@ -63,6 +64,7 @@ describe("self measurement", () => {
         policy: POLICY_PATH,
         domain: "architecture_design",
         "boundary-map": path.join(repoPath, BOUNDARY_MAP_ENTRY),
+        "contract-baseline": path.join(repoPath, CONTRACT_BASELINE_ENTRY),
         "scenario-catalog": path.join(repoPath, SCENARIO_CATALOG_ENTRY),
         "scenario-observations": path.join(repoPath, SCENARIO_OBSERVATIONS_ENTRY),
         "topology-model": path.join(repoPath, TOPOLOGY_ENTRY),
@@ -103,6 +105,9 @@ describe("self measurement", () => {
     expect(architectureResponse.unknowns).not.toContain(
       "RunCostPerBusinessTransaction cannot be approximated because runCostPerBusinessTransaction is missing.",
     );
+    expect(architectureResponse.unknowns).not.toContain(
+      "CBC/BCR are current-state contract-stability proxies, not baseline deltas.",
+    );
     expect(architectureResponse.unknowns).toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
     expect(
       architectureResponse.evidence.some((entry) =>
@@ -112,6 +117,7 @@ describe("self measurement", () => {
     expect(architectureResponse.provenance.map((entry) => entry.path)).toEqual(
       expect.arrayContaining([
         path.join(repoPath, BOUNDARY_MAP_ENTRY),
+        path.join(repoPath, CONTRACT_BASELINE_ENTRY),
         path.join(repoPath, SCENARIO_CATALOG_ENTRY),
         path.join(repoPath, SCENARIO_OBSERVATIONS_ENTRY),
         path.join(repoPath, TOPOLOGY_ENTRY),

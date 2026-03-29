@@ -28,12 +28,12 @@ function hasContractBasenameSignal(filePath: string): boolean {
   return CONTRACT_BASENAME_SIGNAL.test(path.basename(filePath));
 }
 
-function isContractLayer(layer: LayerDefinition): boolean {
+function isArchitectureContractLayer(layer: LayerDefinition): boolean {
   return CONTRACT_LAYER_NAME_SIGNAL.test(layer.name) || layer.globs.some((glob) => hasContractDirectorySignal(glob));
 }
 
 function hasExplicitContractLayer(constraints: ArchitectureConstraints): boolean {
-  return constraints.layers.some((layer) => isContractLayer(layer));
+  return constraints.layers.some((layer) => isArchitectureContractLayer(layer));
 }
 
 function isDartDomainFallbackContract(options: {
@@ -51,36 +51,56 @@ function isDartDomainFallbackContract(options: {
   return Boolean(options.layer && DART_DOMAIN_LAYER_SIGNAL.test(options.layer.name));
 }
 
+export function isMeasuredContractFilePath(options: {
+  filePath: string;
+  constraints: ArchitectureConstraints;
+  parsedFile?: ParsedSourceFile;
+  allowDartDomainFallback?: boolean;
+}): boolean {
+  const explicitContractLayerExists = hasExplicitContractLayer(options.constraints);
+  const layer = classifyArchitectureLayer(options.filePath, options.constraints);
+
+  // Architecture constraints define the measurement scope. Contract-like files
+  // outside those layer globs must not influence IPS/CTI for the current repo.
+  if (!layer) {
+    return false;
+  }
+
+  if (explicitContractLayerExists) {
+    return isArchitectureContractLayer(layer);
+  }
+
+  if (
+    hasContractDirectorySignal(options.filePath) ||
+    hasContractBasenameSignal(options.filePath) ||
+    isArchitectureContractLayer(layer)
+  ) {
+    return true;
+  }
+  return isDartDomainFallbackContract({
+    parsedFile: options.parsedFile,
+    layer,
+    allowDartDomainFallback: options.allowDartDomainFallback ?? false,
+    explicitContractLayerExists,
+  });
+}
+
 export function collectContractFilePaths(options: {
   codebase: CodebaseAnalysis;
   constraints: ArchitectureConstraints;
   allowDartDomainFallback?: boolean;
 }): string[] {
-  const explicitContractLayerExists = hasExplicitContractLayer(options.constraints);
   const fileMap = new Map(options.codebase.files.map((file) => [file.path, file]));
 
   return options.codebase.scorableSourceFiles.filter((filePath) => {
     const parsedFile = fileMap.get(filePath);
-    const layer = classifyArchitectureLayer(filePath, options.constraints);
-
-    // Architecture constraints define the measurement scope. Contract-like files
-    // outside those layer globs must not influence IPS/CTI for the current repo.
-    if (!layer) {
-      return false;
-    }
-
-    if (explicitContractLayerExists) {
-      return isContractLayer(layer);
-    }
-
-    if (hasContractDirectorySignal(filePath) || hasContractBasenameSignal(filePath) || isContractLayer(layer)) {
-      return true;
-    }
-    return isDartDomainFallbackContract({
-      parsedFile,
-      layer,
-      allowDartDomainFallback: options.allowDartDomainFallback ?? false,
-      explicitContractLayerExists,
+    return isMeasuredContractFilePath({
+      filePath,
+      constraints: options.constraints,
+      ...(parsedFile ? { parsedFile } : {}),
+      ...(options.allowDartDomainFallback !== undefined
+        ? { allowDartDomainFallback: options.allowDartDomainFallback }
+        : {}),
     });
   });
 }

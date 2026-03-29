@@ -128,6 +128,12 @@ Refresh the measured and derived architecture snapshots before a self-measuremen
 npm run self:architecture:refresh
 ```
 
+Capture the intentional `IPS` contract baseline separately:
+
+```bash
+npm run self:architecture:baseline
+```
+
 Audit freshness drift without rewriting snapshots:
 
 ```bash
@@ -140,6 +146,7 @@ npm run dev -- score.compute \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
   --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --contract-baseline config/self-measurement/architecture-contract-baseline.yaml \
   --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
   --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
   --topology-model config/self-measurement/architecture-topology.yaml \
@@ -150,7 +157,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
 
 For this repository specifically, some architecture unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` remain evidence-limited, and `PCS` remains a proxy composite. Treat those as self-measurement caveats, not immediate defects.
 
@@ -162,6 +169,7 @@ npm run dev -- score.compute \
   --repo fixtures/validation/scoring/qsf/repo \
   --constraints fixtures/validation/scoring/qsf/constraints.yaml \
   --policy fixtures/policies/default.yaml \
+  --contract-baseline-source fixtures/examples/architecture-sources/contract-baseline-source.file.yaml \
   --scenario-catalog fixtures/validation/scoring/qsf/scenarios.yaml \
   --scenario-observation-source fixtures/examples/architecture-sources/scenario-observation-source.command.yaml \
   --telemetry-source fixtures/examples/architecture-sources/telemetry-source.command.yaml \

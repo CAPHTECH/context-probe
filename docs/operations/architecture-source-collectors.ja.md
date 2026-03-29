@@ -37,6 +37,12 @@ collector が canonical JSON を stdout または file へ出し、それを `--
 - 出力: `ScenarioObservationSet`
 - 目的: raw telemetry や incident review を直接 `QSF` に入れず、scenario 単位へ要約してから使う
 
+### `IPS` contract baseline
+
+- 入力: review 済み contract baseline snapshot
+- 出力: `ArchitectureContractBaseline`
+- 目的: `CBC` `BCR` を current-state proxy ではなく baseline 差分で読む
+
 ## 3. source config の使い方
 
 command source の最小形は次です。
@@ -54,6 +60,7 @@ example config は次に置いています。
 - [delivery-source.command.yaml](../../fixtures/examples/architecture-sources/delivery-source.command.yaml)
 - [complexity-source.command.yaml](../../fixtures/examples/architecture-sources/complexity-source.command.yaml)
 - [scenario-observation-source.command.yaml](../../fixtures/examples/architecture-sources/scenario-observation-source.command.yaml)
+- [contract-baseline-source.file.yaml](../../fixtures/examples/architecture-sources/contract-baseline-source.file.yaml)
 
 ## 4. example input fixture
 
@@ -64,6 +71,7 @@ collector 入力の example は次に置いています。
 - [complexity-snapshot.json](../../fixtures/examples/architecture-sources/complexity-snapshot.json)
 - [scenario-benchmark-summary.json](../../fixtures/examples/architecture-sources/scenario-benchmark-summary.json)
 - [scenario-incident-review-summary.json](../../fixtures/examples/architecture-sources/scenario-incident-review-summary.json)
+- [contract-baseline.yaml](../../fixtures/examples/architecture-sources/contract-baseline.yaml)
 
 ## 5. score.compute での利用例
 
@@ -113,6 +121,17 @@ node dist/src/cli.js score.compute \
   --policy fixtures/policies/default.yaml \
   --scenario-catalog fixtures/validation/scoring/qsf/scenarios.yaml \
   --scenario-observation-source fixtures/examples/architecture-sources/scenario-observation-source.command.yaml
+```
+
+### IPS
+
+```bash
+node dist/src/cli.js score.compute \
+  --domain architecture_design \
+  --repo fixtures/validation/scoring/ips/good-repo \
+  --constraints fixtures/validation/scoring/ips/constraints.yaml \
+  --policy fixtures/policies/default.yaml \
+  --contract-baseline-source fixtures/examples/architecture-sources/contract-baseline-source.file.yaml
 ```
 
 ## 6. profile scorecard の使い方

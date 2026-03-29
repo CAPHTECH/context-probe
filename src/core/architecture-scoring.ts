@@ -23,6 +23,7 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureComplexityExportBundle,
   ArchitectureConstraints,
+  ArchitectureContractBaseline,
   ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
@@ -61,6 +62,9 @@ export async function computeArchitectureScores(options: {
   scenarioObservationSourceRequested?: boolean;
   topologyModel?: ArchitectureTopologyModel;
   boundaryMap?: ArchitectureBoundaryMap;
+  contractBaseline?: ArchitectureContractBaseline;
+  contractBaselineSource?: ResolvedCanonicalSource<ArchitectureContractBaseline>;
+  contractBaselineSourceRequested?: boolean;
   runtimeObservations?: TopologyRuntimeObservationSet;
   deliveryObservations?: ArchitectureDeliveryObservationSet;
   deliveryRawObservations?: ArchitectureDeliveryRawObservationSet;
@@ -95,10 +99,12 @@ export async function computeArchitectureScores(options: {
   const codebase = await parseCodebase(repoPath);
   const directionScore = scoreDependencyDirection(codebase, constraints);
   const purityScore = scoreBoundaryPurity(codebase, constraints);
+  const resolvedContractBaseline = options.contractBaseline ?? options.contractBaselineSource?.data;
   const protocolScore = await scoreInterfaceProtocolStability({
     root: repoPath,
     codebase,
     constraints,
+    ...(resolvedContractBaseline ? { baseline: resolvedContractBaseline } : {}),
   });
   const scenarioObservationsInput = options.scenarioObservations ?? options.scenarioObservationSource?.data;
   const scenarioScore = scoreQualityScenarioFit({
@@ -272,6 +278,40 @@ export async function computeArchitectureScores(options: {
       finding.confidence,
     ),
   );
+  const contractBaselineSourceEvidence = (options.contractBaselineSource?.findings ?? []).map((finding) =>
+    toEvidence(
+      finding.note,
+      {
+        kind: finding.kind,
+        sourceType: finding.sourceType,
+        ...(finding.sourcePath ? { sourcePath: finding.sourcePath } : {}),
+        ...(finding.command ? { command: finding.command } : {}),
+        ...(finding.cwd ? { cwd: finding.cwd } : {}),
+        source: "contract_baseline_source",
+      },
+      undefined,
+      finding.confidence,
+    ),
+  );
+  const contractBaselineInputEvidence =
+    options.contractBaseline || options.contractBaselineSource
+      ? [
+          toEvidence(
+            `Using a contract baseline for IPS delta comparison${
+              options.contractBaselineSource ? ` (${options.contractBaselineSource.sourceType} source)` : ""
+            }.`,
+            {
+              source: "contract_baseline",
+              ...(options.contractBaselineSource?.resolvedPath
+                ? { sourcePath: options.contractBaselineSource.resolvedPath }
+                : {}),
+              ...(options.contractBaselineSource?.command ? { command: options.contractBaselineSource.command } : {}),
+            },
+            undefined,
+            options.contractBaselineSource?.confidence ?? 0.82,
+          ),
+        ]
+      : [];
   const scenarioEvidence = scenarioScore.findings.map((finding) =>
     toEvidence(
       finding.note,
@@ -663,6 +703,15 @@ export async function computeArchitectureScores(options: {
     );
   }
   if (policy.metrics.IPS) {
+    const ipsUnknowns = Array.from(
+      new Set([
+        ...(options.contractBaselineSource?.unknowns ?? []),
+        ...protocolScore.unknowns,
+        ...(options.contractBaseline && options.contractBaselineSourceRequested
+          ? ["A contract baseline was provided explicitly, so the contract baseline source was not used."]
+          : []),
+      ]),
+    );
     scores.push(
       toMetricScore(
         "IPS",
@@ -676,9 +725,11 @@ export async function computeArchitectureScores(options: {
           BCR: protocolScore.BCR,
           SLA: protocolScore.SLA,
         },
-        protocolEvidence.map((entry) => entry.evidenceId),
+        [...contractBaselineInputEvidence, ...contractBaselineSourceEvidence, ...protocolEvidence].map(
+          (entry) => entry.evidenceId,
+        ),
         protocolScore.confidence,
-        protocolScore.unknowns,
+        ipsUnknowns,
       ),
     );
   }
@@ -965,7 +1016,9 @@ export async function computeArchitectureScores(options: {
         ...scenarioEvidence,
         ...evidence,
         ...purityEvidence,
+        ...contractBaselineInputEvidence,
         ...protocolEvidence,
+        ...contractBaselineSourceEvidence,
         ...topologyEvidence,
         ...telemetrySourceEvidence,
         ...telemetryInputEvidence,

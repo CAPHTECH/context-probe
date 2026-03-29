@@ -1,0 +1,516 @@
+version: "1.0"
+snapshot:
+  sourceKind: captured
+  capturedAt: 2026-03-30T00:00:00Z
+  note: Captured from the current contract surface for IPS baseline comparison.
+contracts:
+  - path: src/core/contracts.ts
+    symbols:
+      - name: OUTPUT_VERSION
+        kind: value
+        stability: risky
+        looseness: strict
+      - name: CommandStatus
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ProvenanceRef
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: Evidence
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ExtractionKind
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ExtractionBackend
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ExtractionProviderName
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ExtractionMetadata
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CommandResponse
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: Artifact
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: Fragment
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ContextDefinition
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: AggregateDefinition
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainModel
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainContextCandidate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainAggregateCandidate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainModelScaffoldResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: LayerDefinition
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ComplexityTaxComponentName
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ComplexityTaxBaseline
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureComplexityMetadata
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ScenarioDirection
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ArchitectureScenario
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureScenarioCatalog
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ScenarioObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ScenarioObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureScenarioObservationSourceConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTopologyNode
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTopologyEdge
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTopologyModel
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: TopologyRuntimeObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: TopologyRuntimeObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureBoundaryDefinition
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureBoundaryMap
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureDeliveryObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureDeliveryRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureDeliveryExportBundle
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureSourceType
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ArchitectureCanonicalSourceConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineSnapshot
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineSymbolKind
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineSymbolStability
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineSymbolLooseness
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineSymbol
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineImportStats
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineEntry
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaseline
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureContractBaselineSourceConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureDeliverySourceConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureDeliveryNormalizationProfile
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryBandObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryRawBandObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryExportBand
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryExportBundle
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetrySourceConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: TelemetryNormalizationRule
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureTelemetryNormalizationProfile
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitecturePatternFamily
+        kind: type_alias
+        stability: stable
+        looseness: strict
+      - name: LayeredPatternRuntimeObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ServiceBasedPatternRuntimeObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CqrsPatternRuntimeObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: EventDrivenPatternRuntimeObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: LayeredPatternRuntimeRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ServiceBasedPatternRuntimeRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CqrsPatternRuntimeRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: EventDrivenPatternRuntimeRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitecturePatternRuntimeObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitecturePatternRuntimeRawObservationSet
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitecturePatternRuntimeNormalizationProfile
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureConstraints
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureLayerCandidate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureConstraintsScaffoldResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureComplexityExportBundle
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ArchitectureComplexitySourceConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: FileDependency
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ParsedSourceFile
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CodebaseAnalysis
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ContractUsageReport
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: BoundaryLeakFinding
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CochangeCommit
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CochangeAnalysis
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CochangePairWeight
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CochangeStabilityCluster
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CochangePersistenceAnalysis
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CochangePersistenceCandidateScore
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: EvolutionLocalityModelComparison
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowAnalysis
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignPilotAnalysis
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignScoreResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutBatchSpecEntry
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutBatchSpec
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutBatchObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutBatchAggregate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutBatchCategorySummary
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutBatchResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutRegistryEntry
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutRegistry
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutGateObservation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutGateAggregate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutGateCategorySummary
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutGateEvaluation
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainDesignShadowRolloutGateResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: MarkdownReportResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: MetricGateDecision
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: MeasurementGateResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: MetricThresholds
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: MetricPolicy
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainPolicy
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: PolicyConfig
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: GlossaryTerm
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: RuleCandidate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: InvariantCandidate
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ExtractionProviderResult
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: TraceLinkOccurrence
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: TermTraceLink
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ModelCodeLink
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: MetricScore
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ReviewItem
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ReviewResolution
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ResolvedReviewItem
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: ReviewResolutionLog
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: DomainPack
+        kind: interface
+        stability: stable
+        looseness: strict
+      - name: CommandContext
+        kind: interface
+        stability: stable
+        looseness: strict
+    imports:
+      total: 0
+      nonContract: 0
+      internal: 0

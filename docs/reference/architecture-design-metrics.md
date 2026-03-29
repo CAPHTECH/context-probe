@@ -125,6 +125,8 @@ The current architecture reports often expose supporting metrics separately:
 - `TIS`: topology-isolation bridge
 - `AELS`: architecture change locality
 
+When `contract-baseline` is provided, `IPS` reads `CBC` and `BCR` as deltas against that baseline. Without it, `IPS` remains a current-state heuristic.
+
 Read them before trusting `APSI`.
 
 ## `APSI`

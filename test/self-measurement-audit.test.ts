@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -104,6 +104,33 @@ describe("architecture self-measurement audit", () => {
     );
     expect(stderr).toContain(
       "Derived boundary map config/self-measurement/architecture-boundary-map.yaml was generated from a different constraints hash.",
+    );
+  }, 60000);
+
+  test("warns when the contract baseline is missing without failing", async () => {
+    repoPath = await createTemporaryWorkspace(PROJECT_ENTRIES);
+    await execFile(process.execPath, [REFRESH_SCRIPT_PATH, "--repo-root", repoPath, "--now", "2026-03-30T00:00:00Z"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CONTEXT_PROBE_SELF_MEASUREMENT_S003_COMMAND: "true",
+      },
+    });
+
+    const contractBaselinePath = path.join(repoPath, "config/self-measurement/architecture-contract-baseline.yaml");
+    await rm(contractBaselinePath, { force: true });
+
+    const { stdout, stderr } = await execFile(
+      process.execPath,
+      [AUDIT_SCRIPT_PATH, "--repo-root", repoPath, "--now", "2026-03-30T00:00:00Z"],
+      {
+        cwd: process.cwd(),
+      },
+    );
+
+    expect(stdout).toContain("architecture self-measurement freshness: 1 warning(s)");
+    expect(stderr).toContain(
+      "Contract baseline config/self-measurement/architecture-contract-baseline.yaml is missing.",
     );
   }, 60000);
 });

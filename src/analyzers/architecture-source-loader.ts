@@ -6,6 +6,8 @@ import type {
   ArchitectureCanonicalSourceConfig,
   ArchitectureComplexityExportBundle,
   ArchitectureComplexitySourceConfig,
+  ArchitectureContractBaseline,
+  ArchitectureContractBaselineSourceConfig,
   ArchitectureDeliveryExportBundle,
   ArchitectureDeliverySourceConfig,
   ArchitectureScenarioObservationSourceConfig,
@@ -163,5 +165,15 @@ export async function resolveScenarioObservationSourceConfig(input: {
   return resolveSourceConfig<ScenarioObservationSet>({
     ...input,
     label: "scenario observation",
+  });
+}
+
+export async function resolveContractBaselineSourceConfig(input: {
+  config: ArchitectureContractBaselineSourceConfig;
+  configPath: string;
+}): Promise<ResolvedCanonicalSource<ArchitectureContractBaseline>> {
+  return resolveSourceConfig<ArchitectureContractBaseline>({
+    ...input,
+    label: "contract baseline",
   });
 }

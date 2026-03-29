@@ -5,6 +5,7 @@ import path from "node:path";
 export const ARCHITECTURE_SELF_MEASUREMENT_PATHS = {
   constraints: "config/self-measurement/architecture-constraints.yaml",
   boundaryMap: "config/self-measurement/architecture-boundary-map.yaml",
+  contractBaseline: "config/self-measurement/architecture-contract-baseline.yaml",
   scenarios: "config/self-measurement/architecture-scenarios.yaml",
   scenarioObservations: "config/self-measurement/architecture-scenario-observations.yaml",
   scenarioBenchmarkSummary: "config/self-measurement/architecture-scenario-benchmark-summary.json",

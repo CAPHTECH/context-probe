@@ -190,11 +190,34 @@ export async function collectDerivedBoundaryWarnings({ repoRoot, paths, constrai
   return warnings;
 }
 
+export async function collectContractBaselineWarnings({ repoRoot, paths }) {
+  const warnings = [];
+  const relativePath = normalizeRelativePath(repoRoot, paths.contractBaseline);
+  if (!existsSync(paths.contractBaseline)) {
+    warnings.push(`Contract baseline ${relativePath} is missing.`);
+    return warnings;
+  }
+
+  try {
+    const document = await readStructuredFile(paths.contractBaseline);
+    if (!Array.isArray(document?.contracts)) {
+      warnings.push(`Contract baseline ${relativePath} does not contain a contracts array.`);
+    }
+  } catch (error) {
+    warnings.push(
+      `Contract baseline ${relativePath} could not be read: ${error instanceof Error ? error.message : String(error)}.`,
+    );
+  }
+
+  return warnings;
+}
+
 export async function collectArchitectureSelfMeasurementWarnings({ repoRoot, nowIsoTimestamp, paths, constraintsHash }) {
   return [
     ...(await collectMeasuredSnapshotWarnings({ repoRoot, nowIsoTimestamp, paths })),
     ...(await collectCuratedSnapshotWarnings({ nowIsoTimestamp, paths })),
     ...(await collectDerivedBoundaryWarnings({ repoRoot, paths, constraintsHash })),
+    ...(await collectContractBaselineWarnings({ repoRoot, paths })),
   ];
 }
 

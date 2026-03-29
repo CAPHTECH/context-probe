@@ -128,6 +128,12 @@ architecture の自己計測前には、measured / derived snapshot を先に更
 npm run self:architecture:refresh
 ```
 
+意図的に固定する `IPS` contract baseline は別コマンドで capture します。
+
+```bash
+npm run self:architecture:baseline
+```
+
 snapshot の鮮度だけを advisory に確認したい場合は次を使います。
 
 ```bash
@@ -140,6 +146,7 @@ npm run dev -- score.compute \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \
   --boundary-map config/self-measurement/architecture-boundary-map.yaml \
+  --contract-baseline config/self-measurement/architecture-contract-baseline.yaml \
   --scenario-catalog config/self-measurement/architecture-scenarios.yaml \
   --scenario-observations config/self-measurement/architecture-scenario-observations.yaml \
   --topology-model config/self-measurement/architecture-topology.yaml \
@@ -150,7 +157,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。`npm run self:architecture:refresh` は repo-local automation で、measured な `scenario-observations` と derived な `boundary-map` を更新し、古い curated snapshot には warn-only の freshness notice を出します。`npm run self:architecture:audit` は CI に載せやすい advisory check です。
+これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`telemetry` `pattern runtime` `delivery` は curated observation として見直します。`npm run self:architecture:refresh` は repo-local automation で、measured な `scenario-observations` と derived な `boundary-map` を更新し、古い curated snapshot には warn-only の freshness notice を出します。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` は CI に載せやすい advisory check です。
 
 このリポジトリ固有の注意として、small CLI codebase なので `ALR` `FCC` `SICR` `SLA` は evidence-limited のまま残りやすく、`PCS` も proxy composite のままです。これらは直ちに不具合を示すというより、自己計測の limitation として読みます。
 
@@ -162,6 +169,7 @@ npm run dev -- score.compute \
   --repo fixtures/validation/scoring/qsf/repo \
   --constraints fixtures/validation/scoring/qsf/constraints.yaml \
   --policy fixtures/policies/default.yaml \
+  --contract-baseline-source fixtures/examples/architecture-sources/contract-baseline-source.file.yaml \
   --scenario-catalog fixtures/validation/scoring/qsf/scenarios.yaml \
   --scenario-observation-source fixtures/examples/architecture-sources/scenario-observation-source.command.yaml \
   --telemetry-source fixtures/examples/architecture-sources/telemetry-source.command.yaml \

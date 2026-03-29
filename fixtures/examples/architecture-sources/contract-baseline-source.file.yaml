@@ -1,0 +1,4 @@
+version: "1.0"
+sourceType: "file"
+path: "contract-baseline.yaml"
+note: "example contract baseline file source"

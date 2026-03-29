@@ -75,6 +75,12 @@
 2. `complexity-source`
 3. constraints metadata と codebase-derived proxy
 
+### contract baseline input
+
+1. `contract-baseline`
+2. `contract-baseline-source`
+3. それ以外は `CBC` / `BCR` が current-state proxy のままになる
+
 ## Metric ごとの主入力
 
 | Metric | 主入力 | current implementation 上の注意 |
@@ -82,7 +88,7 @@
 | `QSF` | scenario catalog、observations | 正規化済み scenario observation に依存 |
 | `DDS` | repo、constraints | 静的で直接的 |
 | `BPS` | repo、constraints | 静的で直接的 |
-| `IPS` | repo、constraints | 静的だが heuristic を含む |
+| `IPS` | repo、constraints、optional な contract baseline | 静的。contract baseline があると `CBC` / `BCR` は baseline 差分で読む |
 | `TIS` | topology model、runtime observations | 明示 bridge signal として扱う |
 | `OAS` | telemetry、pattern runtime、`TIS` bridge | normalization と fallback を含み得る |
 | `AELS` | Git 履歴、boundary map または constraint layers | boundary map 不在時は proxy を使う |

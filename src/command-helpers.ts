@@ -4,6 +4,8 @@ import type {
   ArchitectureComplexityExportBundle,
   ArchitectureComplexitySourceConfig,
   ArchitectureConstraints,
+  ArchitectureContractBaseline,
+  ArchitectureContractBaselineSourceConfig,
   ArchitectureDeliveryExportBundle,
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
@@ -173,6 +175,35 @@ export async function loadBoundaryMapIfRequested(
     return undefined;
   }
   return readDataFile<ArchitectureBoundaryMap>(boundaryMapPath);
+}
+
+export async function loadContractBaselineIfRequested(
+  args: CommandArgs,
+  context: CommandContext,
+): Promise<ArchitectureContractBaseline | undefined> {
+  const baselinePath =
+    typeof args["contract-baseline"] === "string"
+      ? new URL(args["contract-baseline"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!baselinePath) {
+    return undefined;
+  }
+  return readDataFile<ArchitectureContractBaseline>(baselinePath);
+}
+
+export async function loadContractBaselineSourceConfigIfRequested(
+  args: CommandArgs,
+  context: CommandContext,
+): Promise<{ config: ArchitectureContractBaselineSourceConfig; configPath: string } | undefined> {
+  const configPath =
+    typeof args["contract-baseline-source"] === "string"
+      ? new URL(args["contract-baseline-source"], `file://${context.cwd}/`).pathname
+      : undefined;
+  if (!configPath) {
+    return undefined;
+  }
+  const config = await readDataFile<ArchitectureContractBaselineSourceConfig>(configPath);
+  return { config, configPath };
 }
 
 export async function loadRuntimeObservationsIfRequested(
