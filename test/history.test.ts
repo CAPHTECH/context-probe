@@ -162,4 +162,15 @@ describe("history analysis", () => {
     expect(reversed.unknowns).toEqual(forward.unknowns);
     expect(reversed.confidence).toBe(forward.confidence);
   });
+
+  test("falls back to baseline locality when no relevant history is available", () => {
+    const result = compareEvolutionLocalityModels([], MODEL);
+
+    expect(result.comparison.els.score).toBeCloseTo(0.6, 6);
+    expect(result.comparison.persistenceCandidate.localityScore).toBeCloseTo(result.comparison.els.score, 6);
+    expect(result.comparison.persistenceCandidate.strongestPair).toBeNull();
+    expect(result.comparison.persistenceCandidate.strongestCluster).toBeNull();
+    expect(result.confidence).toBeLessThan(0.4);
+    expect(result.unknowns).toContain("No Git commits suitable for evaluation were found.");
+  });
 });

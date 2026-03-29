@@ -206,6 +206,10 @@ export function evaluateShadowRolloutGate(
       gate: (() => {
         const summary = summarizeGateObservations(categoryObservations);
         const reasons = evaluateGateReasons(summary, categoryObservations.length, {
+          requireManifestPaths: true,
+          hasMissingVersionedManifestPath: categoryObservations.some(
+            (entry) => entry.modelSource === "versioned_manifest" && !entry.modelPath
+          ),
           minObservationCount: SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS,
           insufficientObservationReason: "insufficient_category_observations"
         });

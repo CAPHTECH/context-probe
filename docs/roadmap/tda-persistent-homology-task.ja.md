@@ -36,7 +36,7 @@
 作業:
 - `normalizeHistory` の入力品質を見直す
 - merge commit、rename、bulk change、windowing 方針を明示する
-- `history.score_evolution_locality` の confidence が過信を生まないように見直す
+- `scoreEvolutionLocality` の confidence が過信を生まないように見直す
 - history 系 unknowns を `relevant commit count` 基準で整理する
 
 完了条件:

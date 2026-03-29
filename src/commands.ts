@@ -698,6 +698,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const domain = typeof args.domain === "string" ? args.domain : "domain_design";
     const pilotPersistence = args["pilot-persistence"] === true;
     const rolloutCategory = typeof args["rollout-category"] === "string" ? args["rollout-category"] : undefined;
+    if (rolloutCategory && !pilotPersistence) {
+      throw new Error("`--rollout-category` requires `--pilot-persistence`");
+    }
     if (domain === "architecture_design") {
       const constraints = await requireArchitectureConstraints(args, context);
       const [
@@ -857,7 +860,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
       policyConfig,
       profileName: getProfile(args),
       shadowPersistence: args["shadow-persistence"] === true || pilotPersistence,
-      ...(rolloutCategory ? { pilotPersistenceCategory: rolloutCategory } : {}),
+      ...(pilotPersistence && rolloutCategory ? { pilotPersistenceCategory: rolloutCategory } : {}),
       ...(pilotGateEvaluation ? { pilotGateEvaluation } : {}),
       ...(docsRoot ? { docsRoot } : {}),
       ...(extractionOptions
@@ -882,9 +885,17 @@ export const COMMANDS: Record<string, CommandHandler> = {
       throw new Error("score.compute is not registered");
     }
 
+    const {
+      ["pilot-persistence"]: _pilotPersistence,
+      ["rollout-category"]: _rolloutCategory,
+      ["shadow-rollout-registry"]: _shadowRolloutRegistry,
+      registry: _registry,
+      ...shadowArgs
+    } = args;
+
     const scoreResponse = (await scoreCompute(
       {
-        ...args,
+        ...shadowArgs,
         domain: "domain_design",
         "shadow-persistence": true
       },
@@ -902,7 +913,9 @@ export const COMMANDS: Record<string, CommandHandler> = {
     const tieTolerance =
       typeof args["tie-tolerance"] === "string" ? Number.parseFloat(args["tie-tolerance"]) : 0.02;
     const safeTieTolerance = Number.isFinite(tieTolerance) && tieTolerance >= 0 ? tieTolerance : 0.02;
-    const policyDelta = scoreResponse.result.shadow.localityModels.persistenceCandidate.localityScore - elsMetric.value;
+    const baselineElsValue = scoreResponse.result.pilot?.baselineElsValue ?? elsMetric.value;
+    const policyDelta =
+      scoreResponse.result.shadow.localityModels.persistenceCandidate.localityScore - baselineElsValue;
     const driftCategory =
       Math.abs(policyDelta) <= safeTieTolerance
         ? "aligned"

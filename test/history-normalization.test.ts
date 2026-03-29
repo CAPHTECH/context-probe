@@ -21,7 +21,10 @@ describe("history normalization", () => {
 
   test("uses an expanded exec buffer for large git histories", async () => {
     const execFilePromisified = vi.fn(async () => ({
-      stdout: "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n",
+      stdout:
+        "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n" +
+        "__COMMIT__\ndef456\nfeat: rename sample\nR100\tsrc/old.ts\tsrc/new.ts\n" +
+        "__COMMIT__\nghi789\nfeat: copy sample\nC100\tsrc/original.ts\tsrc/copied.ts\n",
       stderr: ""
     }));
     const execFileMock = vi.fn();
@@ -36,7 +39,10 @@ describe("history normalization", () => {
     const { normalizeHistory } = await import("../src/core/history.js");
     const commits = await normalizeHistory("/tmp/example-repo", POLICY, "default");
 
-    expect(commits).toHaveLength(1);
+    expect(commits).toHaveLength(3);
+    expect(commits[0]?.files).toEqual(["src/billing/invoice.ts"]);
+    expect(commits[1]?.files).toEqual(["src/new.ts"]);
+    expect(commits[2]?.files).toEqual(["src/copied.ts"]);
     expect(execFilePromisified).toHaveBeenCalledTimes(1);
     const firstCall = execFilePromisified.mock.calls[0] as
       | [string, string[], { cwd?: string; maxBuffer?: number }]

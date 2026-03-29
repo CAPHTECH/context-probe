@@ -123,6 +123,20 @@ function toMetricScore(
   };
 }
 
+function persistenceCandidateToMetricComponents(candidate: {
+  persistentCouplingPenalty: number;
+  clusterPenalty: number;
+  pairPenalty: number;
+  coherencePenalty: number;
+}): Record<string, number> {
+  return {
+    persistentCouplingPenalty: candidate.persistentCouplingPenalty,
+    clusterPenalty: candidate.clusterPenalty,
+    pairPenalty: candidate.pairPenalty,
+    coherencePenalty: candidate.coherencePenalty
+  };
+}
+
 function computeAliasEntropy(aliasesPerTerm: number, termCount: number): number {
   if (termCount === 0) {
     return 1;
@@ -375,6 +389,7 @@ export async function computeDomainDesignScores(options: {
   };
   let historyConfidence = 0;
   let shadow: DomainDesignScoreResult["shadow"] | undefined;
+  let shadowLocalityConfidence = 0;
   const requiresLocalityComparison = options.shadowPersistence || Boolean(options.pilotPersistenceCategory);
 
   try {
@@ -390,6 +405,7 @@ export async function computeDomainDesignScores(options: {
     unknowns.push(...historyQuality.unknowns);
     if (requiresLocalityComparison) {
       const localityModels = compareEvolutionLocalityModels(commits, model);
+      shadowLocalityConfidence = localityModels.confidence;
       shadow = {
         localityModels: localityModels.comparison
       };
@@ -402,6 +418,15 @@ export async function computeDomainDesignScores(options: {
       error instanceof Error ? `Skipped history analysis: ${error.message}` : "Skipped history analysis"
     );
     unknowns.push("Git information required for history analysis is missing.");
+    if (requiresLocalityComparison) {
+      const fallbackLocalityModels = compareEvolutionLocalityModels([], model);
+      shadowLocalityConfidence = fallbackLocalityModels.confidence;
+      shadow = {
+        localityModels: fallbackLocalityModels.comparison
+      };
+      unknowns.push(...fallbackLocalityModels.unknowns);
+      unknowns.push("Locality comparison fell back to the baseline ELS because Git history is unavailable.");
+    }
   }
 
   const mccsComponents = {
@@ -631,10 +656,6 @@ export async function computeDomainDesignScores(options: {
     if (!options.pilotGateEvaluation) {
       throw new Error("pilotPersistenceCategory requires pilotGateEvaluation");
     }
-    if (!shadow) {
-      throw new Error("pilotPersistenceCategory requires locality comparison data");
-    }
-
     const elsMetric = scores.find((metric) => metric.metricId === "ELS");
     if (!elsMetric) {
       throw new Error("ELS metric is required for persistence pilot mode");
@@ -650,14 +671,36 @@ export async function computeDomainDesignScores(options: {
     }
 
     const baselineElsValue = elsMetric.value;
-    const persistenceCandidateValue =
-      shadow.localityModels.persistenceCandidate.localityScore;
-    const applied = categoryGate.gate.rolloutDisposition === "replace";
+    const persistenceCandidateValue = shadow?.localityModels.persistenceCandidate.localityScore ?? baselineElsValue;
+    const comparisonAvailable =
+      (shadow?.localityModels.persistenceAnalysis.relevantCommitCount ?? 0) > 0 &&
+      (shadow?.localityModels.persistenceAnalysis.contextsSeen.length ?? 0) > 0;
+    const applied = comparisonAvailable && categoryGate.gate.rolloutDisposition === "replace";
+    const pilotFallbackMessage =
+      "Persistence pilot fell back to baseline ELS because locality comparison data is unavailable.";
 
-    if (applied) {
-      elsMetric.value = persistenceCandidateValue;
+    if (!comparisonAvailable) {
+      if (!diagnostics.includes(pilotFallbackMessage)) {
+        diagnostics.push(pilotFallbackMessage);
+      }
       elsMetric.unknowns = Array.from(
-        new Set([...elsMetric.unknowns, `ELS is piloted by persistence_candidate for category \`${options.pilotPersistenceCategory}\`.`])
+        new Set([
+          ...elsMetric.unknowns,
+          pilotFallbackMessage
+        ])
+      );
+    }
+
+    if (applied && shadow) {
+      elsMetric.value = persistenceCandidateValue;
+      elsMetric.components = persistenceCandidateToMetricComponents(shadow.localityModels.persistenceCandidate);
+      elsMetric.confidence = shadowLocalityConfidence > 0 ? shadowLocalityConfidence : elsMetric.confidence;
+      elsMetric.evidenceRefs = [];
+      elsMetric.unknowns = Array.from(
+        new Set([
+          ...elsMetric.unknowns,
+          `ELS fully reflects persistence_candidate pilot output for category \`${options.pilotPersistenceCategory}\` and exposes persistence-derived locality metadata.`
+        ])
       );
     }
 
