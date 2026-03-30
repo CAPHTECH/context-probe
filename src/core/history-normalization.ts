@@ -2,9 +2,14 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 
 import type { CochangeCommit, PolicyConfig } from "./contracts.js";
-import { parseChangedPath, unique } from "./history-shared.js";
+import {
+  consumeGitHistoryLine,
+  createGitHistoryParseState,
+  flushParsedCommit,
+  type GitHistoryParseState,
+} from "./history-shared.js";
 
-async function runGitLog(repoPath: string): Promise<string> {
+async function runGitLog(repoPath: string, onLine: (line: string) => void): Promise<void> {
   const child = spawn(
     "git",
     ["-C", repoPath, "log", "--no-merges", "--find-renames", "--name-status", "--pretty=format:__COMMIT__%n%H%n%s"],
@@ -14,12 +19,17 @@ async function runGitLog(repoPath: string): Promise<string> {
     },
   );
 
-  let stdout = "";
   let stderr = "";
+  let stdoutBuffer = "";
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (chunk: string) => {
-    stdout += chunk;
+    stdoutBuffer += chunk;
+    const lines = stdoutBuffer.split("\n");
+    stdoutBuffer = lines.pop() ?? "";
+    for (const line of lines) {
+      onLine(line);
+    }
   });
   child.stderr.on("data", (chunk: string) => {
     stderr += chunk;
@@ -36,8 +46,9 @@ async function runGitLog(repoPath: string): Promise<string> {
       stderr.trim() || `git log exited with code ${code ?? "unknown"}${signal ? ` signal ${signal}` : ""}.`;
     throw new Error(details);
   }
-
-  return stdout;
+  if (stdoutBuffer.length > 0) {
+    onLine(stdoutBuffer);
+  }
 }
 
 export async function normalizeHistory(
@@ -51,38 +62,12 @@ export async function normalizeHistory(
   );
   const ignorePaths = profile?.history_filters?.ignore_paths ?? [];
 
-  const stdout = await runGitLog(repoPath);
-
   const commits: CochangeCommit[] = [];
-  const blocks = stdout
-    .split("__COMMIT__\n")
-    .map((block) => block.trim())
-    .filter(Boolean);
-
-  for (const block of blocks) {
-    const [hash, subject = "", ...files] = block.split("\n");
-    if (!hash) {
-      continue;
-    }
-    if (ignoreCommitPatterns.some((pattern) => pattern.test(subject))) {
-      continue;
-    }
-    const normalizedFiles = files
-      .map((entry) => parseChangedPath(entry))
-      .filter((value): value is string => Boolean(value))
-      .filter((entry) => !ignorePaths.includes(entry));
-    const uniqueFiles = unique(normalizedFiles);
-
-    if (uniqueFiles.length === 0) {
-      continue;
-    }
-
-    commits.push({
-      hash,
-      subject,
-      files: uniqueFiles,
-    });
-  }
+  const parseState: GitHistoryParseState = createGitHistoryParseState();
+  await runGitLog(repoPath, (line) => {
+    consumeGitHistoryLine(line, parseState, commits, ignoreCommitPatterns, ignorePaths);
+  });
+  flushParsedCommit(parseState, commits, ignoreCommitPatterns, ignorePaths);
 
   return commits;
 }

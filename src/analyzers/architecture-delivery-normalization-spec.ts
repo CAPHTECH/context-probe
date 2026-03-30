@@ -3,6 +3,19 @@ import type {
   ArchitectureDeliveryRawObservationSet,
 } from "../core/contracts.js";
 
+export function buildDefaultDeliveryNormalizationProfile(): ArchitectureDeliveryNormalizationProfile {
+  return {
+    version: "1.0",
+    signals: {
+      LeadTime: { direction: "lower_is_better", target: 2, worstAcceptable: 14 },
+      DeployFrequency: { direction: "higher_is_better", target: 20, worstAcceptable: 2 },
+      RecoveryTime: { direction: "lower_is_better", target: 1, worstAcceptable: 8 },
+      ChangeFailRate: { direction: "lower_is_better", target: 0.05, worstAcceptable: 0.4 },
+      ReworkRate: { direction: "lower_is_better", target: 0.04, worstAcceptable: 0.35 },
+    },
+  };
+}
+
 export interface DeliverySignalMapping {
   component: "LeadTime" | "DeployFrequency" | "RecoveryTime" | "ChangeFailRate" | "ReworkRate";
   scoreComponent: "LeadTimeScore" | "DeployFreqScore" | "RecoveryScore" | "ChangeFailScore" | "ReworkScore";

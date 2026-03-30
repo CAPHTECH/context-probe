@@ -15,7 +15,7 @@ function getMetric(metrics: MetricScore[], metricId: string): MetricScore | unde
   return metrics.find((entry) => entry.metricId === metricId);
 }
 
-describe("kakusill-style architecture input compatibility", () => {
+describe("legacy architecture input compatibility", () => {
   const tempPaths: string[] = [];
 
   afterEach(async () => {
@@ -23,7 +23,7 @@ describe("kakusill-style architecture input compatibility", () => {
   });
 
   test("score.compute normalizes legacy scenario, topology, boundary, and telemetry artifacts", async () => {
-    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "context-probe-kakusill-compat-"));
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "context-probe-legacy-compat-"));
     tempPaths.push(tempRoot);
 
     const scenarioPath = path.join(tempRoot, "scenario-catalog.yaml");

@@ -1,8 +1,12 @@
 import type {
   ArchitectureBoundaryMap,
+  ArchitectureComplexityExportBundle,
+  ArchitectureDeliveryExportBundle,
   ArchitectureScenarioCatalog,
+  ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryObservationSet,
   ArchitectureTopologyModel,
+  ScenarioObservationSet,
 } from "./core/contracts.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -18,6 +22,24 @@ function asStringArray(value: unknown): string[] {
     return [];
   }
   return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function asMetricValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (isRecord(value)) {
+    return asNumber(value.value);
+  }
+  return undefined;
+}
+
+function withNumericField<T extends string>(key: T, value: number | undefined): Partial<Record<T, number>> {
+  return value !== undefined ? ({ [key]: value } as Record<T, number>) : {};
 }
 
 function toVersion(input: Record<string, unknown>): string {
@@ -96,6 +118,51 @@ export function normalizeArchitectureScenarioCatalog(input: unknown): Architectu
   return {
     version: toVersion(input),
     scenarios,
+  };
+}
+
+export function normalizeArchitectureScenarioObservations(input: unknown): ScenarioObservationSet {
+  if (!isRecord(input)) {
+    return { version: "1.0", observations: [] };
+  }
+  if (Array.isArray(input.observations)) {
+    return input as unknown as ScenarioObservationSet;
+  }
+
+  const observationsSource =
+    (isRecord(input.benchmarkSummary) && Array.isArray(input.benchmarkSummary.observations)
+      ? input.benchmarkSummary.observations
+      : undefined) ??
+    (isRecord(input.incidentReviewSummary) && Array.isArray(input.incidentReviewSummary.observations)
+      ? input.incidentReviewSummary.observations
+      : undefined);
+
+  const observations = Array.isArray(observationsSource)
+    ? observationsSource.flatMap((entry) => {
+        if (!isRecord(entry)) {
+          return [];
+        }
+        const scenarioId = asString(entry.scenarioId) ?? asString(entry.id);
+        const observed = asNumber(entry.observed);
+        const source = asString(entry.source);
+        const note = asString(entry.note);
+        if (!scenarioId || observed === undefined) {
+          return [];
+        }
+        return [
+          {
+            scenarioId,
+            observed,
+            ...(source ? { source } : {}),
+            ...(note ? { note } : {}),
+          },
+        ];
+      })
+    : [];
+
+  return {
+    version: toVersion(input),
+    observations,
   };
 }
 
@@ -237,6 +304,98 @@ export function normalizeArchitectureBoundaryMap(input: unknown): ArchitectureBo
   };
 }
 
+export function normalizeArchitectureDeliveryExportBundle(input: unknown): ArchitectureDeliveryExportBundle {
+  if (!isRecord(input)) {
+    return { version: "1.0", measurements: {} };
+  }
+  if (isRecord(input.measurements)) {
+    return input as unknown as ArchitectureDeliveryExportBundle;
+  }
+
+  const embeddedExport =
+    isRecord(input.contextProbe) && isRecord(input.contextProbe.exportBundle)
+      ? input.contextProbe.exportBundle
+      : undefined;
+  if (isRecord(embeddedExport) && isRecord(embeddedExport.measurements)) {
+    return embeddedExport as unknown as ArchitectureDeliveryExportBundle;
+  }
+
+  const dora = isRecord(input.dora) ? input.dora : undefined;
+  const metrics = isRecord(input.metrics) ? input.metrics : undefined;
+  const sourceSystem = asString(input.sourceSystem);
+  const note = asString(input.note);
+  const leadTime = asMetricValue(dora?.leadTime) ?? asMetricValue(metrics?.LeadTime);
+  const deployFrequency = asMetricValue(dora?.deployFrequency) ?? asMetricValue(metrics?.DeployFrequency);
+  const recoveryTime = asMetricValue(dora?.recoveryTime) ?? asMetricValue(metrics?.RecoveryTime);
+  const changeFailRate = asMetricValue(dora?.changeFailRate) ?? asMetricValue(metrics?.ChangeFailRate);
+  const reworkRate = asMetricValue(dora?.reworkRate) ?? asMetricValue(metrics?.ReworkRate);
+
+  return {
+    version: toVersion(input),
+    ...(sourceSystem ? { sourceSystem } : {}),
+    measurements: {
+      ...withNumericField("leadTime", leadTime),
+      ...withNumericField("deployFrequency", deployFrequency),
+      ...withNumericField("recoveryTime", recoveryTime),
+      ...withNumericField("changeFailRate", changeFailRate),
+      ...withNumericField("reworkRate", reworkRate),
+    },
+    ...(note ? { note } : {}),
+  };
+}
+
+export function normalizeArchitectureComplexityExportBundle(input: unknown): ArchitectureComplexityExportBundle {
+  if (!isRecord(input)) {
+    return { version: "1.0", metrics: {} };
+  }
+  if (isRecord(input.metrics)) {
+    return input as unknown as ArchitectureComplexityExportBundle;
+  }
+
+  const embeddedExport =
+    isRecord(input.contextProbe) && isRecord(input.contextProbe.exportBundle)
+      ? input.contextProbe.exportBundle
+      : undefined;
+  if (isRecord(embeddedExport) && isRecord(embeddedExport.metrics)) {
+    return embeddedExport as unknown as ArchitectureComplexityExportBundle;
+  }
+
+  const team = isRecord(input.team) ? input.team : undefined;
+  const platform = isRecord(input.platform) ? input.platform : undefined;
+  const architecture = isRecord(input.architecture) ? input.architecture : undefined;
+  const finance = isRecord(input.finance) ? input.finance : undefined;
+  const sourceSystem = asString(input.sourceSystem);
+  const note = asString(input.note);
+  const teamCount = asNumber(team?.count);
+  const deployableCount = asNumber(platform?.deployableCount);
+  const pipelineCount = asNumber(platform?.pipelinesPerDeployable);
+  const contractOrSchemaCount = asNumber(architecture?.contractOrSchemaCount);
+  const serviceCount = asNumber(architecture?.serviceCount);
+  const serviceGroupCount = asNumber(architecture?.serviceGroupCount);
+  const datastoreCount = asNumber(platform?.datastoreCount);
+  const onCallSurface = asNumber(platform?.onCallSurface);
+  const syncDepthP95 = asNumber(platform?.syncDepthP95);
+  const runCostPerBusinessTransaction = asNumber(finance?.runCostPerBusinessTransaction);
+
+  return {
+    version: toVersion(input),
+    ...(sourceSystem ? { sourceSystem } : {}),
+    metrics: {
+      ...withNumericField("teamCount", teamCount),
+      ...withNumericField("deployableCount", deployableCount),
+      ...withNumericField("pipelineCount", pipelineCount),
+      ...withNumericField("contractOrSchemaCount", contractOrSchemaCount),
+      ...withNumericField("serviceCount", serviceCount),
+      ...withNumericField("serviceGroupCount", serviceGroupCount),
+      ...withNumericField("datastoreCount", datastoreCount),
+      ...withNumericField("onCallSurface", onCallSurface),
+      ...withNumericField("syncDepthP95", syncDepthP95),
+      ...withNumericField("runCostPerBusinessTransaction", runCostPerBusinessTransaction),
+    },
+    ...(note ? { note } : {}),
+  };
+}
+
 function telemetryReadinessScore(status: string | undefined, gaps: unknown): number {
   const normalized = (status ?? "").toLowerCase();
   let base =
@@ -289,5 +448,32 @@ export function normalizeArchitectureTelemetryObservations(input: unknown): Arch
         SaturationScore: averageScore,
       },
     ],
+  };
+}
+
+export function normalizeArchitectureTelemetryExportBundle(input: unknown): ArchitectureTelemetryExportBundle {
+  if (!isRecord(input)) {
+    return { version: "1.0", bands: [] };
+  }
+  if (Array.isArray(input.bands)) {
+    return input as unknown as ArchitectureTelemetryExportBundle;
+  }
+
+  const embeddedExport =
+    isRecord(input.contextProbe) && isRecord(input.contextProbe.exportBundle)
+      ? input.contextProbe.exportBundle
+      : undefined;
+  if (isRecord(embeddedExport) && Array.isArray(embeddedExport.bands)) {
+    return embeddedExport as unknown as ArchitectureTelemetryExportBundle;
+  }
+
+  const sourceSystem = asString(input.sourceSystem);
+  const note = asString(input.note);
+
+  return {
+    version: toVersion(input),
+    bands: [],
+    ...(sourceSystem ? { sourceSystem } : {}),
+    ...(note ? { note } : {}),
   };
 }

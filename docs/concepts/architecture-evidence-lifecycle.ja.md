@@ -121,6 +121,8 @@ fitness functions は単独指標ではなく、greenfield から brownfield に
 4. canonical delivery source config
 5. 将来の CI/CD backend 直結
 
+current implementation では 3 の canonical delivery export bundle ingestion に built-in の DORA normalization defaults が含まれる。2 は raw delivery input を明示的 profile で score 化したい場合の経路として残る。
+
 `CTI` については current implementation で次の段階を持つ。
 
 1. static metadata / codebase-derived count

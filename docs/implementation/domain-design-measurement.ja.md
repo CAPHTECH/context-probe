@@ -49,6 +49,8 @@
 
 `ELS` は正規化済み Git 履歴に依存します。
 
+大きいリポジトリでは、履歴取得は固定長 stdout buffer ではなく streamed `git log` parsing で処理します。したがって current implementation は `execFile` 由来の `maxBuffer` 制約には依存しません。
+
 confidence が下がりやすい典型条件:
 
 - 評価対象コミットがない

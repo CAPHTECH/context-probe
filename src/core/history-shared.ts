@@ -29,7 +29,7 @@ export function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values));
 }
 
-export function parseChangedPath(entry: string): string | null {
+function parseChangedPath(entry: string): string | null {
   const normalized = entry.trim();
   if (!normalized) {
     return null;
@@ -58,6 +58,94 @@ export function parseChangedPath(entry: string): string | null {
 
   const nextPath = parts[1];
   return nextPath ? toPosixPath(nextPath) : null;
+}
+
+export interface GitHistoryParseState {
+  currentHash: string | undefined;
+  currentSubject: string | undefined;
+  currentFiles: string[];
+  expect: "sentinel" | "hash" | "subject" | "files";
+}
+
+export function createGitHistoryParseState(): GitHistoryParseState {
+  return {
+    currentHash: undefined,
+    currentSubject: undefined,
+    currentFiles: [],
+    expect: "sentinel",
+  };
+}
+
+export function flushParsedCommit(
+  state: GitHistoryParseState,
+  commits: CochangeCommit[],
+  ignoreCommitPatterns: RegExp[],
+  ignorePaths: string[],
+): void {
+  if (!state.currentHash) {
+    return;
+  }
+
+  const subject = state.currentSubject ?? "";
+  if (ignoreCommitPatterns.some((pattern) => pattern.test(subject))) {
+    state.currentHash = undefined;
+    state.currentSubject = undefined;
+    state.currentFiles = [];
+    state.expect = "sentinel";
+    return;
+  }
+
+  const normalizedFiles = state.currentFiles
+    .map((entry) => parseChangedPath(entry))
+    .filter((value): value is string => Boolean(value))
+    .filter((entry) => !ignorePaths.includes(entry));
+  const uniqueFiles = unique(normalizedFiles);
+
+  if (uniqueFiles.length > 0) {
+    commits.push({
+      hash: state.currentHash,
+      subject,
+      files: uniqueFiles,
+    });
+  }
+
+  state.currentHash = undefined;
+  state.currentSubject = undefined;
+  state.currentFiles = [];
+  state.expect = "sentinel";
+}
+
+export function consumeGitHistoryLine(
+  line: string,
+  state: GitHistoryParseState,
+  commits: CochangeCommit[],
+  ignoreCommitPatterns: RegExp[],
+  ignorePaths: string[],
+): void {
+  if (line === "__COMMIT__") {
+    flushParsedCommit(state, commits, ignoreCommitPatterns, ignorePaths);
+    state.expect = "hash";
+    return;
+  }
+
+  if (state.expect === "sentinel") {
+    return;
+  }
+  if (state.expect === "hash") {
+    state.currentHash = line.trim() || undefined;
+    state.expect = "subject";
+    return;
+  }
+  if (state.expect === "subject") {
+    state.currentSubject = line;
+    state.expect = "files";
+    return;
+  }
+
+  if (line.trim().length === 0) {
+    return;
+  }
+  state.currentFiles.push(line);
 }
 
 export function contextualizeCommits(commits: CochangeCommit[], model: DomainModel): ContextualizedCommit[] {

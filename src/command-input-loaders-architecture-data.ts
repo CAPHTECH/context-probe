@@ -1,6 +1,10 @@
 import {
   normalizeArchitectureBoundaryMap,
+  normalizeArchitectureComplexityExportBundle,
+  normalizeArchitectureDeliveryExportBundle,
   normalizeArchitectureScenarioCatalog,
+  normalizeArchitectureScenarioObservations,
+  normalizeArchitectureTelemetryExportBundle,
   normalizeArchitectureTelemetryObservations,
   normalizeArchitectureTopologyModel,
 } from "./command-input-loaders-architecture-compat.js";
@@ -32,7 +36,9 @@ export function loadScenarioCatalogIfRequested(args: CommandArgs, context: Comma
 }
 
 export function loadScenarioObservationsIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ScenarioObservationSet>(args, "scenario-observations", context);
+  return loadOptionalDataFile<ScenarioObservationSet>(args, "scenario-observations", context).then((value) =>
+    value ? normalizeArchitectureScenarioObservations(value) : undefined,
+  );
 }
 
 export function loadTopologyModelIfRequested(args: CommandArgs, context: CommandContext) {
@@ -64,7 +70,9 @@ export function loadDeliveryRawObservationsIfRequested(args: CommandArgs, contex
 }
 
 export function loadDeliveryExportIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureDeliveryExportBundle>(args, "delivery-export", context);
+  return loadOptionalDataFile<ArchitectureDeliveryExportBundle>(args, "delivery-export", context).then((value) =>
+    value ? normalizeArchitectureDeliveryExportBundle(value) : undefined,
+  );
 }
 
 export function loadTelemetryObservationsIfRequested(args: CommandArgs, context: CommandContext) {
@@ -78,7 +86,9 @@ export function loadTelemetryRawObservationsIfRequested(args: CommandArgs, conte
 }
 
 export function loadTelemetryExportIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureTelemetryExportBundle>(args, "telemetry-export", context);
+  return loadOptionalDataFile<ArchitectureTelemetryExportBundle>(args, "telemetry-export", context).then((value) =>
+    value ? normalizeArchitectureTelemetryExportBundle(value) : undefined,
+  );
 }
 
 export function loadPatternRuntimeObservationsIfRequested(args: CommandArgs, context: CommandContext) {
@@ -94,5 +104,7 @@ export function loadPatternRuntimeRawObservationsIfRequested(args: CommandArgs, 
 }
 
 export function loadComplexityExportIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureComplexityExportBundle>(args, "complexity-export", context);
+  return loadOptionalDataFile<ArchitectureComplexityExportBundle>(args, "complexity-export", context).then((value) =>
+    value ? normalizeArchitectureComplexityExportBundle(value) : undefined,
+  );
 }

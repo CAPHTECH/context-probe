@@ -50,6 +50,8 @@ In that case:
 
 `ELS` depends on normalized Git history.
 
+Large repositories are read through streamed `git log` parsing rather than fixed stdout buffers, so history analysis no longer depends on `execFile`-style maxBuffer limits.
+
 Typical low-confidence conditions:
 
 - no relevant commits

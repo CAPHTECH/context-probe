@@ -1,4 +1,5 @@
 import { normalizeDeliveryObservations } from "../analyzers/architecture-delivery-normalization.js";
+import { buildDefaultDeliveryNormalizationProfile } from "../analyzers/architecture-delivery-normalization-spec.js";
 import {
   ingestDeliveryExportBundle,
   ingestTelemetryExportBundle,
@@ -82,6 +83,11 @@ export function resolveArchitectureScoringObservabilityInputs(
     ? ingestDeliveryExportBundle(deliveryExportBundle)
     : undefined;
   const usableDeliveryRaw = Boolean(options.deliveryRawObservations && options.deliveryNormalizationProfile);
+  const deliveryNormalizationProfile =
+    options.deliveryNormalizationProfile ??
+    (deliveryExportBundle && !options.deliveryObservations && !usableDeliveryRaw
+      ? buildDefaultDeliveryNormalizationProfile()
+      : undefined);
   const deliveryRawInput = options.deliveryObservations
     ? undefined
     : usableDeliveryRaw
@@ -91,10 +97,10 @@ export function resolveArchitectureScoringObservabilityInputs(
         : options.deliveryRawObservations;
   const deliveryNormalizationResult = options.deliveryObservations
     ? undefined
-    : deliveryRawInput || options.deliveryNormalizationProfile
+    : deliveryRawInput || deliveryNormalizationProfile
       ? normalizeDeliveryObservations({
           ...(deliveryRawInput ? { raw: deliveryRawInput } : {}),
-          ...(options.deliveryNormalizationProfile ? { profile: options.deliveryNormalizationProfile } : {}),
+          ...(deliveryNormalizationProfile ? { profile: deliveryNormalizationProfile } : {}),
         })
       : undefined;
 

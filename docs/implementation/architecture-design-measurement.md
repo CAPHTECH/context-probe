@@ -78,6 +78,13 @@ For `CTI`:
 
 The repository self-measurement bundle keeps curated operational metadata in `architecture-complexity-snapshot.yaml` and regenerates the canonical `complexity-export` file from that snapshot instead of keeping operational metadata inside `architecture-constraints.yaml`.
 
+Direct file inputs accept the canonical shapes above, and some collector-native summaries are normalized on load:
+
+- `scenario-observations` can read canonical observation sets or benchmark / incident-review summaries
+- `delivery-export` can read canonical export bundles, DORA summaries, or rich documents that embed `contextProbe.exportBundle`
+- when `delivery-export` is used without `delivery-normalization-profile`, the canonical export ingestion path applies the built-in DORA normalization defaults; explicit raw delivery input still requires an explicit normalization profile
+- `complexity-export` can read canonical export bundles, raw complexity snapshots, or rich documents that embed `contextProbe.exportBundle`
+
 ### Contract baseline inputs
 
 1. `contract-baseline`

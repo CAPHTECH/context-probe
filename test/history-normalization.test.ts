@@ -30,11 +30,13 @@ describe("history normalization", () => {
       child.stdout.setEncoding = vi.fn();
       child.stderr.setEncoding = vi.fn();
       queueMicrotask(() => {
+        child.stdout.emit("data", "__COM");
         child.stdout.emit(
           "data",
-          "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n__COMMIT__\ndef456\nfeat: rename sample\nR100\tsrc/old.ts\tsrc/new.ts\n",
+          "MIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n__COMMIT__\ndef456\n",
         );
-        child.stdout.emit("data", "__COMMIT__\nghi789\nfeat: copy sample\nC100\tsrc/original.ts\tsrc/copied.ts\n");
+        child.stdout.emit("data", "feat: rename sample\nR100\tsrc/old.ts\tsrc/new.ts\n__COMMIT__\nghi789\n");
+        child.stdout.emit("data", "feat: copy sample\nC100\tsrc/original.ts\tsrc/copied.ts\n");
         child.emit("close", 0, null);
       });
       return child;

@@ -77,6 +77,13 @@
 
 このリポジトリの self-measurement bundle では、運用 metadata を `architecture-constraints.yaml` に持たず、curated な `architecture-complexity-snapshot.yaml` から canonical な `complexity-export` file を再生成して渡します。
 
+direct file 入力は canonical 形式だけでなく、collector が自然に出す要約形式も load 時に正規化します。
+
+- `scenario-observations`: canonical observation set に加え、benchmark / incident review summary を受理
+- `delivery-export`: canonical export bundle に加え、DORA summary や `contextProbe.exportBundle` を内包する rich document を受理
+- `delivery-export` を `delivery-normalization-profile` なしで使う場合は、canonical export ingestion 側で built-in の DORA normalization defaults を適用する。明示的な raw delivery input は引き続き normalization profile 必須
+- `complexity-export`: canonical export bundle に加え、raw complexity snapshot や `contextProbe.exportBundle` を内包する rich document を受理
+
 ### contract baseline input
 
 1. `contract-baseline`
