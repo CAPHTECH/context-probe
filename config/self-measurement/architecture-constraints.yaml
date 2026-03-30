@@ -36,6 +36,8 @@ layers:
       - "src/command-helpers.ts"
       - "src/command-input-loaders.ts"
       - "src/command-input-loaders-architecture.ts"
+      - "src/command-input-loaders-architecture-config.ts"
+      - "src/command-input-loaders-architecture-data.ts"
       - "src/command-input-loaders-core.ts"
       - "src/command-path-helpers.ts"
       - "src/command-score-driven.ts"
