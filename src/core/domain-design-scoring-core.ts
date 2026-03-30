@@ -14,10 +14,10 @@ import { computeDomainDocsMetricScores } from "./domain-design-scoring-docs.js";
 import { evaluateDomainLocality } from "./domain-design-scoring-locality.js";
 import { buildMccsMetric } from "./domain-design-scoring-mccs.js";
 import { resolveDomainPersistencePilot } from "./domain-design-scoring-pilot.js";
+import { buildDomainDesignScoreResponse } from "./domain-design-scoring-response.js";
 import { evaluateFormula } from "./formula.js";
 import { getDomainPolicy } from "./policy.js";
-import { confidenceFromSignals, createResponse, toProvenance } from "./response.js";
-import { dedupeEvidence, toMetricScore } from "./scoring-shared.js";
+import { toMetricScore } from "./scoring-shared.js";
 
 export async function computeDomainDesignScores(options: {
   repoPath: string;
@@ -135,26 +135,17 @@ export async function computeDomainDesignScores(options: {
     pilot = pilotResolution.pilot;
   }
 
-  return createResponse(
-    {
-      domainId: "domain_design",
-      metrics: scores,
-      leakFindings,
-      history,
-      crossContextReferences: contractUsage.applicableReferences,
-      ...(shadow ? { shadow } : {}),
-      ...(pilot ? { pilot } : {}),
-    },
-    {
-      status: diagnostics.length > 0 ? "warning" : "ok",
-      evidence: dedupeEvidence(additionalEvidence),
-      confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
-      unknowns: Array.from(new Set(unknowns)),
-      diagnostics,
-      provenance: [
-        toProvenance(repoPath, "domain_design"),
-        ...(options.docsRoot ? [toProvenance(options.docsRoot, "domain_design_docs")] : []),
-      ],
-    },
-  );
+  return buildDomainDesignScoreResponse({
+    repoPath,
+    scores,
+    leakFindings,
+    history,
+    contractUsage,
+    shadow,
+    pilot,
+    diagnostics,
+    unknowns,
+    evidence: additionalEvidence,
+    ...(options.docsRoot ? { docsRoot: options.docsRoot } : {}),
+  });
 }
