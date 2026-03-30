@@ -1,33 +1,7 @@
+import { loadArchitectureScoreInputs } from "./command-architecture-inputs-loaders.js";
 import { resolveArchitectureInputSources } from "./command-architecture-inputs-sources.js";
 import type { CommandArgs } from "./command-helpers.js";
-import {
-  getProfile,
-  getRootPath,
-  loadBoundaryMapIfRequested,
-  loadComplexityExportIfRequested,
-  loadComplexitySourceConfigIfRequested,
-  loadContractBaselineIfRequested,
-  loadContractBaselineSourceConfigIfRequested,
-  loadDeliveryExportIfRequested,
-  loadDeliveryNormalizationProfileIfRequested,
-  loadDeliveryObservationsIfRequested,
-  loadDeliveryRawObservationsIfRequested,
-  loadDeliverySourceConfigIfRequested,
-  loadPatternRuntimeNormalizationProfileIfRequested,
-  loadPatternRuntimeObservationsIfRequested,
-  loadPatternRuntimeRawObservationsIfRequested,
-  loadRuntimeObservationsIfRequested,
-  loadScenarioCatalogIfRequested,
-  loadScenarioObservationSourceConfigIfRequested,
-  loadScenarioObservationsIfRequested,
-  loadTelemetryExportIfRequested,
-  loadTelemetryNormalizationProfileIfRequested,
-  loadTelemetryObservationsIfRequested,
-  loadTelemetryRawObservationsIfRequested,
-  loadTelemetrySourceConfigIfRequested,
-  loadTopologyModelIfRequested,
-  requireArchitectureConstraints,
-} from "./command-helpers.js";
+import { getProfile, getRootPath, requireArchitectureConstraints } from "./command-helpers.js";
 import type { ComputeArchitectureScoresOptions } from "./core/architecture-scoring-types.js";
 import type { CommandContext } from "./core/contracts.js";
 
@@ -38,7 +12,7 @@ export async function buildArchitectureScoreOptions(
 ): Promise<ComputeArchitectureScoresOptions> {
   const repoPath = getRootPath(args, context);
   const constraints = await requireArchitectureConstraints(args, context);
-  const [
+  const {
     scenarioCatalog,
     scenarioObservations,
     scenarioObservationSourceConfig,
@@ -62,31 +36,7 @@ export async function buildArchitectureScoreOptions(
     patternRuntimeNormalizationProfile,
     complexityExport,
     complexitySourceConfig,
-  ] = await Promise.all([
-    loadScenarioCatalogIfRequested(args, context),
-    loadScenarioObservationsIfRequested(args, context),
-    loadScenarioObservationSourceConfigIfRequested(args, context),
-    loadTopologyModelIfRequested(args, context),
-    loadBoundaryMapIfRequested(args, context),
-    loadContractBaselineIfRequested(args, context),
-    loadContractBaselineSourceConfigIfRequested(args, context),
-    loadRuntimeObservationsIfRequested(args, context),
-    loadDeliveryObservationsIfRequested(args, context),
-    loadDeliveryRawObservationsIfRequested(args, context),
-    loadDeliveryExportIfRequested(args, context),
-    loadDeliveryNormalizationProfileIfRequested(args, context),
-    loadDeliverySourceConfigIfRequested(args, context),
-    loadTelemetryObservationsIfRequested(args, context),
-    loadTelemetryRawObservationsIfRequested(args, context),
-    loadTelemetryExportIfRequested(args, context),
-    loadTelemetryNormalizationProfileIfRequested(args, context),
-    loadTelemetrySourceConfigIfRequested(args, context),
-    loadPatternRuntimeObservationsIfRequested(args, context),
-    loadPatternRuntimeRawObservationsIfRequested(args, context),
-    loadPatternRuntimeNormalizationProfileIfRequested(args, context),
-    loadComplexityExportIfRequested(args, context),
-    loadComplexitySourceConfigIfRequested(args, context),
-  ]);
+  } = await loadArchitectureScoreInputs(args, context);
   const {
     contractBaselineSource,
     scenarioObservationSource,
