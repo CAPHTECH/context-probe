@@ -24,6 +24,9 @@ layers:
     rank: 3
     globs:
       - "src/cli.ts"
+      - "src/command-architecture-inputs.ts"
       - "src/command-helpers.ts"
+      - "src/command-score-driven.ts"
+      - "src/command-score.ts"
       - "src/commands.ts"
       - "src/index.ts"

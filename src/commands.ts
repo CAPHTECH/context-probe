@@ -1,13 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { detectDirectionViolations, scoreDependencyDirection } from "./analyzers/architecture.js";
-import {
-  resolveComplexitySourceConfig,
-  resolveContractBaselineSourceConfig,
-  resolveDeliverySourceConfig,
-  resolveScenarioObservationSourceConfig,
-  resolveTelemetrySourceConfig,
-} from "./analyzers/architecture-source-loader.js";
 import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "./analyzers/code.js";
 import type { CommandArgs } from "./command-helpers.js";
 import {
@@ -15,29 +8,6 @@ import {
   getDocsRoot,
   getProfile,
   getRootPath,
-  loadBoundaryMapIfRequested,
-  loadComplexityExportIfRequested,
-  loadComplexitySourceConfigIfRequested,
-  loadContractBaselineIfRequested,
-  loadContractBaselineSourceConfigIfRequested,
-  loadDeliveryExportIfRequested,
-  loadDeliveryNormalizationProfileIfRequested,
-  loadDeliveryObservationsIfRequested,
-  loadDeliveryRawObservationsIfRequested,
-  loadDeliverySourceConfigIfRequested,
-  loadPatternRuntimeNormalizationProfileIfRequested,
-  loadPatternRuntimeObservationsIfRequested,
-  loadPatternRuntimeRawObservationsIfRequested,
-  loadRuntimeObservationsIfRequested,
-  loadScenarioCatalogIfRequested,
-  loadScenarioObservationSourceConfigIfRequested,
-  loadScenarioObservationsIfRequested,
-  loadTelemetryExportIfRequested,
-  loadTelemetryNormalizationProfileIfRequested,
-  loadTelemetryObservationsIfRequested,
-  loadTelemetryRawObservationsIfRequested,
-  loadTelemetrySourceConfigIfRequested,
-  loadTopologyModelIfRequested,
   parseTieTolerance,
   requireArchitectureConstraints,
   requireDomainModel,
@@ -45,6 +15,8 @@ import {
   requireShadowRolloutRegistry,
   resolveSpecRelativePath,
 } from "./command-helpers.js";
+import { handleScoreCompute } from "./command-score.js";
+import { handleGateEvaluate, handleReportGenerate, handleReviewListUnknowns } from "./command-score-driven.js";
 import { normalizeDocuments, registerArtifacts } from "./core/artifacts.js";
 import type {
   CommandContext,
@@ -54,8 +26,6 @@ import type {
   DomainDesignShadowRolloutBatchResult,
   DomainDesignShadowRolloutGateResult,
   DomainDesignShadowRolloutObservation,
-  MarkdownReportResult,
-  MeasurementGateResult,
   ReviewItem,
   ReviewResolution,
 } from "./core/contracts.js";
@@ -69,11 +39,9 @@ import {
 } from "./core/history.js";
 import { readDataFile } from "./core/io.js";
 import { loadPolicyConfig } from "./core/policy.js";
-import { evaluateGate, renderMarkdownReport } from "./core/report.js";
 import { confidenceFromSignals, createResponse, mergeStatus, toProvenance } from "./core/response.js";
-import { listReviewItems, resolveReviewItems } from "./core/review.js";
+import { resolveReviewItems } from "./core/review.js";
 import { scaffoldArchitectureConstraints, scaffoldDomainModel } from "./core/scaffold.js";
-import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import {
   batchToGateObservations,
   evaluateShadowRolloutGate,
@@ -83,7 +51,6 @@ import {
   summarizeShadowRolloutBatchObservations,
 } from "./core/shadow-rollout.js";
 import { buildModelCodeLinks, buildTermTraceLinks } from "./core/trace.js";
-import { DOMAIN_PACKS } from "./packs/index.js";
 
 export type CommandHandler = (args: CommandArgs, context: CommandContext) => Promise<CommandResponse<unknown>>;
 
@@ -296,236 +263,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     return createResponse(scoreDependencyDirection(codebase, constraints));
   },
 
-  async "score.compute"(args, context) {
-    const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
-    const domain = typeof args.domain === "string" ? args.domain : "domain_design";
-    const pilotPersistence = args["pilot-persistence"] === true;
-    const rolloutCategory = typeof args["rollout-category"] === "string" ? args["rollout-category"] : undefined;
-    if (rolloutCategory && !pilotPersistence) {
-      throw new Error("`--rollout-category` requires `--pilot-persistence`");
-    }
-    if (domain === "architecture_design") {
-      const constraints = await requireArchitectureConstraints(args, context);
-      const [
-        scenarioCatalog,
-        scenarioObservations,
-        scenarioObservationSourceConfig,
-        topologyModel,
-        boundaryMap,
-        contractBaseline,
-        contractBaselineSourceConfig,
-        runtimeObservations,
-        deliveryObservations,
-        deliveryRawObservations,
-        deliveryExport,
-        deliveryNormalizationProfile,
-        deliverySourceConfig,
-        telemetryObservations,
-        telemetryRawObservations,
-        telemetryExport,
-        telemetryNormalizationProfile,
-        telemetrySourceConfig,
-        patternRuntimeObservations,
-        patternRuntimeRawObservations,
-        patternRuntimeNormalizationProfile,
-        complexityExport,
-        complexitySourceConfig,
-      ] = await Promise.all([
-        loadScenarioCatalogIfRequested(args, context),
-        loadScenarioObservationsIfRequested(args, context),
-        loadScenarioObservationSourceConfigIfRequested(args, context),
-        loadTopologyModelIfRequested(args, context),
-        loadBoundaryMapIfRequested(args, context),
-        loadContractBaselineIfRequested(args, context),
-        loadContractBaselineSourceConfigIfRequested(args, context),
-        loadRuntimeObservationsIfRequested(args, context),
-        loadDeliveryObservationsIfRequested(args, context),
-        loadDeliveryRawObservationsIfRequested(args, context),
-        loadDeliveryExportIfRequested(args, context),
-        loadDeliveryNormalizationProfileIfRequested(args, context),
-        loadDeliverySourceConfigIfRequested(args, context),
-        loadTelemetryObservationsIfRequested(args, context),
-        loadTelemetryRawObservationsIfRequested(args, context),
-        loadTelemetryExportIfRequested(args, context),
-        loadTelemetryNormalizationProfileIfRequested(args, context),
-        loadTelemetrySourceConfigIfRequested(args, context),
-        loadPatternRuntimeObservationsIfRequested(args, context),
-        loadPatternRuntimeRawObservationsIfRequested(args, context),
-        loadPatternRuntimeNormalizationProfileIfRequested(args, context),
-        loadComplexityExportIfRequested(args, context),
-        loadComplexitySourceConfigIfRequested(args, context),
-      ]);
-
-      const usableTelemetryRaw = Boolean(telemetryRawObservations && telemetryNormalizationProfile);
-      const usableDeliveryRaw = Boolean(deliveryRawObservations && deliveryNormalizationProfile);
-      const contractBaselineSource =
-        !contractBaseline && contractBaselineSourceConfig
-          ? await resolveContractBaselineSourceConfig(contractBaselineSourceConfig)
-          : undefined;
-      const scenarioObservationSource =
-        !scenarioObservations && scenarioObservationSourceConfig
-          ? await resolveScenarioObservationSourceConfig(scenarioObservationSourceConfig)
-          : undefined;
-      const telemetrySource =
-        !telemetryObservations && !usableTelemetryRaw && !telemetryExport && telemetrySourceConfig
-          ? await resolveTelemetrySourceConfig(telemetrySourceConfig)
-          : undefined;
-      const deliverySource =
-        !deliveryObservations && !usableDeliveryRaw && !deliveryExport && deliverySourceConfig
-          ? await resolveDeliverySourceConfig(deliverySourceConfig)
-          : undefined;
-      const complexitySource =
-        !complexityExport && complexitySourceConfig
-          ? await resolveComplexitySourceConfig(complexitySourceConfig)
-          : undefined;
-
-      const directInputProvenance = [
-        { argName: "scenario-catalog", note: "scenario_catalog_file" },
-        { argName: "scenario-observations", note: "scenario_observations_file" },
-        { argName: "topology-model", note: "topology_model_file" },
-        { argName: "boundary-map", note: "boundary_map_file" },
-        { argName: "contract-baseline", note: "contract_baseline_file" },
-        { argName: "runtime-observations", note: "runtime_observations_file" },
-        { argName: "delivery-observations", note: "delivery_observations_file" },
-        { argName: "delivery-raw-observations", note: "delivery_raw_observations_file" },
-        { argName: "delivery-export", note: "delivery_export_file" },
-        { argName: "delivery-normalization-profile", note: "delivery_normalization_profile_file" },
-        { argName: "telemetry-observations", note: "telemetry_observations_file" },
-        { argName: "telemetry-raw-observations", note: "telemetry_raw_observations_file" },
-        { argName: "telemetry-export", note: "telemetry_export_file" },
-        { argName: "telemetry-normalization-profile", note: "telemetry_normalization_profile_file" },
-        { argName: "pattern-runtime-observations", note: "pattern_runtime_observations_file" },
-        { argName: "pattern-runtime-raw-observations", note: "pattern_runtime_raw_observations_file" },
-        {
-          argName: "pattern-runtime-normalization-profile",
-          note: "pattern_runtime_normalization_profile_file",
-        },
-        { argName: "complexity-export", note: "complexity_export_file" },
-      ].flatMap(({ argName, note }) => {
-        const inputPath = args[argName];
-        return typeof inputPath === "string"
-          ? [toProvenance(new URL(inputPath, `file://${context.cwd}/`).pathname, note)]
-          : [];
-      });
-
-      const additionalProvenance = [
-        ...directInputProvenance,
-        ...(contractBaselineSource
-          ? [
-              toProvenance(contractBaselineSource.configPath, "contract_baseline_source_config"),
-              ...(contractBaselineSource.resolvedPath
-                ? [toProvenance(contractBaselineSource.resolvedPath, "contract_baseline_source_file")]
-                : []),
-            ]
-          : []),
-        ...(scenarioObservationSource
-          ? [
-              toProvenance(scenarioObservationSource.configPath, "scenario_observation_source_config"),
-              ...(scenarioObservationSource.resolvedPath
-                ? [toProvenance(scenarioObservationSource.resolvedPath, "scenario_observation_source_file")]
-                : []),
-            ]
-          : []),
-        ...(telemetrySource
-          ? [
-              toProvenance(telemetrySource.configPath, "telemetry_source_config"),
-              ...(telemetrySource.resolvedPath
-                ? [toProvenance(telemetrySource.resolvedPath, "telemetry_source_file")]
-                : []),
-            ]
-          : []),
-        ...(deliverySource
-          ? [
-              toProvenance(deliverySource.configPath, "delivery_source_config"),
-              ...(deliverySource.resolvedPath
-                ? [toProvenance(deliverySource.resolvedPath, "delivery_source_file")]
-                : []),
-            ]
-          : []),
-        ...(complexitySource
-          ? [
-              toProvenance(complexitySource.configPath, "complexity_source_config"),
-              ...(complexitySource.resolvedPath
-                ? [toProvenance(complexitySource.resolvedPath, "complexity_source_file")]
-                : []),
-            ]
-          : []),
-      ];
-
-      return computeArchitectureScores({
-        repoPath: getRootPath(args, context),
-        constraints,
-        policyConfig,
-        profileName: getProfile(args),
-        ...(scenarioCatalog ? { scenarioCatalog } : {}),
-        ...(scenarioObservations ? { scenarioObservations } : {}),
-        ...(scenarioObservationSource ? { scenarioObservationSource } : {}),
-        ...(topologyModel ? { topologyModel } : {}),
-        ...(boundaryMap ? { boundaryMap } : {}),
-        ...(contractBaseline ? { contractBaseline } : {}),
-        ...(contractBaselineSource ? { contractBaselineSource } : {}),
-        ...(runtimeObservations ? { runtimeObservations } : {}),
-        ...(deliveryObservations ? { deliveryObservations } : {}),
-        ...(deliveryRawObservations ? { deliveryRawObservations } : {}),
-        ...(deliveryExport ? { deliveryExport } : {}),
-        ...(deliverySource ? { deliverySource } : {}),
-        ...(deliveryNormalizationProfile ? { deliveryNormalizationProfile } : {}),
-        ...(telemetryObservations ? { telemetryObservations } : {}),
-        ...(telemetryRawObservations ? { telemetryRawObservations } : {}),
-        ...(telemetryExport ? { telemetryExport } : {}),
-        ...(telemetrySource ? { telemetrySource } : {}),
-        ...(telemetryNormalizationProfile ? { telemetryNormalizationProfile } : {}),
-        ...(patternRuntimeObservations ? { patternRuntimeObservations } : {}),
-        ...(patternRuntimeRawObservations ? { patternRuntimeRawObservations } : {}),
-        ...(patternRuntimeNormalizationProfile ? { patternRuntimeNormalizationProfile } : {}),
-        ...(complexityExport ? { complexityExport } : {}),
-        ...(complexitySource ? { complexitySource } : {}),
-        additionalProvenance,
-        scenarioObservationSourceRequested: Boolean(scenarioObservationSourceConfig),
-        telemetrySourceRequested: Boolean(telemetrySourceConfig),
-        deliverySourceRequested: Boolean(deliverySourceConfig),
-        complexitySourceRequested: Boolean(complexitySourceConfig),
-        contractBaselineSourceRequested: Boolean(contractBaselineSourceConfig),
-        patternRuntimeRawRequested: Boolean(patternRuntimeRawObservations),
-        patternRuntimeNormalizationProfileRequested: Boolean(patternRuntimeNormalizationProfile),
-      });
-    }
-    const model = await requireDomainModel(args, context);
-    const docsRoot = typeof args["docs-root"] === "string" ? getDocsRoot(args, context) : undefined;
-    const extractionOptions = docsRoot ? await buildExtractionOptions(args, context) : undefined;
-    let pilotGateEvaluation: ReturnType<typeof evaluateShadowRolloutGate> | undefined;
-    if (pilotPersistence) {
-      if (!rolloutCategory) {
-        throw new Error("`--rollout-category` is required when `--pilot-persistence` is enabled");
-      }
-      const { registry, registryPath } = await requireShadowRolloutRegistry(args, context, loadShadowRolloutRegistry);
-      pilotGateEvaluation = evaluateShadowRolloutGate(registryToGateObservations(registry, registryPath));
-    }
-
-    return computeDomainDesignScores({
-      repoPath: getRootPath(args, context),
-      model,
-      policyConfig,
-      profileName: getProfile(args),
-      shadowPersistence: args["shadow-persistence"] === true || pilotPersistence,
-      ...(pilotPersistence && rolloutCategory ? { pilotPersistenceCategory: rolloutCategory } : {}),
-      ...(pilotGateEvaluation ? { pilotGateEvaluation } : {}),
-      ...(docsRoot ? { docsRoot } : {}),
-      ...(extractionOptions
-        ? {
-            extraction: {
-              extractor: extractionOptions.extractor,
-              ...(extractionOptions.provider ? { provider: extractionOptions.provider } : {}),
-              ...(extractionOptions.providerCommand ? { providerCommand: extractionOptions.providerCommand } : {}),
-              promptProfile: extractionOptions.promptProfile,
-              fallback: extractionOptions.fallback,
-              ...(extractionOptions.reviewLog ? { reviewLog: extractionOptions.reviewLog } : {}),
-              applyReviewLog: extractionOptions.applyReviewLog,
-            },
-          }
-        : {}),
-    });
-  },
+  "score.compute": handleScoreCompute,
 
   async "score.observe_shadow_rollout"(args, context) {
     const scoreCompute = COMMANDS["score.compute"];
@@ -746,30 +484,11 @@ export const COMMANDS: Record<string, CommandHandler> = {
   },
 
   async "review.list_unknowns"(args, context) {
-    const inputPath =
-      typeof args.input === "string" ? new URL(args.input, `file://${context.cwd}/`).pathname : undefined;
-    const sourceCommand = typeof args["source-command"] === "string" ? COMMANDS[args["source-command"]] : undefined;
     const scoreCompute = COMMANDS["score.compute"];
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = inputPath
-      ? await readDataFile<CommandResponse<unknown>>(inputPath)
-      : sourceCommand
-        ? await sourceCommand(args, context)
-        : await scoreCompute(args, context);
-    const reviewItems = listReviewItems(response);
-    return createResponse(
-      { reviewItems },
-      {
-        status: reviewItems.length > 0 ? "warning" : "ok",
-        confidence: response.confidence,
-        unknowns: response.unknowns,
-        evidence: response.evidence,
-        diagnostics: response.diagnostics,
-        provenance: response.provenance,
-      },
-    );
+    return handleReviewListUnknowns(args, context, scoreCompute, COMMANDS);
   },
 
   async "review.resolve"(args, context) {
@@ -801,41 +520,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = (await scoreCompute(args, context)) as CommandResponse<
-      | DomainDesignScoreResult
-      | {
-          domainId: string;
-          metrics: Array<{
-            metricId: string;
-            value: number;
-            components: Record<string, number>;
-            confidence: number;
-            evidenceRefs: string[];
-            unknowns: string[];
-          }>;
-          leakFindings?: unknown[];
-          violations?: unknown[];
-        }
-    >;
-    const format = typeof args.format === "string" ? args.format : "json";
-    if (format === "md") {
-      const profileName = getProfile(args);
-      return createResponse<MarkdownReportResult>(
-        {
-          format,
-          report: renderMarkdownReport(response, profileName),
-        },
-        {
-          status: response.status,
-          evidence: response.evidence,
-          confidence: response.confidence,
-          unknowns: response.unknowns,
-          diagnostics: response.diagnostics,
-          provenance: response.provenance,
-        },
-      );
-    }
-    return response;
+    return handleReportGenerate(args, context, scoreCompute);
   },
 
   async "gate.evaluate"(args, context) {
@@ -843,43 +528,7 @@ export const COMMANDS: Record<string, CommandHandler> = {
     if (!scoreCompute) {
       throw new Error("score.compute is not registered");
     }
-    const response = (await scoreCompute(args, context)) as CommandResponse<
-      | DomainDesignScoreResult
-      | {
-          domainId: string;
-          metrics: Array<{
-            metricId: string;
-            value: number;
-            components: Record<string, number>;
-            confidence: number;
-            evidenceRefs: string[];
-            unknowns: string[];
-          }>;
-        }
-    >;
-    const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
-    const gate = evaluateGate(response, policyConfig, getProfile(args));
-    const pilot =
-      response.result.domainId === "domain_design" && "pilot" in response.result ? response.result.pilot : undefined;
-    return createResponse<MeasurementGateResult>(
-      {
-        domainId: response.result.domainId as "domain_design" | "architecture_design",
-        gate,
-        metrics: response.result.metrics,
-        ...(pilot ? { pilot } : {}),
-      },
-      {
-        status: gate.status,
-        evidence: response.evidence,
-        confidence: response.confidence,
-        unknowns: response.unknowns,
-        diagnostics: [
-          ...response.diagnostics,
-          ...(pilot ? [`Pilot locality source: ${pilot.localitySource} for category ${pilot.category}.`] : []),
-          `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`,
-        ],
-      },
-    );
+    return handleGateEvaluate(args, context, scoreCompute);
   },
 };
 
