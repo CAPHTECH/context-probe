@@ -29,6 +29,16 @@ export function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values));
 }
 
+export function toGitHistoryPathspecs(globs: string[]): string[] {
+  return unique(
+    globs
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0 && !entry.startsWith("!"))
+      .map((entry) => (entry.startsWith("./") ? entry.slice(2) : entry))
+      .map((entry) => `:(glob)${entry}`),
+  );
+}
+
 function parseChangedPath(entry: string): string | null {
   const normalized = entry.trim();
   if (!normalized) {

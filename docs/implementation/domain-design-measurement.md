@@ -51,6 +51,7 @@ In that case:
 `ELS` depends on normalized Git history.
 
 Large repositories are read through streamed `git log` parsing rather than fixed stdout buffers, so history analysis no longer depends on `execFile`-style maxBuffer limits.
+When a domain model is available, the current implementation also scopes `git log` to the model's context globs so unrelated paths do not dominate large-repository history runs.
 
 Typical low-confidence conditions:
 

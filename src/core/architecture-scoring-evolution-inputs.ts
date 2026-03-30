@@ -12,6 +12,13 @@ import type {
 import { evaluateFormula } from "./formula.js";
 import { normalizeHistory } from "./history.js";
 
+function collectArchitectureHistoryGlobs(options: ComputeArchitectureScoresOptions): string[] {
+  if (options.boundaryMap && options.boundaryMap.boundaries.length > 0) {
+    return options.boundaryMap.boundaries.flatMap((entry) => entry.pathGlobs);
+  }
+  return options.constraints.layers.flatMap((entry) => entry.globs);
+}
+
 export interface ArchitectureEvolutionInputResults {
   architectureCommits: Awaited<ReturnType<typeof normalizeHistory>>;
   architectureHistoryDiagnostics: string[];
@@ -28,7 +35,9 @@ export async function resolveArchitectureEvolutionInputs(
   let architectureCommits: Awaited<ReturnType<typeof normalizeHistory>> = [];
   let architectureHistoryDiagnostics: string[] = [];
   try {
-    architectureCommits = await normalizeHistory(options.repoPath, options.policyConfig, options.profileName);
+    architectureCommits = await normalizeHistory(options.repoPath, options.policyConfig, options.profileName, {
+      includePathGlobs: collectArchitectureHistoryGlobs(options),
+    });
   } catch (error) {
     architectureHistoryDiagnostics = [
       error instanceof Error

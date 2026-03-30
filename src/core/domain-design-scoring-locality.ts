@@ -45,7 +45,9 @@ export async function evaluateDomainLocality(
   let shadowLocalityConfidence = 0;
 
   try {
-    const commits = await normalizeHistory(repoPath, policyConfig, profileName);
+    const commits = await normalizeHistory(repoPath, policyConfig, profileName, {
+      includePathGlobs: model.contexts.flatMap((entry) => entry.pathGlobs),
+    });
     history = scoreEvolutionLocality(commits, model);
     const historyQuality = evaluateEvolutionLocalityObservationQuality(commits, model);
     historySignals = {

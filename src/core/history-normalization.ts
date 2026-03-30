@@ -7,17 +7,35 @@ import {
   createGitHistoryParseState,
   flushParsedCommit,
   type GitHistoryParseState,
+  toGitHistoryPathspecs,
 } from "./history-shared.js";
 
-async function runGitLog(repoPath: string, onLine: (line: string) => void): Promise<void> {
-  const child = spawn(
-    "git",
-    ["-C", repoPath, "log", "--no-merges", "--find-renames", "--name-status", "--pretty=format:__COMMIT__%n%H%n%s"],
-    {
-      cwd: repoPath,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
+export interface NormalizeHistoryOptions {
+  includePathGlobs?: string[];
+}
+
+async function runGitLog(
+  repoPath: string,
+  onLine: (line: string) => void,
+  options?: NormalizeHistoryOptions,
+): Promise<void> {
+  const args = [
+    "-C",
+    repoPath,
+    "log",
+    "--no-merges",
+    "--find-renames",
+    "--name-status",
+    "--pretty=format:__COMMIT__%n%H%n%s",
+  ];
+  const pathspecs = toGitHistoryPathspecs(options?.includePathGlobs ?? []);
+  if (pathspecs.length > 0) {
+    args.push("--", ...pathspecs);
+  }
+  const child = spawn("git", args, {
+    cwd: repoPath,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 
   let stderr = "";
   let stdoutBuffer = "";
@@ -55,6 +73,7 @@ export async function normalizeHistory(
   repoPath: string,
   policyConfig: PolicyConfig,
   profileName: string,
+  options?: NormalizeHistoryOptions,
 ): Promise<CochangeCommit[]> {
   const profile = policyConfig.profiles[profileName];
   const ignoreCommitPatterns = (profile?.history_filters?.ignore_commit_patterns ?? []).map(
@@ -64,9 +83,13 @@ export async function normalizeHistory(
 
   const commits: CochangeCommit[] = [];
   const parseState: GitHistoryParseState = createGitHistoryParseState();
-  await runGitLog(repoPath, (line) => {
-    consumeGitHistoryLine(line, parseState, commits, ignoreCommitPatterns, ignorePaths);
-  });
+  await runGitLog(
+    repoPath,
+    (line) => {
+      consumeGitHistoryLine(line, parseState, commits, ignoreCommitPatterns, ignorePaths);
+    },
+    options,
+  );
   flushParsedCommit(parseState, commits, ignoreCommitPatterns, ignorePaths);
 
   return commits;

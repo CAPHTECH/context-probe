@@ -71,4 +71,50 @@ describe("history normalization", () => {
       }),
     );
   });
+
+  test("restricts git history to provided path globs when includePathGlobs is set", async () => {
+    const spawnMock = vi.fn(() => {
+      const child = new EventEmitter() as EventEmitter & {
+        stdout: EventEmitter & { setEncoding: (encoding: string) => void };
+        stderr: EventEmitter & { setEncoding: (encoding: string) => void };
+      };
+      child.stdout = new EventEmitter() as EventEmitter & { setEncoding: (encoding: string) => void };
+      child.stderr = new EventEmitter() as EventEmitter & { setEncoding: (encoding: string) => void };
+      child.stdout.setEncoding = vi.fn();
+      child.stderr.setEncoding = vi.fn();
+      queueMicrotask(() => {
+        child.emit("close", 0, null);
+      });
+      return child;
+    });
+
+    vi.doMock("node:child_process", () => ({
+      spawn: spawnMock,
+    }));
+
+    const { normalizeHistory } = await import("../src/core/history.js");
+    await normalizeHistory("/tmp/example-repo", POLICY, "default", {
+      includePathGlobs: ["src/domain/**", "src/application/**", "src/domain/**"],
+    });
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      "git",
+      [
+        "-C",
+        "/tmp/example-repo",
+        "log",
+        "--no-merges",
+        "--find-renames",
+        "--name-status",
+        "--pretty=format:__COMMIT__%n%H%n%s",
+        "--",
+        ":(glob)src/domain/**",
+        ":(glob)src/application/**",
+      ],
+      expect.objectContaining({
+        cwd: "/tmp/example-repo",
+        stdio: ["ignore", "pipe", "pipe"],
+      }),
+    );
+  });
 });

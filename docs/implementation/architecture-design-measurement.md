@@ -106,6 +106,8 @@ Direct file inputs accept the canonical shapes above, and some collector-native 
 | `CTI` | complexity metadata, exports, codebase counts | often partial when metadata is thin |
 | `APSI` | supporting metrics above | summary-only and profile-weighted |
 
+For locality scoring, `git log` is scoped to boundary-map globs when an explicit boundary map is present, otherwise to the constraint-layer globs.
+
 ## Report and Gate Behavior
 
 Current report behavior:
