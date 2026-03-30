@@ -26,6 +26,14 @@ npm run self:architecture:check
 
 `test:coverage` is the local equivalent of the CI quality gate. `self:architecture:check` is the operational check for reviewed architecture snapshots.
 
+## Long-Running Authoritative Runs
+
+- Use the full `domain_design` or `architecture_design` input set when you need the final number. Do not switch to a reduced profile just to make the run appear faster.
+- On large repos, `domain_design` can still take a while even after history ingestion was scoped to modeled paths. The remaining time is usually docs extraction and evidence assembly, not a stalled process.
+- If you want live progress in a non-interactive shell or CI log, run with `CONTEXT_PROBE_PROGRESS=1`.
+- Let the command finish and read the final `status`, `result`, `unknowns`, `diagnostics`, and `provenance`. Those are the authoritative outputs for a completed run.
+- If a run looks quiet, check the shell or CI job duration and logs before changing inputs. Re-running with a smaller bundle changes the measurement, so treat that as a deliberate choice rather than a timeout workaround.
+
 ## Snapshot roles
 
 - `scenario-observations`: measured from local benchmarks

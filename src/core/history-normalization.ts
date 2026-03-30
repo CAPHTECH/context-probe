@@ -12,6 +12,14 @@ import {
 
 export interface NormalizeHistoryOptions {
   includePathGlobs?: string[];
+  onProgress?: (event: {
+    phase: "start" | "heartbeat" | "complete" | "error";
+    elapsedMs: number;
+    observedCommitCount: number;
+    emittedCommitCount: number;
+    includePathGlobCount: number;
+  }) => void;
+  progressIntervalMs?: number;
 }
 
 async function runGitLog(
@@ -83,14 +91,60 @@ export async function normalizeHistory(
 
   const commits: CochangeCommit[] = [];
   const parseState: GitHistoryParseState = createGitHistoryParseState();
-  await runGitLog(
-    repoPath,
-    (line) => {
-      consumeGitHistoryLine(line, parseState, commits, ignoreCommitPatterns, ignorePaths);
-    },
-    options,
-  );
-  flushParsedCommit(parseState, commits, ignoreCommitPatterns, ignorePaths);
+  const startTime = Date.now();
+  const includePathGlobCount = toGitHistoryPathspecs(options?.includePathGlobs ?? []).length;
+  const progressIntervalMs = options?.progressIntervalMs ?? 5000;
+  let observedCommitCount = 0;
+  let lastProgressAt = startTime;
+
+  options?.onProgress?.({
+    phase: "start",
+    elapsedMs: 0,
+    observedCommitCount,
+    emittedCommitCount: commits.length,
+    includePathGlobCount,
+  });
+
+  try {
+    await runGitLog(
+      repoPath,
+      (line) => {
+        if (line === "__COMMIT__") {
+          observedCommitCount += 1;
+        }
+        consumeGitHistoryLine(line, parseState, commits, ignoreCommitPatterns, ignorePaths);
+        if (options?.onProgress && Date.now() - lastProgressAt >= progressIntervalMs) {
+          lastProgressAt = Date.now();
+          options.onProgress({
+            phase: "heartbeat",
+            elapsedMs: lastProgressAt - startTime,
+            observedCommitCount,
+            emittedCommitCount: commits.length,
+            includePathGlobCount,
+          });
+        }
+      },
+      options,
+    );
+    flushParsedCommit(parseState, commits, ignoreCommitPatterns, ignorePaths);
+  } catch (error) {
+    options?.onProgress?.({
+      phase: "error",
+      elapsedMs: Date.now() - startTime,
+      observedCommitCount,
+      emittedCommitCount: commits.length,
+      includePathGlobCount,
+    });
+    throw error;
+  }
+
+  options?.onProgress?.({
+    phase: "complete",
+    elapsedMs: Date.now() - startTime,
+    observedCommitCount,
+    emittedCommitCount: commits.length,
+    includePathGlobCount,
+  });
 
   return commits;
 }

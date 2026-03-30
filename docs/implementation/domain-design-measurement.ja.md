@@ -51,6 +51,7 @@
 
 大きいリポジトリでは、履歴取得は固定長 stdout buffer ではなく streamed `git log` parsing で処理します。したがって current implementation は `execFile` 由来の `maxBuffer` 制約には依存しません。
 さらに domain model がある場合、current implementation は `git log` を model の context globs に絞るため、大規模リポジトリでも無関係な path の履歴を掘りません。
+stderr が interactive なら、CLI は code parsing、history analysis、docs extraction の phase progress を出します。非 interactive 環境でも `CONTEXT_PROBE_PROGRESS=1` を付ければ同じ進捗を出せます。
 
 confidence が下がりやすい典型条件:
 
@@ -59,6 +60,7 @@ confidence が下がりやすい典型条件:
 - 履歴解析が失敗した
 
 履歴が薄いときは、数値より先に `confidence` と `unknowns` を読みます。
+履歴解析が完全に失敗した場合は、response-level `diagnostics` に scope 付きの history message が残るので、`score.compute`、`report.generate`、`gate.evaluate`、`review.list_unknowns` のどこからでも同じ trail を追えます。
 
 ## Persistence Shadow と Pilot
 

@@ -48,6 +48,7 @@ export async function handleReviewListUnknowns(
       unknowns: response.unknowns,
       evidence: response.evidence,
       diagnostics: response.diagnostics,
+      progress: response.progress,
       provenance: response.provenance,
     },
   );
@@ -72,6 +73,7 @@ export async function handleReportGenerate(
         confidence: response.confidence,
         unknowns: response.unknowns,
         diagnostics: response.diagnostics,
+        progress: response.progress,
         provenance: response.provenance,
       },
     );
@@ -106,6 +108,7 @@ export async function handleGateEvaluate(
         ...(pilot ? [`Pilot locality source: ${pilot.localitySource} for category ${pilot.category}.`] : []),
         `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`,
       ],
+      progress: response.progress,
     },
   );
 }

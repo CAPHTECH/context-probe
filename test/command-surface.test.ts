@@ -2,7 +2,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { COMMANDS, listCommands, maybeWriteOutput } from "../src/commands.js";
 import type { CommandContext } from "../src/core/contracts.js";
@@ -176,4 +176,30 @@ describe("command surface", () => {
       "`--review-items` and `--resolutions` are required",
     );
   });
+
+  test("score.compute reports progress through the command context during domain scoring", async () => {
+    const reportProgress = vi.fn();
+
+    await COMMANDS["score.compute"]!(
+      {
+        domain: "domain_design",
+        repo: ".",
+        model: DOMAIN_MODEL_PATH,
+        policy: path.resolve("fixtures/policies/default.yaml"),
+        "docs-root": "docs",
+      },
+      {
+        ...CONTEXT,
+        reportProgress,
+      },
+    );
+
+    expect(reportProgress).toHaveBeenCalled();
+    expect(
+      reportProgress.mock.calls.some(
+        ([update]) => update.phase === "history" && String(update.message).includes("history analysis"),
+      ),
+    ).toBe(true);
+    expect(reportProgress.mock.calls.some(([update]) => update.phase === "domain_design")).toBe(true);
+  }, 30000);
 });

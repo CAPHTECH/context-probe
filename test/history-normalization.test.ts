@@ -117,4 +117,44 @@ describe("history normalization", () => {
       }),
     );
   });
+
+  test("emits history progress events while streaming git output", async () => {
+    const spawnMock = vi.fn(() => {
+      const child = new EventEmitter() as EventEmitter & {
+        stdout: EventEmitter & { setEncoding: (encoding: string) => void };
+        stderr: EventEmitter & { setEncoding: (encoding: string) => void };
+      };
+      child.stdout = new EventEmitter() as EventEmitter & { setEncoding: (encoding: string) => void };
+      child.stderr = new EventEmitter() as EventEmitter & { setEncoding: (encoding: string) => void };
+      child.stdout.setEncoding = vi.fn();
+      child.stderr.setEncoding = vi.fn();
+      queueMicrotask(() => {
+        child.stdout.emit("data", "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/domain/order.ts\n");
+        child.emit("close", 0, null);
+      });
+      return child;
+    });
+
+    vi.doMock("node:child_process", () => ({
+      spawn: spawnMock,
+    }));
+
+    const { normalizeHistory } = await import("../src/core/history.js");
+    const progress = vi.fn();
+    await normalizeHistory("/tmp/example-repo", POLICY, "default", {
+      includePathGlobs: ["src/domain/**"],
+      onProgress: progress,
+      progressIntervalMs: 0,
+    });
+
+    expect(progress).toHaveBeenCalled();
+    expect(progress.mock.calls.map(([event]) => event.phase)).toContain("start");
+    expect(progress.mock.calls.map(([event]) => event.phase)).toContain("heartbeat");
+    expect(progress.mock.calls.map(([event]) => event.phase)).toContain("complete");
+    expect(
+      progress.mock.calls.some(
+        ([event]) => event.phase === "complete" && event.includePathGlobCount === 1 && event.emittedCommitCount === 1,
+      ),
+    ).toBe(true);
+  });
 });

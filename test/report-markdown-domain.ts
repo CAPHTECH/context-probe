@@ -20,6 +20,7 @@ export function registerReportMarkdownDomainTests(): void {
       confidence: 0.8,
       unknowns: [],
       diagnostics: [],
+      progress: [],
       provenance: [],
       version: "1.0",
     });
@@ -65,6 +66,7 @@ export function registerReportMarkdownDomainTests(): void {
       confidence: 0.8,
       unknowns: [],
       diagnostics: [],
+      progress: [],
       provenance: [],
       version: "1.0",
     });
@@ -94,6 +96,7 @@ export function registerReportMarkdownDomainTests(): void {
       confidence: 0.8,
       unknowns: [],
       diagnostics: [],
+      progress: [],
       provenance: [],
       version: "1.0",
     });

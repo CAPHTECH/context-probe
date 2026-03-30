@@ -122,6 +122,10 @@ npm run dev -- score.compute \
 
 自己計測で `QSF` `TIS` `OAS` `EES` の proxy を減らしたい場合は、`config/self-measurement/` の補助入力も一緒に渡します。
 
+大きい repo では `domain_design` は authoritative run として扱い、full input のまま最後まで待ちます。速く見せるために縮めた profile へ切り替えず、完了後の `status` `result` `unknowns` `diagnostics` `provenance` を読んで判断してください。
+
+CLI を TTY で実行するか `CONTEXT_PROBE_PROGRESS=1` を設定すると、実行中の stage progress が stderr に出ます。これは補助情報で、最終的な JSON response が正本です。
+
 architecture の自己計測前には、measured / derived snapshot を先に更新します。
 
 ```bash

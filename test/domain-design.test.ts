@@ -3,6 +3,7 @@ import { afterEach, describe } from "vitest";
 import { registerDomainDesignCoreTests } from "./domain-design.core.js";
 import type { DomainDesignTestState } from "./domain-design.helpers.js";
 import { registerDomainDesignHistoryTests } from "./domain-design.history.js";
+import { registerDomainDesignNoGitContractTests } from "./domain-design.no-git-contracts.js";
 import { registerDomainDesignPersistenceTests } from "./domain-design-persistence.js";
 import { cleanupTemporaryRepo } from "./helpers.js";
 
@@ -19,4 +20,5 @@ describe("domain design analysis", () => {
   registerDomainDesignCoreTests(state);
   registerDomainDesignPersistenceTests(state);
   registerDomainDesignHistoryTests(state);
+  registerDomainDesignNoGitContractTests(state);
 });

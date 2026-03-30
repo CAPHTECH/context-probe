@@ -52,6 +52,7 @@ In that case:
 
 Large repositories are read through streamed `git log` parsing rather than fixed stdout buffers, so history analysis no longer depends on `execFile`-style maxBuffer limits.
 When a domain model is available, the current implementation also scopes `git log` to the model's context globs so unrelated paths do not dominate large-repository history runs.
+When stderr is interactive, the CLI now emits phase progress for code parsing, history analysis, and docs extraction. In non-interactive environments you can opt in with `CONTEXT_PROBE_PROGRESS=1`.
 
 Typical low-confidence conditions:
 
@@ -60,6 +61,7 @@ Typical low-confidence conditions:
 - history analysis failure
 
 When history is thin, read `confidence` and `unknowns` before trusting the numeric value.
+When history fails entirely, the response-level `diagnostics` now carry the scoped history message so the same trail is visible in `score.compute`, `report.generate`, `gate.evaluate`, and `review.list_unknowns`.
 
 ## Persistence Shadow and Pilot Behavior
 

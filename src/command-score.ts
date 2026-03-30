@@ -51,6 +51,7 @@ export async function handleScoreCompute(
     model,
     policyConfig,
     profileName: getProfile(args),
+    ...(context.reportProgress ? { progressReporter: context.reportProgress } : {}),
     shadowPersistence: args["shadow-persistence"] === true || pilotPersistence,
     ...(pilotPersistence && rolloutCategory ? { pilotPersistenceCategory: rolloutCategory } : {}),
     ...(pilotGateEvaluation ? { pilotGateEvaluation } : {}),

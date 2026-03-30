@@ -18,6 +18,7 @@ import { resolveDomainPersistencePilot } from "./domain-design-scoring-pilot.js"
 import { buildDomainDesignScoreResponse } from "./domain-design-scoring-response.js";
 import { evaluateFormula } from "./formula.js";
 import { getDomainPolicy } from "./policy.js";
+import { createProgressTracker } from "./progress.js";
 import { toMetricScore } from "./scoring-shared.js";
 
 export async function computeDomainDesignScores(options: {
@@ -25,6 +26,7 @@ export async function computeDomainDesignScores(options: {
   model: DomainModel;
   policyConfig: PolicyConfig;
   profileName: string;
+  progressReporter?: (update: { phase: string; message: string }) => void;
   shadowPersistence?: boolean;
   pilotPersistenceCategory?: string;
   pilotGateEvaluation?: DomainDesignShadowRolloutGateEvaluation;
@@ -40,28 +42,41 @@ export async function computeDomainDesignScores(options: {
   };
 }): Promise<CommandResponse<DomainDesignScoreResult>> {
   const { repoPath, model, policyConfig, profileName } = options;
+  const progress = createProgressTracker(options.progressReporter);
   const policy = getDomainPolicy(policyConfig, profileName, "domain_design");
-  const codebase = await parseCodebase(repoPath);
+  const codebase = await progress.withProgress("domain_design", `Parsing codebase for ${repoPath}.`, () =>
+    parseCodebase(repoPath),
+  );
   const docsLoaders = createDomainDesignDocsLoaders({
     repoPath,
     docsRoot: options.docsRoot,
     extraction: options.extraction,
     codebase,
   });
-  const contractUsage = detectContractUsage(codebase, model);
-  const leakFindings = detectBoundaryLeaks(codebase, model);
+  const contractUsage = await progress.withProgress("domain_design", `Detecting contract usage in ${repoPath}.`, () =>
+    detectContractUsage(codebase, model),
+  );
+  const leakFindings = await progress.withProgress("domain_design", `Detecting boundary leaks in ${repoPath}.`, () =>
+    detectBoundaryLeaks(codebase, model),
+  );
   const diagnostics: string[] = [];
   const unknowns: string[] = [];
   const additionalEvidence = [];
 
   const requiresLocalityComparison = options.shadowPersistence || Boolean(options.pilotPersistenceCategory);
-  const locality = await evaluateDomainLocality({
-    repoPath,
-    model,
-    policyConfig,
-    profileName,
-    requiresLocalityComparison,
-  });
+  const locality = await progress.withProgress(
+    "history",
+    `Analyzing Git history for modeled paths in ${repoPath}.`,
+    () =>
+      evaluateDomainLocality({
+        repoPath,
+        model,
+        policyConfig,
+        profileName,
+        requiresLocalityComparison,
+        progressReporter: progress.reportProgress,
+      }),
+  );
   const { history, historySignals, historyConfidence, shadow, shadowLocalityConfidence } = locality;
   unknowns.push(...locality.unknowns);
   diagnostics.push(...locality.diagnostics);
@@ -70,42 +85,62 @@ export async function computeDomainDesignScores(options: {
   const scores = [];
   const docsMetrics =
     docsLoaders && options.docsRoot
-      ? await computeDomainDocsMetricScores({
-          docsRoot: options.docsRoot,
-          model,
-          codeFiles: codebase.scorableSourceFiles,
-          contractUsage,
-          leakFindings,
-          getGlossaryResult: docsLoaders.getGlossaryResult,
-          getRulesResult: docsLoaders.getRulesResult,
-          getInvariantsResult: docsLoaders.getInvariantsResult,
-          getTermTraceLinks: docsLoaders.getTermTraceLinks,
-          formulas: buildDomainDocsMetricFormulas(policy),
-        })
+      ? await progress.withProgress("docs", `Computing document-derived metrics from ${options.docsRoot}.`, () =>
+          computeDomainDocsMetricScores({
+            docsRoot: options.docsRoot,
+            model,
+            codeFiles: codebase.scorableSourceFiles,
+            contractUsage,
+            leakFindings,
+            getGlossaryResult: async () =>
+              progress.withProgress("docs", `Extracting glossary evidence from ${options.docsRoot}.`, () =>
+                docsLoaders.getGlossaryResult(),
+              ),
+            getRulesResult: async () =>
+              progress.withProgress("docs", `Extracting rule evidence from ${options.docsRoot}.`, () =>
+                docsLoaders.getRulesResult(),
+              ),
+            getInvariantsResult: async () =>
+              progress.withProgress("docs", `Extracting invariant evidence from ${options.docsRoot}.`, () =>
+                docsLoaders.getInvariantsResult(),
+              ),
+            getTermTraceLinks: async () =>
+              progress.withProgress("docs", `Linking glossary terms to code for ${options.docsRoot}.`, () =>
+                docsLoaders.getTermTraceLinks(),
+              ),
+            formulas: buildDomainDocsMetricFormulas(policy),
+          }),
+        )
       : { scores: [], evidence: [], diagnostics: [], unknowns: [] };
   scores.push(...docsMetrics.scores);
   additionalEvidence.push(...docsMetrics.evidence);
   diagnostics.push(...docsMetrics.diagnostics);
   unknowns.push(...docsMetrics.unknowns);
-  if (policy.metrics.MCCS) {
-    const mccs = buildMccsMetric({
-      metricPolicy: policy.metrics.MCCS,
-      contractUsage,
-      leakFindings,
-    });
+  const mccsPolicy = policy.metrics.MCCS;
+  if (mccsPolicy) {
+    const mccs = await progress.withProgress("domain_design", "Computing MCCS.", () =>
+      buildMccsMetric({
+        metricPolicy: mccsPolicy,
+        contractUsage,
+        leakFindings,
+      }),
+    );
     scores.push(mccs.metric);
     additionalEvidence.push(...mccs.evidence);
     unknowns.push(...mccs.unknowns);
   }
-  if (policy.metrics.ELS) {
+  const elsPolicy = policy.metrics.ELS;
+  if (elsPolicy) {
     scores.push(
-      toMetricScore(
-        "ELS",
-        evaluateFormula(policy.metrics.ELS.formula, elsComponents),
-        elsComponents,
-        [],
-        historyConfidence,
-        history ? [] : ["History analysis did not complete, so ELS confidence is low."],
+      await progress.withProgress("history", "Computing ELS.", () =>
+        toMetricScore(
+          "ELS",
+          evaluateFormula(elsPolicy.formula, elsComponents),
+          elsComponents,
+          [],
+          historyConfidence,
+          history ? [] : ["History analysis did not complete, so ELS confidence is low."],
+        ),
       ),
     );
   }
@@ -120,13 +155,15 @@ export async function computeDomainDesignScores(options: {
       throw new Error("ELS metric is required for persistence pilot mode");
     }
 
-    const pilotResolution = resolveDomainPersistencePilot({
-      metric: elsMetric,
-      shadow,
-      shadowLocalityConfidence,
-      pilotPersistenceCategory: options.pilotPersistenceCategory,
-      pilotGateEvaluation: options.pilotGateEvaluation,
-    });
+    const pilotResolution = await progress.withProgress("domain_design", "Resolving persistence pilot.", () =>
+      resolveDomainPersistencePilot({
+        metric: elsMetric,
+        shadow,
+        shadowLocalityConfidence,
+        ...(options.pilotPersistenceCategory ? { pilotPersistenceCategory: options.pilotPersistenceCategory } : {}),
+        ...(options.pilotGateEvaluation ? { pilotGateEvaluation: options.pilotGateEvaluation } : {}),
+      }),
+    );
     diagnostics.push(...pilotResolution.diagnostics);
     pilot = pilotResolution.pilot;
   }
@@ -140,6 +177,7 @@ export async function computeDomainDesignScores(options: {
     shadow,
     pilot,
     diagnostics,
+    progress: progress.progress,
     unknowns,
     evidence: additionalEvidence,
     ...(options.docsRoot ? { docsRoot: options.docsRoot } : {}),

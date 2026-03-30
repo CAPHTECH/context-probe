@@ -1,4 +1,4 @@
-import type { CommandResponse, DomainDesignScoreResult, Evidence } from "./contracts.js";
+import type { CommandResponse, DomainDesignScoreResult, Evidence, ProgressUpdate } from "./contracts.js";
 import {
   buildDomainDesignScoreResponseOptions,
   buildDomainDesignScoreResult,
@@ -17,6 +17,7 @@ export function buildDomainDesignScoreResponse(input: {
   shadow?: DomainDesignScoreResult["shadow"];
   pilot?: DomainDesignScoreResult["pilot"];
   diagnostics: string[];
+  progress: ProgressUpdate[];
   unknowns: string[];
   evidence: Evidence[];
 }): CommandResponse<DomainDesignScoreResult> {
@@ -30,6 +31,7 @@ export function buildDomainDesignScoreResponse(input: {
     shadow,
     pilot,
     diagnostics,
+    progress,
     unknowns,
     evidence,
   } = input;
@@ -37,6 +39,7 @@ export function buildDomainDesignScoreResponse(input: {
     repoPath,
     scores,
     diagnostics,
+    progress,
     unknowns,
     evidence,
   };

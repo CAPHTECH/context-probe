@@ -44,6 +44,7 @@ export function buildReviewItemsForCandidates(
     confidence: responseConfidence,
     unknowns: responseUnknowns,
     diagnostics: [],
+    progress: [],
     provenance: [],
     version: "1.0",
   });

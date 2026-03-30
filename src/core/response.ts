@@ -27,6 +27,7 @@ export function createResponse<T>(
     confidence: clampConfidence(options?.confidence ?? 1),
     unknowns: options?.unknowns ?? [],
     diagnostics: options?.diagnostics ?? [],
+    progress: options?.progress ?? [],
     provenance: options?.provenance ?? [],
     version: OUTPUT_VERSION,
   };

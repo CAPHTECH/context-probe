@@ -26,6 +26,14 @@ npm run self:architecture:check
 
 `test:coverage` は CI quality gate のローカル版です。`self:architecture:check` は reviewed architecture snapshot に対する運用チェックです。
 
+## 長時間かかる authoritative run
+
+- 最終値が必要なら、`domain_design` / `architecture_design` は full input で回します。速く見せるために縮めた profile へ切り替えないでください。
+- 大きい repo では、history ingestion を modeled path に絞っても `domain_design` はなお長時間かかることがあります。残り時間の多くは docs extraction と evidence assembly です。
+- non-interactive な shell や CI log でも進捗を見たい場合は `CONTEXT_PROBE_PROGRESS=1` を付けます。
+- コマンドは最後まで待ち、完了後の `status` `result` `unknowns` `diagnostics` `provenance` を読みます。これが完了した run の authoritative output です。
+- 静かに見える場合でも、入力を変える前にまず shell や CI job の実行時間とログを確認します。小さい bundle での再実行は measurement 自体を変えるので、timeout workaround ではなく意図的な選択として扱ってください。
+
 ## snapshot の役割
 
 - `scenario-observations`: ローカル benchmark から作る measured input

@@ -28,6 +28,7 @@ export function registerReportMarkdownArchitectureTests(): void {
         confidence: 0.72,
         unknowns: ["Telemetry observations are missing."],
         diagnostics: [],
+        progress: [],
         provenance: [],
         version: "1.0",
       },

@@ -97,6 +97,10 @@ npm run dev -- score.compute \
 
 Add `--docs-root docs` when you want document-derived metrics included in the run.
 
+For large repos, `domain_design` is an authoritative run: keep the full model and docs inputs, let it finish, and read the final `status`, `result`, `unknowns`, `diagnostics`, and `provenance` instead of switching to a reduced profile just to shorten the wall time.
+
+When you run the CLI in a TTY, or set `CONTEXT_PROBE_PROGRESS=1`, the scorer emits stage progress lines to stderr while it works. That output is advisory; the final JSON response remains the source of truth.
+
 ### Generate a Markdown Report
 
 ```bash

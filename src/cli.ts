@@ -42,8 +42,19 @@ function parseArgs(argv: string[]): { command: string | undefined; args: Record<
 
 async function main(): Promise<void> {
   const { command, args } = parseArgs(process.argv.slice(2));
+  const progressEnabled =
+    process.stderr.isTTY || process.env.CONTEXT_PROBE_PROGRESS === "1" || process.env.CONTEXT_PROBE_PROGRESS === "true";
   const context: CommandContext = {
     cwd: process.cwd(),
+    ...(progressEnabled
+      ? {
+          reportProgress(update) {
+            process.stderr.write(
+              `[context-probe:${update.phase}] ${update.message}${update.elapsedMs !== undefined ? ` (${update.elapsedMs}ms)` : ""}\n`,
+            );
+          },
+        }
+      : {}),
   };
 
   if (!command || args.help === true) {

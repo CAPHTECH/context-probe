@@ -20,6 +20,12 @@ export interface Evidence {
   source: Record<string, unknown>;
 }
 
+export interface ProgressUpdate {
+  phase: string;
+  message: string;
+  elapsedMs?: number;
+}
+
 export type ExtractionKind = "glossary" | "rules" | "invariants";
 export type ExtractionBackend = "heuristic" | "cli";
 export type ExtractionProviderName = "codex" | "claude";
@@ -38,6 +44,7 @@ export interface CommandResponse<T = unknown> {
   confidence: number;
   unknowns: string[];
   diagnostics: string[];
+  progress: ProgressUpdate[];
   provenance: ProvenanceRef[];
   version: string;
 }

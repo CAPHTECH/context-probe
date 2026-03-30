@@ -1,3 +1,5 @@
+import type { ProgressUpdate } from "./common.js";
+
 export interface DomainPack {
   id: string;
   version: string;
@@ -8,4 +10,5 @@ export interface DomainPack {
 
 export interface CommandContext {
   cwd: string;
+  reportProgress?: (update: ProgressUpdate) => void;
 }
