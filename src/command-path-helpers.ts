@@ -8,17 +8,6 @@ export function resolveSpecRelativePath(baseDirectory: string, input: string): s
   return path.isAbsolute(input) ? input : path.resolve(baseDirectory, input);
 }
 
-export function parseTieTolerance(value: string | number | undefined): number | undefined {
-  if (typeof value === "number") {
-    return Number.isFinite(value) && value >= 0 ? value : undefined;
-  }
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-  }
-  return undefined;
-}
-
 export function getRootPath(args: CommandArgs, context: CommandContext): string {
   return typeof args.repo === "string" ? new URL(args.repo, `file://${context.cwd}/`).pathname : context.cwd;
 }

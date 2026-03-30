@@ -33,6 +33,5 @@ export {
   getDocsRoot,
   getProfile,
   getRootPath,
-  parseTieTolerance,
   resolveSpecRelativePath,
 } from "./command-path-helpers.js";

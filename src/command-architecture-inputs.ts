@@ -1,10 +1,4 @@
-import {
-  resolveComplexitySourceConfig,
-  resolveContractBaselineSourceConfig,
-  resolveDeliverySourceConfig,
-  resolveScenarioObservationSourceConfig,
-  resolveTelemetrySourceConfig,
-} from "./analyzers/architecture-source-loader.js";
+import { resolveArchitectureInputSources } from "./command-architecture-inputs-sources.js";
 import type { CommandArgs } from "./command-helpers.js";
 import {
   getProfile,
@@ -36,37 +30,6 @@ import {
 } from "./command-helpers.js";
 import type { ComputeArchitectureScoresOptions } from "./core/architecture-scoring-types.js";
 import type { CommandContext } from "./core/contracts.js";
-import { toProvenance } from "./core/response.js";
-
-const DIRECT_ARCHITECTURE_INPUTS = [
-  { argName: "scenario-catalog", note: "scenario_catalog_file" },
-  { argName: "scenario-observations", note: "scenario_observations_file" },
-  { argName: "topology-model", note: "topology_model_file" },
-  { argName: "boundary-map", note: "boundary_map_file" },
-  { argName: "contract-baseline", note: "contract_baseline_file" },
-  { argName: "runtime-observations", note: "runtime_observations_file" },
-  { argName: "delivery-observations", note: "delivery_observations_file" },
-  { argName: "delivery-raw-observations", note: "delivery_raw_observations_file" },
-  { argName: "delivery-export", note: "delivery_export_file" },
-  { argName: "delivery-normalization-profile", note: "delivery_normalization_profile_file" },
-  { argName: "telemetry-observations", note: "telemetry_observations_file" },
-  { argName: "telemetry-raw-observations", note: "telemetry_raw_observations_file" },
-  { argName: "telemetry-export", note: "telemetry_export_file" },
-  { argName: "telemetry-normalization-profile", note: "telemetry_normalization_profile_file" },
-  { argName: "pattern-runtime-observations", note: "pattern_runtime_observations_file" },
-  { argName: "pattern-runtime-raw-observations", note: "pattern_runtime_raw_observations_file" },
-  { argName: "pattern-runtime-normalization-profile", note: "pattern_runtime_normalization_profile_file" },
-  { argName: "complexity-export", note: "complexity_export_file" },
-] as const;
-
-function collectDirectInputProvenance(args: CommandArgs, context: CommandContext) {
-  return DIRECT_ARCHITECTURE_INPUTS.flatMap(({ argName, note }) => {
-    const inputPath = args[argName];
-    return typeof inputPath === "string"
-      ? [toProvenance(new URL(inputPath, `file://${context.cwd}/`).pathname, note)]
-      : [];
-  });
-}
 
 export async function buildArchitectureScoreOptions(
   args: CommandArgs,
@@ -124,71 +87,31 @@ export async function buildArchitectureScoreOptions(
     loadComplexityExportIfRequested(args, context),
     loadComplexitySourceConfigIfRequested(args, context),
   ]);
-
-  const usableTelemetryRaw = Boolean(telemetryRawObservations && telemetryNormalizationProfile);
-  const usableDeliveryRaw = Boolean(deliveryRawObservations && deliveryNormalizationProfile);
-  const contractBaselineSource =
-    !contractBaseline && contractBaselineSourceConfig
-      ? await resolveContractBaselineSourceConfig(contractBaselineSourceConfig)
-      : undefined;
-  const scenarioObservationSource =
-    !scenarioObservations && scenarioObservationSourceConfig
-      ? await resolveScenarioObservationSourceConfig(scenarioObservationSourceConfig)
-      : undefined;
-  const telemetrySource =
-    !telemetryObservations && !usableTelemetryRaw && !telemetryExport && telemetrySourceConfig
-      ? await resolveTelemetrySourceConfig(telemetrySourceConfig)
-      : undefined;
-  const deliverySource =
-    !deliveryObservations && !usableDeliveryRaw && !deliveryExport && deliverySourceConfig
-      ? await resolveDeliverySourceConfig(deliverySourceConfig)
-      : undefined;
-  const complexitySource =
-    !complexityExport && complexitySourceConfig
-      ? await resolveComplexitySourceConfig(complexitySourceConfig)
-      : undefined;
-
-  const additionalProvenance = [
-    ...collectDirectInputProvenance(args, context),
-    ...(contractBaselineSource
-      ? [
-          toProvenance(contractBaselineSource.configPath, "contract_baseline_source_config"),
-          ...(contractBaselineSource.resolvedPath
-            ? [toProvenance(contractBaselineSource.resolvedPath, "contract_baseline_source_file")]
-            : []),
-        ]
-      : []),
-    ...(scenarioObservationSource
-      ? [
-          toProvenance(scenarioObservationSource.configPath, "scenario_observation_source_config"),
-          ...(scenarioObservationSource.resolvedPath
-            ? [toProvenance(scenarioObservationSource.resolvedPath, "scenario_observation_source_file")]
-            : []),
-        ]
-      : []),
-    ...(telemetrySource
-      ? [
-          toProvenance(telemetrySource.configPath, "telemetry_source_config"),
-          ...(telemetrySource.resolvedPath
-            ? [toProvenance(telemetrySource.resolvedPath, "telemetry_source_file")]
-            : []),
-        ]
-      : []),
-    ...(deliverySource
-      ? [
-          toProvenance(deliverySource.configPath, "delivery_source_config"),
-          ...(deliverySource.resolvedPath ? [toProvenance(deliverySource.resolvedPath, "delivery_source_file")] : []),
-        ]
-      : []),
-    ...(complexitySource
-      ? [
-          toProvenance(complexitySource.configPath, "complexity_source_config"),
-          ...(complexitySource.resolvedPath
-            ? [toProvenance(complexitySource.resolvedPath, "complexity_source_file")]
-            : []),
-        ]
-      : []),
-  ];
+  const {
+    contractBaselineSource,
+    scenarioObservationSource,
+    telemetrySource,
+    deliverySource,
+    complexitySource,
+    additionalProvenance,
+  } = await resolveArchitectureInputSources({
+    args,
+    context,
+    scenarioObservations,
+    scenarioObservationSourceConfig,
+    contractBaseline,
+    contractBaselineSourceConfig,
+    deliveryObservations,
+    deliveryRawObservations,
+    deliveryExport,
+    deliverySourceConfig,
+    telemetryObservations,
+    telemetryRawObservations,
+    telemetryExport,
+    telemetrySourceConfig,
+    complexityExport,
+    complexitySourceConfig,
+  });
 
   return {
     repoPath,

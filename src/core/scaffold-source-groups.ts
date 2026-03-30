@@ -4,7 +4,6 @@ import type { CodebaseAnalysis, SourceGroup } from "./scaffold-types.js";
 
 const SOURCE_ROOTS = new Set(["src", "lib", "app"]);
 
-export const AGGREGATE_FILE_PATTERN = /aggregate/i;
 export const CONTRACT_MARKERS = new Set(["contract", "contracts", "api", "schema", "schemas", "dto", "dtos"]);
 export const LAYER_PRIORITY_HINTS = new Map<string, number>([
   ["domain", 0],
@@ -37,8 +36,6 @@ export const LAYER_PRIORITY_HINTS = new Map<string, number>([
   ["platform", 3],
 ]);
 export const INTERNAL_MARKERS = new Set(["internal", "impl", "private", "_internal"]);
-export const STOPWORD_AGGREGATE_TERMS = [/context$/i, /contract$/i, /service$/i, /handler$/i, /controller$/i];
-
 export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
   const groups = new Map<string, SourceGroup>();
 
