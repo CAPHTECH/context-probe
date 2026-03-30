@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
 import type { CommandResponse, DomainDesignShadowRolloutBatchResult } from "../src/core/contracts.js";
+import { summarizeShadowRolloutBatchObservations } from "../src/core/shadow-rollout.js";
 import { createTemporaryGitRepoFromFixture } from "./helpers.js";
 
 const execFile = promisify(execFileCallback);
@@ -127,6 +128,70 @@ describe("shadow rollout batch observation", () => {
       expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" }),
     );
   }, 20000);
+
+  test("summarizes empty and zero-weight batches without dividing by zero", () => {
+    expect(summarizeShadowRolloutBatchObservations([])).toEqual({
+      repoCount: 0,
+      averageDelta: 0,
+      weightedAverageDelta: 0,
+      minDelta: 0,
+      maxDelta: 0,
+      deltaRange: 0,
+      driftCounts: {
+        aligned: 0,
+        candidateHigher: 0,
+        candidateLower: 0,
+      },
+    });
+
+    expect(
+      summarizeShadowRolloutBatchObservations([
+        {
+          repoId: "alpha",
+          category: "stable",
+          modelSource: "repo_owned",
+          repoPath: "/tmp/alpha-repo",
+          modelPath: "/tmp/alpha-model.yaml",
+          policyPath: "/tmp/alpha-policy.yaml",
+          relevantCommitCount: 0,
+          policyDelta: 0.2,
+          modelDelta: 0.2,
+          driftCategory: "aligned",
+          elsMetric: 0.9,
+          persistenceLocalityScore: 0.9,
+          confidence: 0.8,
+          unknowns: [],
+          status: "ok",
+        },
+        {
+          repoId: "beta",
+          category: "stable",
+          modelSource: "repo_owned",
+          repoPath: "/tmp/beta-repo",
+          modelPath: "/tmp/beta-model.yaml",
+          policyPath: "/tmp/beta-policy.yaml",
+          relevantCommitCount: 0,
+          policyDelta: 0.1,
+          modelDelta: 0.1,
+          driftCategory: "candidate_higher",
+          elsMetric: 0.85,
+          persistenceLocalityScore: 0.85,
+          confidence: 0.8,
+          unknowns: [],
+          status: "ok",
+        },
+      ]),
+    ).toMatchObject({
+      repoCount: 2,
+      averageDelta: 0.15000000000000002,
+      weightedAverageDelta: 0.15000000000000002,
+      driftCounts: {
+        aligned: 1,
+        candidateHigher: 1,
+        candidateLower: 0,
+      },
+    });
+  });
 });
 
 async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {

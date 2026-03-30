@@ -68,6 +68,10 @@ Choose the shortest path for your task:
 
 - [policy-and-ci.md](operations/policy-and-ci.md)
   - Thresholds, review conditions, and CI operation guidance.
+- [release-preflight.md](operations/release-preflight.md)
+  - Release-time checklist for validation, self-measurement, and packaging.
+- [self-measurement-runbook.md](operations/self-measurement-runbook.md)
+  - Operational order for refresh, complexity export, baseline capture, and self-measurement checks.
 - [architecture-source-collectors.md](operations/architecture-source-collectors.md)
   - Reference collectors and canonical source-config patterns for architecture evidence.
 

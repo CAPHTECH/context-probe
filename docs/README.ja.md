@@ -68,6 +68,10 @@
 
 - [policy-and-ci.ja.md](operations/policy-and-ci.ja.md)
   - 閾値設定、レビュー条件、CI 運用を定義します。
+- [release-preflight.ja.md](operations/release-preflight.ja.md)
+  - release 前に回す検証、self-measurement、packaging の手順をまとめます。
+- [self-measurement-runbook.ja.md](operations/self-measurement-runbook.ja.md)
+  - refresh、complexity export、baseline capture、self-measurement check の運用順序を固定します。
 - [architecture-source-collectors.ja.md](operations/architecture-source-collectors.ja.md)
   - canonical source config を evidence に接続する collector と example config をまとめます。
 

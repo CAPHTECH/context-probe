@@ -62,6 +62,9 @@ profiles:
 
 `domain_design` で `--pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` を有効にすると、返却される `ELS` が persistence candidate に置き換わることがあります。これは curated gate でその category が現在 `replace` の場合に限ります。CI の gate semantics 自体は変えません。`gate.evaluate` は、返ってきた metric 値をそのまま policy threshold に当てて判定します。
 
+self-measurement の snapshot 更新順序、coverage、release 前チェックの流れは [self-measurement-runbook.ja.md](self-measurement-runbook.ja.md) を参照してください。
+validation と packaging を含む release 前チェックは [release-preflight.ja.md](release-preflight.ja.md) を参照してください。
+
 ### 4.1 ドメイン設計向け
 
 - 新規 `boundary leak` が増えたら fail
@@ -143,3 +146,7 @@ profiles:
 - ignore ルールを明示的に登録できる
 - review で修正した結果を再計測へ反映できる
 - 誤検知理由を evidence 付きで追跡できる
+
+## 10. 関連文書
+
+- [self-measurement-runbook.ja.md](self-measurement-runbook.ja.md)

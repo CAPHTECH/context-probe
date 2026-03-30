@@ -295,5 +295,6 @@ Those commands are useful, but they have more setup requirements. Start with `sc
 - Current architecture-design measurement path: [../implementation/architecture-design-measurement.md](../implementation/architecture-design-measurement.md)
 - Standard data model: [../concepts/data-model.md](../concepts/data-model.md)
 - Policy and CI operation: [../operations/policy-and-ci.md](../operations/policy-and-ci.md)
+- Release preflight checklist: [../operations/release-preflight.md](../operations/release-preflight.md)
 - Source config and collectors: [../operations/architecture-source-collectors.md](../operations/architecture-source-collectors.md)
 - Full document index: [../README.md](../README.md)

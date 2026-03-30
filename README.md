@@ -146,6 +146,8 @@ Run the CI-shaped local check that combines the advisory freshness audit with a 
 npm run self:architecture:check
 ```
 
+For release-time validation and packaging, use [docs/operations/release-preflight.md](docs/operations/release-preflight.md).
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \

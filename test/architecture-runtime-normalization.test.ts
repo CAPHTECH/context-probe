@@ -93,6 +93,29 @@ describe("architecture runtime normalization", () => {
     );
   });
 
+  test("telemetry normalization handles empty signal profiles without crashing and still records rule gaps", () => {
+    const emptySignals = normalizeTelemetryObservationsCore({
+      raw: {
+        version: "1.0",
+        bands: [{ bandId: "steady", trafficWeight: 0.7, latencyP95: 120 }],
+      },
+      profile: {
+        version: "1.0",
+        signals: {},
+      },
+    });
+
+    expect(emptySignals.telemetry.bands).toEqual([{ bandId: "steady", trafficWeight: 0.7 }]);
+    expect(emptySignals.confidence).toBeLessThan(0.5);
+    expect(emptySignals.unknowns).toEqual(
+      expect.arrayContaining([
+        "steady is missing a normalization rule for LatencyScore.",
+        "steady is missing a normalization rule for ErrorScore.",
+        "steady is missing a normalization rule for SaturationScore.",
+      ]),
+    );
+  });
+
   test("pattern runtime fallback covers legacy, TIS bridge, and neutral paths", () => {
     const legacy = resolveFallbackPatternRuntime({
       observations: {
@@ -106,6 +129,18 @@ describe("architecture runtime normalization", () => {
     expect(legacy.source).toBe("legacy");
     expect(legacy.value).toBe(1);
     expect(legacy.patternFamily).toBe("layered");
+
+    const legacyWithoutFamily = resolveFallbackPatternRuntime({
+      observations: {
+        version: "1.0",
+        score: 0.33,
+      },
+      findings: [],
+      unknowns: [],
+    });
+    expect(legacyWithoutFamily.source).toBe("legacy");
+    expect(legacyWithoutFamily.value).toBe(0.33);
+    expect(legacyWithoutFamily.patternFamily).toBeUndefined();
 
     const bridged = resolveFallbackPatternRuntime({
       observations: {

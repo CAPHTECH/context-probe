@@ -23,6 +23,9 @@ Recommended usage:
 3. publish `report.generate` output when helpful
 4. route `review.list_unknowns` output to human review
 
+For the operational order around self-measurement snapshots, coverage, and release-preflight checks, see [self-measurement-runbook.md](self-measurement-runbook.md).
+For the release-time checklist that covers validation and packaging, see [release-preflight.md](release-preflight.md).
+
 When `--pilot-persistence --rollout-category <category> --shadow-rollout-registry <path>` is enabled for `domain_design`, the returned `ELS` metric may be replaced by the persistence candidate for categories whose curated gate currently says `replace`. CI gate semantics do not change: `gate.evaluate` still judges only the returned metric values against policy thresholds.
 
 ## Suggested Rules
@@ -55,3 +58,7 @@ Keep explicit filters for:
 - formatting-only commits
 - dependency bump churn
 - lockfiles or generated files that would distort locality
+
+## See Also
+
+- [self-measurement-runbook.md](self-measurement-runbook.md)

@@ -308,5 +308,6 @@ pilot mode で変わる点:
 - アーキテクチャ設計の current implementation: [../implementation/architecture-design-measurement.ja.md](../implementation/architecture-design-measurement.ja.md)
 - 標準データモデル: [../concepts/data-model.ja.md](../concepts/data-model.ja.md)
 - ポリシー設定と CI 運用: [../operations/policy-and-ci.ja.md](../operations/policy-and-ci.ja.md)
+- release 前チェックリスト: [../operations/release-preflight.ja.md](../operations/release-preflight.ja.md)
 - source config と collector の詳細: [../operations/architecture-source-collectors.ja.md](../operations/architecture-source-collectors.ja.md)
 - 文書全体の索引: [../README.ja.md](../README.ja.md)
