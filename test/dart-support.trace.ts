@@ -45,7 +45,14 @@ export function registerDartSupportTraceTests(): void {
     });
 
     expect(progress.some((entry) => entry.startsWith("start:Preparing trace links"))).toBe(true);
-    expect(progress.some((entry) => entry.startsWith("heartbeat:Trace linking is still running"))).toBe(true);
+    expect(
+      progress.some(
+        (entry) =>
+          entry.startsWith("heartbeat:Trace linking is still running") &&
+          entry.includes("term(s)/s") &&
+          entry.includes("ETA "),
+      ),
+    ).toBe(true);
     expect(progress.some((entry) => entry.startsWith("complete:Trace linking completed"))).toBe(true);
   });
 }

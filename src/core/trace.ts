@@ -10,6 +10,19 @@ function countOccurrences(text: string, query: string): number {
   return text.toLowerCase().split(query.toLowerCase()).length - 1;
 }
 
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  return `${minutes}m${remainingSeconds.toString().padStart(2, "0")}s`;
+}
+
 export async function buildTermTraceLinks(options: {
   docsRoot: string;
   repoRoot?: string;
@@ -49,10 +62,15 @@ export async function buildTermTraceLinks(options: {
   const links = options.terms.map((term, index) => {
     if (Date.now() - lastProgressAt >= progressIntervalMs) {
       lastProgressAt = Date.now();
+      const processedTerms = Math.max(index, 1);
+      const elapsedMs = lastProgressAt - startedAt;
+      const termsPerSecond = processedTerms / Math.max(elapsedMs / 1000, 0.001);
+      const remainingTerms = Math.max(options.terms.length - index, 0);
+      const etaMs = remainingTerms > 0 ? Math.round((remainingTerms / termsPerSecond) * 1000) : 0;
       options.onProgress?.({
         phase: "heartbeat",
-        message: `Trace linking is still running: processed ${index}/${options.terms.length} term(s).`,
-        elapsedMs: lastProgressAt - startedAt,
+        message: `Trace linking is still running: processed ${index}/${options.terms.length} term(s) at ${termsPerSecond.toFixed(1)} term(s)/s, ETA ${formatDuration(etaMs)}.`,
+        elapsedMs,
       });
     }
     const occurrences: TraceLinkOccurrence[] = [];
