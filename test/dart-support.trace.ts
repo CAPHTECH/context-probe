@@ -28,4 +28,24 @@ export function registerDartSupportTraceTests(): void {
     expect(links.find((link) => link.canonicalTerm === "OrderContract")?.coverage.codeHits).toBeGreaterThan(0);
     expect(links.find((link) => link.canonicalTerm === "GeneratedOnly")?.coverage.codeHits).toBe(0);
   });
+
+  test("emits trace-link progress updates while scanning terms", async () => {
+    const { scorableSourceFiles } = await parseCodebase(PARSER_REPO);
+    const progress: string[] = [];
+
+    await buildTermTraceLinks({
+      docsRoot: path.join(PARSER_REPO, "docs"),
+      repoRoot: PARSER_REPO,
+      codeFiles: scorableSourceFiles,
+      terms: createFlutterTraceTerms(),
+      progressIntervalMs: 0,
+      onProgress: (update) => {
+        progress.push(`${update.phase}:${update.message}`);
+      },
+    });
+
+    expect(progress.some((entry) => entry.startsWith("start:Preparing trace links"))).toBe(true);
+    expect(progress.some((entry) => entry.startsWith("heartbeat:Trace linking is still running"))).toBe(true);
+    expect(progress.some((entry) => entry.startsWith("complete:Trace linking completed"))).toBe(true);
+  });
 }

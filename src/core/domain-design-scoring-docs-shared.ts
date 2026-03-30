@@ -1,6 +1,7 @@
 import type { detectBoundaryLeaks, detectContractUsage } from "../analyzers/code.js";
 import type { DomainModel, Evidence, MetricScore, TermTraceLink } from "./contracts.js";
 import type { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
+import type { ProgressReporter } from "./progress.js";
 
 export type GlossaryExtractionResult = Awaited<ReturnType<typeof extractGlossary>>;
 export type RulesExtractionResult = Awaited<ReturnType<typeof extractRules>>;
@@ -16,6 +17,7 @@ export interface DomainDocsMetricOptionsBase {
   getRulesResult: () => Promise<RulesExtractionResult>;
   getInvariantsResult: () => Promise<InvariantsExtractionResult>;
   getTermTraceLinks: () => Promise<TermTraceLink[]>;
+  reportProgress?: ProgressReporter;
 }
 
 export interface DomainDocsMetricContribution {

@@ -19,6 +19,25 @@ function mergeContributions(contributions: DomainDocsMetricContribution[]) {
   };
 }
 
+async function runContribution(
+  options: DomainDocsMetricOptions,
+  metricId: "DRF" | "ULI" | "BFS" | "AFS",
+  task: () => Promise<DomainDocsMetricContribution>,
+): Promise<DomainDocsMetricContribution> {
+  const startedAt = Date.now();
+  options.reportProgress?.({
+    phase: "docs",
+    message: `Computing ${metricId} from document evidence.`,
+  });
+  const result = await task();
+  options.reportProgress?.({
+    phase: "docs",
+    message: `Computed ${metricId} from document evidence in ${Date.now() - startedAt}ms.`,
+    elapsedMs: Date.now() - startedAt,
+  });
+  return result;
+}
+
 export async function computeDomainDocsMetricScores(options: DomainDocsMetricOptions): Promise<{
   scores: MetricScore[];
   evidence: Evidence[];
@@ -27,17 +46,29 @@ export async function computeDomainDocsMetricScores(options: DomainDocsMetricOpt
 }> {
   const contributions: DomainDocsMetricContribution[] = [];
 
-  if (options.formulas.DRF) {
-    contributions.push(await computeDomainDocsDrfContribution(options, options.formulas.DRF));
+  const drfFormula = options.formulas.DRF;
+  if (drfFormula) {
+    contributions.push(
+      await runContribution(options, "DRF", () => computeDomainDocsDrfContribution(options, drfFormula)),
+    );
   }
-  if (options.formulas.ULI) {
-    contributions.push(await computeDomainDocsUliContribution(options, options.formulas.ULI));
+  const uliFormula = options.formulas.ULI;
+  if (uliFormula) {
+    contributions.push(
+      await runContribution(options, "ULI", () => computeDomainDocsUliContribution(options, uliFormula)),
+    );
   }
-  if (options.formulas.BFS) {
-    contributions.push(await computeDomainDocsBfsContribution(options, options.formulas.BFS));
+  const bfsFormula = options.formulas.BFS;
+  if (bfsFormula) {
+    contributions.push(
+      await runContribution(options, "BFS", () => computeDomainDocsBfsContribution(options, bfsFormula)),
+    );
   }
-  if (options.formulas.AFS) {
-    contributions.push(await computeDomainDocsAfsContribution(options, options.formulas.AFS));
+  const afsFormula = options.formulas.AFS;
+  if (afsFormula) {
+    contributions.push(
+      await runContribution(options, "AFS", () => computeDomainDocsAfsContribution(options, afsFormula)),
+    );
   }
 
   return mergeContributions(contributions);

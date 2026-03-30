@@ -15,11 +15,21 @@ export async function buildTermTraceLinks(options: {
   repoRoot?: string;
   terms: GlossaryTerm[];
   codeFiles?: string[];
+  onProgress?: (update: { phase: "start" | "heartbeat" | "complete"; message: string; elapsedMs?: number }) => void;
+  progressIntervalMs?: number;
 }): Promise<TermTraceLink[]> {
+  const startedAt = Date.now();
   const fragments = await normalizeDocuments(options.docsRoot);
   const codeFiles = options.repoRoot
     ? (options.codeFiles ?? (await listFiles(options.repoRoot)).filter((filePath) => isSourceFile(filePath)))
     : [];
+  const progressIntervalMs = options.progressIntervalMs ?? 5000;
+  let lastProgressAt = startedAt;
+
+  options.onProgress?.({
+    phase: "start",
+    message: `Preparing trace links for ${options.terms.length} term(s) across ${codeFiles.length} code file(s).`,
+  });
 
   const codeContents = await Promise.all(
     codeFiles.map(async (filePath) => ({
@@ -36,7 +46,15 @@ export async function buildTermTraceLinks(options: {
     })),
   );
 
-  return options.terms.map((term) => {
+  const links = options.terms.map((term, index) => {
+    if (Date.now() - lastProgressAt >= progressIntervalMs) {
+      lastProgressAt = Date.now();
+      options.onProgress?.({
+        phase: "heartbeat",
+        message: `Trace linking is still running: processed ${index}/${options.terms.length} term(s).`,
+        elapsedMs: lastProgressAt - startedAt,
+      });
+    }
     const occurrences: TraceLinkOccurrence[] = [];
     for (const fragment of fragments) {
       const matchCount = countOccurrences(fragment.text, term.canonicalTerm);
@@ -72,6 +90,14 @@ export async function buildTermTraceLinks(options: {
       confidence: Math.min(1, term.confidence * (documentHits + codeHits > 0 ? 1 : 0.7)),
     };
   });
+
+  options.onProgress?.({
+    phase: "complete",
+    message: `Trace linking completed for ${options.terms.length} term(s) across ${codeFiles.length} code file(s).`,
+    elapsedMs: Date.now() - startedAt,
+  });
+
+  return links;
 }
 
 export function buildModelCodeLinks(model: DomainModel, filePaths: string[]): ModelCodeLink[] {

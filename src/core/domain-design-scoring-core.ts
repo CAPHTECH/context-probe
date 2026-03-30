@@ -50,6 +50,7 @@ export async function computeDomainDesignScores(options: {
   const docsLoaders = createDomainDesignDocsLoaders({
     repoPath,
     docsRoot: options.docsRoot,
+    reportProgress: progress.reportProgress,
     extraction: options.extraction,
     codebase,
   });
@@ -104,10 +105,8 @@ export async function computeDomainDesignScores(options: {
               progress.withProgress("docs", `Extracting invariant evidence from ${options.docsRoot}.`, () =>
                 docsLoaders.getInvariantsResult(),
               ),
-            getTermTraceLinks: async () =>
-              progress.withProgress("docs", `Linking glossary terms to code for ${options.docsRoot}.`, () =>
-                docsLoaders.getTermTraceLinks(),
-              ),
+            getTermTraceLinks: async () => docsLoaders.getTermTraceLinks(),
+            reportProgress: progress.reportProgress,
             formulas: buildDomainDocsMetricFormulas(policy),
           }),
         )

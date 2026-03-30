@@ -8,7 +8,9 @@ import { createTemporaryWorkspace } from "./helpers.js";
 import { MODEL_ENTRY, POLICY_PATH, PROJECT_ENTRIES } from "./self-measurement.shared.js";
 
 function progressShape(progress: Array<{ phase: string; message: string }>): string[] {
-  return progress.map((entry) => `${entry.phase}:${entry.message.replace(/ completed in \d+(?:ms|s)\.$/, " completed.")}`);
+  return progress.map(
+    (entry) => `${entry.phase}:${entry.message.replace(/ completed in \d+(?:ms|s)\.$/, " completed.")}`,
+  );
 }
 
 export function registerDomainDesignNoGitContractTests(state: DomainDesignTestState): void {

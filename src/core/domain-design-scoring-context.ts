@@ -1,5 +1,6 @@
 import type { CodebaseAnalysis, ExtractionBackend, ExtractionProviderName, ReviewResolutionLog } from "./contracts.js";
 import { extractGlossary, extractInvariants, extractRules } from "./document-extractors.js";
+import type { ProgressReporter } from "./progress.js";
 import { buildTermTraceLinks } from "./trace.js";
 
 export interface DomainDesignDocsLoaders {
@@ -12,6 +13,7 @@ export interface DomainDesignDocsLoaders {
 export function createDomainDesignDocsLoaders(options: {
   repoPath: string;
   docsRoot: string | undefined;
+  reportProgress?: ProgressReporter;
   extraction:
     | {
         extractor: ExtractionBackend;
@@ -73,6 +75,13 @@ export function createDomainDesignDocsLoaders(options: {
         repoRoot: options.repoPath,
         terms: glossary.terms,
         codeFiles: options.codebase.scorableSourceFiles,
+        onProgress: (update) => {
+          options.reportProgress?.({
+            phase: "docs",
+            message: update.message,
+            ...(update.elapsedMs !== undefined ? { elapsedMs: update.elapsedMs } : {}),
+          });
+        },
       });
     }
     return termTraceLinksCache;
