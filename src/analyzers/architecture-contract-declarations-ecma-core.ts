@@ -1,50 +1,18 @@
 import ts from "typescript";
 
 import type { ArchitectureContractBaselineSymbol, ArchitectureContractBaselineSymbolKind } from "../core/contracts.js";
+import {
+  declarationContainsAny,
+  getDeclarationName,
+  getEcmaExportKind,
+  getRiskyExportKind,
+  getVariableDeclarationNames,
+  hasExportModifier,
+  isRiskyEcmaExport,
+  isStableEcmaExport,
+} from "./architecture-contract-declarations-ecma-shared.js";
 import { createContractSymbol, uniqueSymbols } from "./architecture-contract-declarations-shared.js";
 import type { ContractDeclarationStats, ContractStabilityFinding } from "./architecture-contract-types.js";
-
-function hasExportModifier(node: ts.Node): boolean {
-  if (!ts.canHaveModifiers(node)) {
-    return false;
-  }
-  const modifiers = ts.getModifiers(node);
-  return Boolean(modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword));
-}
-
-function getDeclarationName(node: ts.Node): string | undefined {
-  const namedNode = node as ts.NamedDeclaration;
-  if (namedNode.name && ts.isIdentifier(namedNode.name)) {
-    return namedNode.name.text;
-  }
-  return undefined;
-}
-
-function isStableEcmaExport(node: ts.Node): boolean {
-  return ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node);
-}
-
-function isRiskyEcmaExport(node: ts.Node): boolean {
-  return (
-    ts.isClassDeclaration(node) ||
-    ts.isFunctionDeclaration(node) ||
-    ts.isVariableStatement(node) ||
-    ts.isExportAssignment(node)
-  );
-}
-
-function declarationContainsAny(node: ts.Node, sourceFile: ts.SourceFile): boolean {
-  return /\bany\b/.test(node.getText(sourceFile));
-}
-
-function getVariableDeclarationNames(node: ts.VariableStatement): string[] {
-  return node.declarationList.declarations.flatMap((declaration) => {
-    if (ts.isIdentifier(declaration.name)) {
-      return [declaration.name.text];
-    }
-    return [];
-  });
-}
 
 export function analyzeEcmaContractDeclarations(pathValue: string, sourceText: string): ContractDeclarationStats {
   const sourceFile = ts.createSourceFile(pathValue, sourceText, ts.ScriptTarget.ES2022, true);
@@ -69,11 +37,7 @@ export function analyzeEcmaContractDeclarations(pathValue: string, sourceText: s
       exportCount += 1;
       stableExports += 1;
       const symbol = getDeclarationName(node);
-      const kind: ArchitectureContractBaselineSymbolKind = ts.isInterfaceDeclaration(node)
-        ? "interface"
-        : ts.isTypeAliasDeclaration(node)
-          ? "type_alias"
-          : "enum";
+      const kind: ArchitectureContractBaselineSymbolKind = getEcmaExportKind(node);
       if (symbol) {
         symbols.push(
           createContractSymbol({
@@ -106,13 +70,7 @@ export function analyzeEcmaContractDeclarations(pathValue: string, sourceText: s
     const symbolNames = ts.isVariableStatement(node)
       ? getVariableDeclarationNames(node)
       : [getDeclarationName(node) ?? (ts.isExportAssignment(node) ? "default" : "default")];
-    const kind: ArchitectureContractBaselineSymbolKind = ts.isClassDeclaration(node)
-      ? "class"
-      : ts.isFunctionDeclaration(node)
-        ? "function"
-        : ts.isVariableStatement(node)
-          ? "value"
-          : "default_export";
+    const kind: ArchitectureContractBaselineSymbolKind = getRiskyExportKind(node);
 
     if (symbolNames.length === 0) {
       symbolNames.push("default");

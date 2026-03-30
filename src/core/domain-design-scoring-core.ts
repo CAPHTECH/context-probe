@@ -10,6 +10,7 @@ import type {
   ReviewResolutionLog,
 } from "./contracts.js";
 import { createDomainDesignDocsLoaders } from "./domain-design-scoring-context.js";
+import { buildDomainDocsMetricFormulas } from "./domain-design-scoring-core-docs.js";
 import { computeDomainDocsMetricScores } from "./domain-design-scoring-docs.js";
 import { evaluateDomainLocality } from "./domain-design-scoring-locality.js";
 import { buildMccsMetric } from "./domain-design-scoring-mccs.js";
@@ -79,12 +80,7 @@ export async function computeDomainDesignScores(options: {
           getRulesResult: docsLoaders.getRulesResult,
           getInvariantsResult: docsLoaders.getInvariantsResult,
           getTermTraceLinks: docsLoaders.getTermTraceLinks,
-          formulas: {
-            ...(policy.metrics.DRF ? { DRF: policy.metrics.DRF.formula } : {}),
-            ...(policy.metrics.ULI ? { ULI: policy.metrics.ULI.formula } : {}),
-            ...(policy.metrics.BFS ? { BFS: policy.metrics.BFS.formula } : {}),
-            ...(policy.metrics.AFS ? { AFS: policy.metrics.AFS.formula } : {}),
-          },
+          formulas: buildDomainDocsMetricFormulas(policy),
         })
       : { scores: [], evidence: [], diagnostics: [], unknowns: [] };
   scores.push(...docsMetrics.scores);

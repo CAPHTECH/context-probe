@@ -41,6 +41,30 @@ export function computeBoundaryFitness(input: {
   leakFindings: BoundaryLeakFinding[];
   modelCodeLinks: ModelCodeLink[];
 }): BoundaryFitnessResult {
+  const computed = computeBoundaryFitnessComponents(input);
+
+  return {
+    A: computed.A,
+    R: computed.R,
+    confidence: computed.confidence,
+    evidence: computed.evidence,
+    unknowns: unique(computed.unknowns),
+    diagnostics: computed.diagnostics,
+    details: computed.details,
+  };
+}
+
+function computeBoundaryFitnessComponents(input: {
+  model: DomainModel;
+  fragments: Fragment[];
+  terms: GlossaryTerm[];
+  links: TermTraceLink[];
+  rules: RuleCandidate[];
+  invariants: InvariantCandidate[];
+  contractUsage: ContractUsageReport;
+  leakFindings: BoundaryLeakFinding[];
+  modelCodeLinks: ModelCodeLink[];
+}) {
   const unknowns: string[] = [];
   const diagnostics: string[] = [];
   const fragmentContextMentions = buildFragmentContextMentions(input.fragments, input.model);
@@ -142,7 +166,7 @@ export function computeBoundaryFitness(input: {
       separationFragments,
       fragmentContextMentions,
     }),
-    unknowns: unique(unknowns),
+    unknowns,
     diagnostics,
     details: {
       localizedSignals: localizedSignals.length,
