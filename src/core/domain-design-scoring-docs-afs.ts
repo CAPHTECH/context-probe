@@ -27,7 +27,7 @@ export async function computeDomainDocsAfsContribution(
     terms: glossary.terms,
     links,
     invariants: invariantsResult.invariants,
-    reportProgress: options.reportProgress,
+    ...(options.reportProgress ? { reportProgress: options.reportProgress } : {}),
   });
 
   return {

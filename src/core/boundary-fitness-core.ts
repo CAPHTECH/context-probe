@@ -108,7 +108,7 @@ function computeBoundaryFitnessComponents(input: {
     fragments: input.fragments,
     fragmentContextMentions,
     model: input.model,
-    reportProgress: input.reportProgress,
+    ...(input.reportProgress ? { reportProgress: input.reportProgress } : {}),
   });
 
   const localizedSignals = attractionSignals.filter((signal) => signal.contexts.length === 1);

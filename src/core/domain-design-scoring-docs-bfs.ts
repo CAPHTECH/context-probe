@@ -33,7 +33,7 @@ export async function computeDomainDocsBfsContribution(
     contractUsage: options.contractUsage,
     leakFindings: options.leakFindings,
     modelCodeLinks: buildModelCodeLinks(options.model, options.codeFiles),
-    reportProgress: options.reportProgress,
+    ...(options.reportProgress ? { reportProgress: options.reportProgress } : {}),
   });
 
   return {

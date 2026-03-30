@@ -43,7 +43,7 @@ export function computeAggregateFitness(input: {
     invariants: input.invariants,
     model: input.model,
     unknowns,
-    reportProgress: input.reportProgress,
+    ...(input.reportProgress ? { reportProgress: input.reportProgress } : {}),
   });
   input.reportProgress?.({
     phase: "docs",

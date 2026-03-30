@@ -28,8 +28,20 @@ function hasContractBasenameSignal(filePath: string): boolean {
   return CONTRACT_BASENAME_SIGNAL.test(path.basename(filePath));
 }
 
+function hasContractLayerNameSignal(layer: LayerDefinition): boolean {
+  return CONTRACT_LAYER_NAME_SIGNAL.test(layer.name);
+}
+
+function hasContractLayerGlobSignal(layer: LayerDefinition): boolean {
+  return layer.globs.some((glob) => hasContractDirectorySignal(glob));
+}
+
 function isArchitectureContractLayer(layer: LayerDefinition): boolean {
-  return CONTRACT_LAYER_NAME_SIGNAL.test(layer.name) || layer.globs.some((glob) => hasContractDirectorySignal(glob));
+  return hasContractLayerNameSignal(layer) || hasContractLayerGlobSignal(layer);
+}
+
+function hasNamedExplicitContractLayer(constraints: ArchitectureConstraints): boolean {
+  return constraints.layers.some((layer) => hasContractLayerNameSignal(layer));
 }
 
 function hasExplicitContractLayer(constraints: ArchitectureConstraints): boolean {
@@ -57,6 +69,7 @@ export function isMeasuredContractFilePath(options: {
   parsedFile?: ParsedSourceFile;
   allowDartDomainFallback?: boolean;
 }): boolean {
+  const namedExplicitContractLayerExists = hasNamedExplicitContractLayer(options.constraints);
   const explicitContractLayerExists = hasExplicitContractLayer(options.constraints);
   const layer = classifyArchitectureLayer(options.filePath, options.constraints);
 
@@ -64,6 +77,10 @@ export function isMeasuredContractFilePath(options: {
   // outside those layer globs must not influence IPS/CTI for the current repo.
   if (!layer) {
     return false;
+  }
+
+  if (namedExplicitContractLayerExists) {
+    return hasContractLayerNameSignal(layer);
   }
 
   if (explicitContractLayerExists) {

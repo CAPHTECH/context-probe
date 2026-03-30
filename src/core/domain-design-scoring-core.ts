@@ -4,8 +4,10 @@ import type {
   DomainDesignScoreResult,
   DomainDesignShadowRolloutGateEvaluation,
   DomainModel,
+  Evidence,
   ExtractionBackend,
   ExtractionProviderName,
+  MetricScore,
   PolicyConfig,
   ReviewResolutionLog,
 } from "./contracts.js";
@@ -62,7 +64,7 @@ export async function computeDomainDesignScores(options: {
   );
   const diagnostics: string[] = [];
   const unknowns: string[] = [];
-  const additionalEvidence = [];
+  const additionalEvidence: Evidence[] = [];
 
   const requiresLocalityComparison = options.shadowPersistence || Boolean(options.pilotPersistenceCategory);
   const locality = await progress.withProgress(
@@ -83,7 +85,7 @@ export async function computeDomainDesignScores(options: {
   diagnostics.push(...locality.diagnostics);
 
   const elsComponents = historySignals;
-  const scores = [];
+  const scores: MetricScore[] = [];
   const docsMetrics =
     docsLoaders && options.docsRoot
       ? await progress.withProgress("docs", `Computing document-derived metrics from ${options.docsRoot}.`, () =>
