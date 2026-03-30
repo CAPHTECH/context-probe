@@ -1,8 +1,6 @@
 import type { CochangeCommit, DomainModel } from "./contracts.js";
 import { matchGlobs, toPosixPath } from "./io.js";
 
-export const GIT_LOG_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
-
 export interface ContextualizedCommit extends CochangeCommit {
   contexts: string[];
 }

@@ -1,3 +1,9 @@
+import {
+  normalizeArchitectureBoundaryMap,
+  normalizeArchitectureScenarioCatalog,
+  normalizeArchitectureTelemetryObservations,
+  normalizeArchitectureTopologyModel,
+} from "./command-input-loaders-architecture-compat.js";
 import { loadOptionalDataFile } from "./command-input-loaders-core.js";
 import type { CommandArgs } from "./command-path-helpers.js";
 import type {
@@ -20,7 +26,9 @@ import type {
 } from "./core/contracts.js";
 
 export function loadScenarioCatalogIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureScenarioCatalog>(args, "scenario-catalog", context);
+  return loadOptionalDataFile<ArchitectureScenarioCatalog>(args, "scenario-catalog", context).then((value) =>
+    value ? normalizeArchitectureScenarioCatalog(value) : undefined,
+  );
 }
 
 export function loadScenarioObservationsIfRequested(args: CommandArgs, context: CommandContext) {
@@ -28,11 +36,15 @@ export function loadScenarioObservationsIfRequested(args: CommandArgs, context: 
 }
 
 export function loadTopologyModelIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureTopologyModel>(args, "topology-model", context);
+  return loadOptionalDataFile<ArchitectureTopologyModel>(args, "topology-model", context).then((value) =>
+    value ? normalizeArchitectureTopologyModel(value) : undefined,
+  );
 }
 
 export function loadBoundaryMapIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureBoundaryMap>(args, "boundary-map", context);
+  return loadOptionalDataFile<ArchitectureBoundaryMap>(args, "boundary-map", context).then((value) =>
+    value ? normalizeArchitectureBoundaryMap(value) : undefined,
+  );
 }
 
 export function loadContractBaselineIfRequested(args: CommandArgs, context: CommandContext) {
@@ -56,7 +68,9 @@ export function loadDeliveryExportIfRequested(args: CommandArgs, context: Comman
 }
 
 export function loadTelemetryObservationsIfRequested(args: CommandArgs, context: CommandContext) {
-  return loadOptionalDataFile<ArchitectureTelemetryObservationSet>(args, "telemetry-observations", context);
+  return loadOptionalDataFile<ArchitectureTelemetryObservationSet>(args, "telemetry-observations", context).then(
+    (value) => (value ? normalizeArchitectureTelemetryObservations(value) : undefined),
+  );
 }
 
 export function loadTelemetryRawObservationsIfRequested(args: CommandArgs, context: CommandContext) {

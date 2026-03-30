@@ -1,4 +1,4 @@
-import { promisify } from "node:util";
+import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -19,21 +19,29 @@ describe("history normalization", () => {
     vi.doUnmock("node:child_process");
   });
 
-  test("uses an expanded exec buffer for large git histories", async () => {
-    const execFilePromisified = vi.fn(async () => ({
-      stdout:
-        "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n" +
-        "__COMMIT__\ndef456\nfeat: rename sample\nR100\tsrc/old.ts\tsrc/new.ts\n" +
-        "__COMMIT__\nghi789\nfeat: copy sample\nC100\tsrc/original.ts\tsrc/copied.ts\n",
-      stderr: "",
-    }));
-    const execFileMock = vi.fn();
-    Object.assign(execFileMock, {
-      [promisify.custom]: execFilePromisified,
+  test("streams git history output without relying on execFile maxBuffer", async () => {
+    const spawnMock = vi.fn(() => {
+      const child = new EventEmitter() as EventEmitter & {
+        stdout: EventEmitter & { setEncoding: (encoding: string) => void };
+        stderr: EventEmitter & { setEncoding: (encoding: string) => void };
+      };
+      child.stdout = new EventEmitter() as EventEmitter & { setEncoding: (encoding: string) => void };
+      child.stderr = new EventEmitter() as EventEmitter & { setEncoding: (encoding: string) => void };
+      child.stdout.setEncoding = vi.fn();
+      child.stderr.setEncoding = vi.fn();
+      queueMicrotask(() => {
+        child.stdout.emit(
+          "data",
+          "__COMMIT__\nabc123\nfeat: sample commit\nM\tsrc/billing/invoice.ts\n__COMMIT__\ndef456\nfeat: rename sample\nR100\tsrc/old.ts\tsrc/new.ts\n",
+        );
+        child.stdout.emit("data", "__COMMIT__\nghi789\nfeat: copy sample\nC100\tsrc/original.ts\tsrc/copied.ts\n");
+        child.emit("close", 0, null);
+      });
+      return child;
     });
 
     vi.doMock("node:child_process", () => ({
-      execFile: execFileMock,
+      spawn: spawnMock,
     }));
 
     const { normalizeHistory } = await import("../src/core/history.js");
@@ -43,18 +51,21 @@ describe("history normalization", () => {
     expect(commits[0]?.files).toEqual(["src/billing/invoice.ts"]);
     expect(commits[1]?.files).toEqual(["src/new.ts"]);
     expect(commits[2]?.files).toEqual(["src/copied.ts"]);
-    expect(execFilePromisified).toHaveBeenCalledTimes(1);
-    const firstCall = execFilePromisified.mock.calls[0] as
-      | [string, string[], { cwd?: string; maxBuffer?: number }]
-      | undefined;
-    expect(firstCall).toBeDefined();
-    const [command, args, options] = firstCall!;
-    expect(command).toBe("git");
-    expect(args).toEqual(expect.arrayContaining(["-C", "/tmp/example-repo", "log", "--name-status"]));
-    expect(options).toEqual(
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(spawnMock).toHaveBeenCalledWith(
+      "git",
+      [
+        "-C",
+        "/tmp/example-repo",
+        "log",
+        "--no-merges",
+        "--find-renames",
+        "--name-status",
+        "--pretty=format:__COMMIT__%n%H%n%s",
+      ],
       expect.objectContaining({
         cwd: "/tmp/example-repo",
-        maxBuffer: 64 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "pipe"],
       }),
     );
   });

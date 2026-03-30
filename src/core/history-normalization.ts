@@ -1,10 +1,44 @@
-import { execFile as execFileCallback } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 
 import type { CochangeCommit, PolicyConfig } from "./contracts.js";
-import { GIT_LOG_MAX_BUFFER_BYTES, parseChangedPath, unique } from "./history-shared.js";
+import { parseChangedPath, unique } from "./history-shared.js";
 
-const execFile = promisify(execFileCallback);
+async function runGitLog(repoPath: string): Promise<string> {
+  const child = spawn(
+    "git",
+    ["-C", repoPath, "log", "--no-merges", "--find-renames", "--name-status", "--pretty=format:__COMMIT__%n%H%n%s"],
+    {
+      cwd: repoPath,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk: string) => {
+    stdout += chunk;
+  });
+  child.stderr.on("data", (chunk: string) => {
+    stderr += chunk;
+  });
+
+  const closePromise = once(child, "close") as Promise<[number | null, NodeJS.Signals | null]>;
+  const errorPromise = once(child, "error").then(([error]) => {
+    throw error;
+  });
+  const [code, signal] = await Promise.race([closePromise, errorPromise]);
+
+  if (code !== 0) {
+    const details =
+      stderr.trim() || `git log exited with code ${code ?? "unknown"}${signal ? ` signal ${signal}` : ""}.`;
+    throw new Error(details);
+  }
+
+  return stdout;
+}
 
 export async function normalizeHistory(
   repoPath: string,
@@ -17,14 +51,7 @@ export async function normalizeHistory(
   );
   const ignorePaths = profile?.history_filters?.ignore_paths ?? [];
 
-  const { stdout } = await execFile(
-    "git",
-    ["-C", repoPath, "log", "--no-merges", "--find-renames", "--name-status", "--pretty=format:__COMMIT__%n%H%n%s"],
-    {
-      cwd: repoPath,
-      maxBuffer: GIT_LOG_MAX_BUFFER_BYTES,
-    },
-  );
+  const stdout = await runGitLog(repoPath);
 
   const commits: CochangeCommit[] = [];
   const blocks = stdout
