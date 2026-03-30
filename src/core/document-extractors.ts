@@ -1,67 +1,22 @@
-import { normalizeDocuments } from "./artifacts.js";
-import type { ExtractionKind, Fragment, GlossaryTerm, InvariantCandidate, RuleCandidate } from "./contracts.js";
 import { normalizeGlossaryFromCli, normalizeGlossaryFromHeuristic } from "./document-extractor-glossary.js";
-import { buildMetadata, type ExtractionOptions } from "./document-extractor-shared.js";
 import {
   normalizeInvariantsFromCli,
   normalizeInvariantsFromHeuristic,
   normalizeRulesFromCli,
   normalizeRulesFromHeuristic,
 } from "./document-extractor-statements.js";
-import { runCliExtraction } from "./providers.js";
-import { applyReviewOverrides } from "./review.js";
+import { applyGlossaryReview, applyInvariantsReview, applyRulesReview } from "./document-extractors-review.js";
+import { extractWithProvider, normalizeExtractionOptions } from "./document-extractors-runner.js";
 
-function applyGlossaryReview(items: GlossaryTerm[], options: ExtractionOptions): GlossaryTerm[] {
-  return options.applyReviewLog ? applyReviewOverrides(items, options.reviewLog, "termId") : items;
-}
-
-function applyRulesReview(items: RuleCandidate[], options: ExtractionOptions): RuleCandidate[] {
-  return options.applyReviewLog ? applyReviewOverrides(items, options.reviewLog, "ruleId") : items;
-}
-
-function applyInvariantsReview(items: InvariantCandidate[], options: ExtractionOptions): InvariantCandidate[] {
-  return options.applyReviewLog ? applyReviewOverrides(items, options.reviewLog, "invariantId") : items;
-}
-
-async function extractWithProvider<T>(
-  kind: ExtractionKind,
-  fragments: Fragment[],
-  options: ExtractionOptions,
-  normalize: (rawItems: Record<string, unknown>[], fragments: Fragment[]) => T[],
-) {
-  if (!options.provider) {
-    throw new Error("CLI extractor requires `provider`");
-  }
-  const providerResult = await runCliExtraction({
-    cwd: options.cwd,
-    provider: options.provider,
-    kind,
-    promptProfile: options.promptProfile ?? "default",
-    fragments,
-    ...(options.providerCommand ? { providerCommand: options.providerCommand } : {}),
-  });
-
-  return {
-    fragments,
-    items: normalize(providerResult.items, fragments),
-    confidence: providerResult.confidence,
-    unknowns: providerResult.unknowns,
-    diagnostics: providerResult.diagnostics,
-    provider: providerResult.provider,
-  };
-}
-
-export async function extractGlossary(options: ExtractionOptions) {
-  const metadata = buildMetadata(options);
-  const fragments = await normalizeDocuments(options.root);
-  const fallback = options.fallback ?? "heuristic";
+export async function extractGlossary(options: import("./document-extractor-types.js").ExtractionOptions) {
+  const { metadata, fragments, fallback } = await normalizeExtractionOptions(options);
 
   if (metadata.extractor === "cli") {
     try {
       const extracted = await extractWithProvider("glossary", fragments, options, normalizeGlossaryFromCli);
       return {
         fragments: extracted.fragments,
-        terms: applyGlossaryReview(extracted.items, options),
+        terms: applyGlossaryReview(extracted.items, options.applyReviewLog, options.reviewLog),
         metadata: {
           ...metadata,
           provider: extracted.provider,
@@ -77,7 +32,7 @@ export async function extractGlossary(options: ExtractionOptions) {
       const terms = normalizeGlossaryFromHeuristic(fragments);
       return {
         fragments,
-        terms: applyGlossaryReview(terms, options),
+        terms: applyGlossaryReview(terms, options.applyReviewLog, options.reviewLog),
         metadata,
         confidence: 0.55,
         unknowns: ["The CLI extractor failed, so a heuristic fallback was used."],
@@ -89,7 +44,7 @@ export async function extractGlossary(options: ExtractionOptions) {
   const terms = normalizeGlossaryFromHeuristic(fragments);
   return {
     fragments,
-    terms: applyGlossaryReview(terms, options),
+    terms: applyGlossaryReview(terms, options.applyReviewLog, options.reviewLog),
     metadata,
     confidence: 0.7,
     unknowns: [],
@@ -97,16 +52,14 @@ export async function extractGlossary(options: ExtractionOptions) {
   };
 }
 
-export async function extractRules(options: ExtractionOptions) {
-  const metadata = buildMetadata(options);
-  const fragments = await normalizeDocuments(options.root);
-  const fallback = options.fallback ?? "heuristic";
+export async function extractRules(options: import("./document-extractor-types.js").ExtractionOptions) {
+  const { metadata, fragments, fallback } = await normalizeExtractionOptions(options);
 
   if (metadata.extractor === "cli") {
     try {
       const extracted = await extractWithProvider("rules", fragments, options, normalizeRulesFromCli);
       return {
-        rules: applyRulesReview(extracted.items, options),
+        rules: applyRulesReview(extracted.items, options.applyReviewLog, options.reviewLog),
         fragments: extracted.fragments,
         metadata: {
           ...metadata,
@@ -122,7 +75,7 @@ export async function extractRules(options: ExtractionOptions) {
       }
       const rules = normalizeRulesFromHeuristic(fragments);
       return {
-        rules: applyRulesReview(rules, options),
+        rules: applyRulesReview(rules, options.applyReviewLog, options.reviewLog),
         fragments,
         metadata,
         confidence: 0.55,
@@ -134,7 +87,7 @@ export async function extractRules(options: ExtractionOptions) {
 
   const rules = normalizeRulesFromHeuristic(fragments);
   return {
-    rules: applyRulesReview(rules, options),
+    rules: applyRulesReview(rules, options.applyReviewLog, options.reviewLog),
     fragments,
     metadata,
     confidence: 0.7,
@@ -143,16 +96,14 @@ export async function extractRules(options: ExtractionOptions) {
   };
 }
 
-export async function extractInvariants(options: ExtractionOptions) {
-  const metadata = buildMetadata(options);
-  const fragments = await normalizeDocuments(options.root);
-  const fallback = options.fallback ?? "heuristic";
+export async function extractInvariants(options: import("./document-extractor-types.js").ExtractionOptions) {
+  const { metadata, fragments, fallback } = await normalizeExtractionOptions(options);
 
   if (metadata.extractor === "cli") {
     try {
       const extracted = await extractWithProvider("invariants", fragments, options, normalizeInvariantsFromCli);
       return {
-        invariants: applyInvariantsReview(extracted.items, options),
+        invariants: applyInvariantsReview(extracted.items, options.applyReviewLog, options.reviewLog),
         fragments: extracted.fragments,
         metadata: {
           ...metadata,
@@ -168,7 +119,7 @@ export async function extractInvariants(options: ExtractionOptions) {
       }
       const invariants = normalizeInvariantsFromHeuristic(fragments);
       return {
-        invariants: applyInvariantsReview(invariants, options),
+        invariants: applyInvariantsReview(invariants, options.applyReviewLog, options.reviewLog),
         fragments,
         metadata,
         confidence: 0.55,
@@ -180,7 +131,7 @@ export async function extractInvariants(options: ExtractionOptions) {
 
   const invariants = normalizeInvariantsFromHeuristic(fragments);
   return {
-    invariants: applyInvariantsReview(invariants, options),
+    invariants: applyInvariantsReview(invariants, options.applyReviewLog, options.reviewLog),
     fragments,
     metadata,
     confidence: 0.68,

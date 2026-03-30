@@ -2,8 +2,14 @@ import type {
   ArchitectureDeliveryNormalizationProfile,
   ArchitectureDeliveryObservationSet,
   ArchitectureDeliveryRawObservationSet,
-  ScenarioDirection,
 } from "../core/contracts.js";
+import { buildDeliverySignalMappings } from "./architecture-delivery-normalization-spec.js";
+import {
+  average,
+  clamp01,
+  normalizeObservedValue,
+  uniqueUnknowns,
+} from "./architecture-observation-normalization-shared.js";
 
 export interface DeliveryNormalizationFinding {
   kind: "normalized_signal" | "missing_raw_signal" | "missing_normalization_rule";
@@ -20,34 +26,6 @@ export interface NormalizedDeliveryResult {
   confidence: number;
   unknowns: string[];
   findings: DeliveryNormalizationFinding[];
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
-function average(values: number[], fallback: number): number {
-  if (values.length === 0) {
-    return fallback;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function uniqueUnknowns(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
-
-function normalizeObservedValue(input: {
-  direction: ScenarioDirection;
-  observed: number;
-  target: number;
-  worstAcceptable: number;
-}): number {
-  const { direction, observed, target, worstAcceptable } = input;
-  if (direction === "lower_is_better") {
-    return clamp01((worstAcceptable - observed) / Math.max(0.0001, worstAcceptable - target));
-  }
-  return clamp01((observed - worstAcceptable) / Math.max(0.0001, target - worstAcceptable));
 }
 
 export function normalizeDeliveryObservations(input: {
@@ -85,43 +63,7 @@ export function normalizeDeliveryObservations(input: {
 
   const normalizedScores: ArchitectureDeliveryObservationSet["scores"] = {};
   let observedSignals = 0;
-  const mappings = [
-    {
-      component: "LeadTime" as const,
-      scoreComponent: "LeadTimeScore" as const,
-      observed: rawValues.LeadTime,
-      rule: profile.signals.LeadTime,
-      invertForStorage: false,
-    },
-    {
-      component: "DeployFrequency" as const,
-      scoreComponent: "DeployFreqScore" as const,
-      observed: rawValues.DeployFrequency,
-      rule: profile.signals.DeployFrequency,
-      invertForStorage: false,
-    },
-    {
-      component: "RecoveryTime" as const,
-      scoreComponent: "RecoveryScore" as const,
-      observed: rawValues.RecoveryTime,
-      rule: profile.signals.RecoveryTime,
-      invertForStorage: false,
-    },
-    {
-      component: "ChangeFailRate" as const,
-      scoreComponent: "ChangeFailScore" as const,
-      observed: rawValues.ChangeFailRate,
-      rule: profile.signals.ChangeFailRate,
-      invertForStorage: true,
-    },
-    {
-      component: "ReworkRate" as const,
-      scoreComponent: "ReworkScore" as const,
-      observed: rawValues.ReworkRate,
-      rule: profile.signals.ReworkRate,
-      invertForStorage: true,
-    },
-  ];
+  const mappings = buildDeliverySignalMappings({ rawValues, profile });
 
   for (const mapping of mappings) {
     if (!mapping.rule) {

@@ -1,30 +1,8 @@
-import type { ArchitectureConstraints, CodebaseAnalysis, ComplexityTaxComponentName } from "../core/contracts.js";
+import type { ArchitectureConstraints, CodebaseAnalysis } from "../core/contracts.js";
 import { collectContractFilePaths } from "./contract-files.js";
-import { average, clamp01, getBaseline, normalizeTax, round, uniqueUnknowns } from "./cti-helpers.js";
+import { type ComplexityTaxScore, createComplexityTaxRecorder } from "./cti-complexity-recorder.js";
 
-export interface ComplexityTaxFinding {
-  component: ComplexityTaxComponentName;
-  kind:
-    | "deployables_per_team"
-    | "pipelines_per_deployable"
-    | "contracts_or_schemas_per_service"
-    | "datastores_per_service_group"
-    | "oncall_surface"
-    | "sync_depth_overhead"
-    | "run_cost_per_business_transaction";
-  observed: number;
-  normalized: number;
-  confidence: number;
-  source: "constraints" | "codebase" | "derived";
-  note: string;
-}
-
-export interface ComplexityTaxScore {
-  components: Record<ComplexityTaxComponentName, number>;
-  confidence: number;
-  unknowns: string[];
-  findings: ComplexityTaxFinding[];
-}
+export type { ComplexityTaxFinding, ComplexityTaxScore } from "./cti-complexity-recorder.js";
 
 export function scoreComplexityTax(options: {
   codebase: CodebaseAnalysis;
@@ -32,54 +10,11 @@ export function scoreComplexityTax(options: {
 }): ComplexityTaxScore {
   const { codebase, constraints } = options;
   const metadata = constraints.complexity;
-  const findings: ComplexityTaxFinding[] = [];
-  const unknowns: string[] = [];
-  const confidenceSignals: number[] = [];
-  const components: Record<ComplexityTaxComponentName, number> = {
-    DeployablesPerTeam: 0.5,
-    PipelinesPerDeployable: 0.5,
-    ContractsOrSchemasPerService: 0.5,
-    DatastoresPerServiceGroup: 0.5,
-    OnCallSurface: 0.5,
-    SyncDepthOverhead: 0.5,
-    RunCostPerBusinessTransaction: 0.5,
-  };
-
-  const recorded = new Set<ComplexityTaxComponentName>();
-
-  function recordObservedComponent(input: {
-    component: ComplexityTaxComponentName;
-    kind: ComplexityTaxFinding["kind"];
-    observed: number | undefined;
-    source: ComplexityTaxFinding["source"];
-    note: string;
-    missingUnknown: string;
-  }): void {
-    if (input.observed === undefined || !Number.isFinite(input.observed)) {
-      unknowns.push(input.missingUnknown);
-      confidenceSignals.push(0.4);
-      return;
-    }
-    const baseline = getBaseline(constraints, input.component);
-    const normalized = normalizeTax(input.observed, baseline);
-    const sourceConfidence = input.source === "constraints" ? 0.88 : input.source === "codebase" ? 0.72 : 0.6;
-    components[input.component] = normalized;
-    confidenceSignals.push(sourceConfidence);
-    recorded.add(input.component);
-    findings.push({
-      component: input.component,
-      kind: input.kind,
-      observed: round(input.observed),
-      normalized: round(normalized),
-      confidence: sourceConfidence,
-      source: input.source,
-      note: `${input.note} (observed=${round(input.observed)}, target=${baseline.target}, worst=${baseline.worst})`,
-    });
-  }
+  const recorder = createComplexityTaxRecorder(constraints);
 
   const deployableCount = metadata?.deployableCount;
   const teamCount = metadata?.teamCount;
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "DeployablesPerTeam",
     kind: "deployables_per_team",
     observed:
@@ -91,7 +26,7 @@ export function scoreComplexityTax(options: {
     missingUnknown: "DeployablesPerTeam cannot be approximated because teamCount or deployableCount is missing.",
   });
 
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "PipelinesPerDeployable",
     kind: "pipelines_per_deployable",
     observed:
@@ -112,7 +47,7 @@ export function scoreComplexityTax(options: {
       allowDartDomainFallback: false,
     }).length;
   const serviceCount = metadata?.serviceCount ?? metadata?.deployableCount;
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "ContractsOrSchemasPerService",
     kind: "contracts_or_schemas_per_service",
     observed: serviceCount !== undefined && serviceCount > 0 ? observedContractCount / serviceCount : undefined,
@@ -122,10 +57,10 @@ export function scoreComplexityTax(options: {
       "ContractsOrSchemasPerService cannot be approximated because serviceCount or deployableCount is missing.",
   });
   if (metadata?.contractOrSchemaCount === undefined && observedContractCount === 0) {
-    unknowns.push("Contract/schema observations are sparse, so ContractsOrSchemasPerService is conservative.");
+    recorder.noteUnknown("Contract/schema observations are sparse, so ContractsOrSchemasPerService is conservative.");
   }
 
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "DatastoresPerServiceGroup",
     kind: "datastores_per_service_group",
     observed:
@@ -140,7 +75,7 @@ export function scoreComplexityTax(options: {
       "DatastoresPerServiceGroup cannot be approximated because datastoreCount or serviceGroupCount is missing.",
   });
 
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "OnCallSurface",
     kind: "oncall_surface",
     observed:
@@ -152,7 +87,7 @@ export function scoreComplexityTax(options: {
     missingUnknown: "OnCallSurface cannot be approximated because onCallSurface or teamCount is missing.",
   });
 
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "SyncDepthOverhead",
     kind: "sync_depth_overhead",
     observed: metadata?.syncDepthP95,
@@ -161,7 +96,7 @@ export function scoreComplexityTax(options: {
     missingUnknown: "SyncDepthOverhead cannot be approximated because syncDepthP95 is missing.",
   });
 
-  recordObservedComponent({
+  recorder.recordObservedComponent({
     component: "RunCostPerBusinessTransaction",
     kind: "run_cost_per_business_transaction",
     observed: metadata?.runCostPerBusinessTransaction,
@@ -172,16 +107,7 @@ export function scoreComplexityTax(options: {
   });
 
   if (!metadata) {
-    unknowns.push("Constraints do not include complexity metadata, so CTI is only partially observed.");
+    recorder.noteUnknown("Constraints do not include complexity metadata, so CTI is only partially observed.");
   }
-  if (recorded.size < 4) {
-    unknowns.push("Too few complexity-tax components were observed, so CTI confidence is limited.");
-  }
-
-  return {
-    components,
-    confidence: clamp01(average(confidenceSignals, 0.45)),
-    unknowns: uniqueUnknowns(unknowns),
-    findings,
-  };
+  return recorder.finalize();
 }

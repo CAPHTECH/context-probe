@@ -2,8 +2,14 @@ import type {
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTelemetryObservationSet,
   ArchitectureTelemetryRawObservationSet,
-  ScenarioDirection,
 } from "../core/contracts.js";
+import {
+  average,
+  clamp01,
+  normalizeObservedValue,
+  uniqueUnknowns,
+} from "./architecture-observation-normalization-shared.js";
+import { buildTelemetryBandMappings } from "./architecture-telemetry-normalization-spec.js";
 
 export interface TelemetryNormalizationFinding {
   kind: "normalized_signal" | "missing_raw_signal" | "missing_normalization_rule";
@@ -20,34 +26,6 @@ export interface NormalizedTelemetryResult {
   confidence: number;
   unknowns: string[];
   findings: TelemetryNormalizationFinding[];
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
-function average(values: number[], fallback: number): number {
-  if (values.length === 0) {
-    return fallback;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function normalizeObservedValue(input: {
-  direction: ScenarioDirection;
-  observed: number;
-  target: number;
-  worstAcceptable: number;
-}): number {
-  const { direction, observed, target, worstAcceptable } = input;
-  if (direction === "lower_is_better") {
-    return clamp01((worstAcceptable - observed) / Math.max(0.0001, worstAcceptable - target));
-  }
-  return clamp01((observed - worstAcceptable) / Math.max(0.0001, target - worstAcceptable));
-}
-
-function uniqueUnknowns(values: string[]): string[] {
-  return Array.from(new Set(values));
 }
 
 export function normalizeTelemetryObservations(input: {
@@ -92,23 +70,7 @@ export function normalizeTelemetryObservations(input: {
       bandId: band.bandId,
       trafficWeight: band.trafficWeight,
     };
-    const mappings = [
-      {
-        component: "LatencyScore" as const,
-        observed: band.latencyP95,
-        rule: profile.signals.LatencyScore,
-      },
-      {
-        component: "ErrorScore" as const,
-        observed: band.errorRate,
-        rule: profile.signals.ErrorScore,
-      },
-      {
-        component: "SaturationScore" as const,
-        observed: band.saturationRatio,
-        rule: profile.signals.SaturationScore,
-      },
-    ];
+    const mappings = buildTelemetryBandMappings({ band, profile });
 
     for (const mapping of mappings) {
       if (!mapping.rule) {
