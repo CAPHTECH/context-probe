@@ -181,6 +181,8 @@ coverage も品質ゲートに含めます。
 npm run test:coverage
 ```
 
+運用順序の要約は [docs/operations/self-measurement-runbook.ja.md](docs/operations/self-measurement-runbook.ja.md) にまとめています。
+
 このリポジトリ固有の注意として、small CLI codebase なので `ALR` `FCC` `SICR` `SLA` は evidence-limited のまま残りやすく、`PCS` も proxy composite のままです。これらは直ちに不具合を示すというより、自己計測の limitation として読みます。
 
 ### source config を使った brownfield evidence の取り込み例

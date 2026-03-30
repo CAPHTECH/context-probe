@@ -181,6 +181,8 @@ Coverage is also part of the quality gate now:
 npm run test:coverage
 ```
 
+The operational sequence is summarized in [docs/operations/self-measurement-runbook.md](docs/operations/self-measurement-runbook.md).
+
 For this repository specifically, some architecture unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` remain evidence-limited, and `PCS` remains a proxy composite. Treat those as self-measurement caveats, not immediate defects.
 
 ### Ingest Brownfield Evidence Through Source Config

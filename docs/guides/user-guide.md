@@ -153,6 +153,8 @@ When you want the same quality gate locally that CI uses, run:
 npm run test:coverage
 ```
 
+For the stable operational order, see [docs/operations/self-measurement-runbook.md](../operations/self-measurement-runbook.md).
+
 On this repository, some unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` are evidence-limited, and `PCS` remains a proxy composite. That is a self-measurement caveat, not an automatic bug report.
 
 ### 2. Generate a Markdown report
