@@ -1,0 +1,147 @@
+import type { ArchitectureBoundaryMap, ArchitectureConstraints, CochangeCommit } from "../core/contracts.js";
+import {
+  type ArchitectureEvolutionFinding,
+  type ArchitectureEvolutionLocalityScore,
+  architectureBoundaries,
+  average,
+  clamp01,
+  classifyBoundary,
+  pairKey,
+  uniqueUnknowns,
+} from "./architecture-evolution-shared.js";
+
+export function scoreArchitectureEvolutionLocality(options: {
+  commits: CochangeCommit[];
+  constraints: ArchitectureConstraints;
+  boundaryMap?: ArchitectureBoundaryMap;
+}): ArchitectureEvolutionLocalityScore {
+  const boundaries = architectureBoundaries(options.constraints, options.boundaryMap);
+  const findings: ArchitectureEvolutionFinding[] = [];
+  const unknowns: string[] = [];
+
+  if (boundaries.length < 2) {
+    return {
+      CrossBoundaryCoChange: 0.5,
+      WeightedPropagationCost: 0.5,
+      WeightedClusteringCost: 0.5,
+      confidence: 0.25,
+      unknowns: ["There are too few architecture boundaries, so AELS is close to unobserved."],
+      findings,
+    };
+  }
+
+  if (!options.boundaryMap) {
+    unknowns.push("No boundary map was provided, so AELS is using constraint layers as a boundary proxy.");
+  }
+
+  const relevant = options.commits
+    .map((commit) => {
+      const touchedBoundaries = new Set(
+        commit.files
+          .map((filePath) => classifyBoundary(filePath, boundaries))
+          .filter((value): value is string => Boolean(value)),
+      );
+      return {
+        ...commit,
+        touchedBoundaries,
+      };
+    })
+    .filter((entry) => entry.touchedBoundaries.size > 0);
+
+  if (relevant.length === 0) {
+    return {
+      CrossBoundaryCoChange: 0.5,
+      WeightedPropagationCost: 0.5,
+      WeightedClusteringCost: 0.5,
+      confidence: 0.3,
+      unknowns: uniqueUnknowns([
+        ...unknowns,
+        "No history could be mapped to architecture boundaries, so AELS is close to unobserved.",
+      ]),
+      findings,
+    };
+  }
+
+  const totalBoundaries = Math.max(1, boundaries.length);
+  const crossBoundaryCommits = relevant.filter((entry) => entry.touchedBoundaries.size > 1);
+  const CrossBoundaryCoChange = crossBoundaryCommits.length / relevant.length;
+  const propagationCosts = relevant.map((entry) =>
+    totalBoundaries <= 1 ? 0 : (entry.touchedBoundaries.size - 1) / Math.max(1, totalBoundaries - 1),
+  );
+  const WeightedPropagationCost = clamp01(average(propagationCosts, 0));
+
+  const pairCounts = new Map<string, number>();
+  const involvedBoundaries = new Set<string>();
+  for (const commit of crossBoundaryCommits) {
+    const boundaryNames = Array.from(commit.touchedBoundaries).sort();
+    for (const boundary of boundaryNames) {
+      involvedBoundaries.add(boundary);
+    }
+    for (let index = 0; index < boundaryNames.length; index += 1) {
+      for (let next = index + 1; next < boundaryNames.length; next += 1) {
+        const leftBoundary = boundaryNames[index];
+        const rightBoundary = boundaryNames[next];
+        if (!leftBoundary || !rightBoundary) {
+          continue;
+        }
+        const key = pairKey(leftBoundary, rightBoundary);
+        pairCounts.set(key, (pairCounts.get(key) ?? 0) + 1);
+      }
+    }
+    findings.push({
+      kind: "cross_boundary_cochange",
+      commitHash: commit.hash,
+      confidence: 0.82,
+      note: `Commit ${commit.hash.slice(0, 7)} changed multiple boundaries at once: ${boundaryNames.join(", ")}`,
+    });
+  }
+
+  const maxPossiblePairs = Math.max(1, (totalBoundaries * (totalBoundaries - 1)) / 2);
+  const pairSpread = pairCounts.size / maxPossiblePairs;
+  const pairTouchDensity =
+    Array.from(pairCounts.values()).reduce((sum, value) => sum + value, 0) /
+    Math.max(1, relevant.length * maxPossiblePairs);
+  const boundarySpread = involvedBoundaries.size / totalBoundaries;
+  const WeightedClusteringCost =
+    crossBoundaryCommits.length === 0 ? 0 : clamp01(0.75 * pairTouchDensity + 0.15 * pairSpread + 0.1 * boundarySpread);
+
+  if (relevant.length < 3) {
+    unknowns.push("History is still thin for architecture-locality evaluation, so AELS is provisional.");
+  }
+  if (crossBoundaryCommits.length === 0) {
+    unknowns.push("No cross-boundary co-change was observed, so WPC/WCC evidence is limited.");
+  }
+
+  if (WeightedPropagationCost > 0.5) {
+    findings.push({
+      kind: "high_propagation_cost",
+      confidence: 0.76,
+      note: `WeightedPropagationCost is high at ${WeightedPropagationCost.toFixed(3)}, so changes are likely to spread.`,
+    });
+  }
+  if (WeightedClusteringCost > 0.5) {
+    findings.push({
+      kind: "high_clustering_cost",
+      confidence: 0.74,
+      note: `WeightedClusteringCost is high at ${WeightedClusteringCost.toFixed(3)}, so change coupling is spread across boundaries.`,
+    });
+  }
+
+  return {
+    CrossBoundaryCoChange,
+    WeightedPropagationCost,
+    WeightedClusteringCost,
+    confidence: clamp01(
+      average(
+        [
+          options.boundaryMap ? 0.86 : 0.68,
+          relevant.length >= 3 ? 0.84 : relevant.length > 0 ? 0.58 : 0.3,
+          crossBoundaryCommits.length > 0 ? 0.82 : 0.62,
+        ],
+        0.45,
+      ),
+    ),
+    unknowns: uniqueUnknowns(unknowns),
+    findings,
+  };
+}
