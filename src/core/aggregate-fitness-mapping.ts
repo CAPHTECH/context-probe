@@ -12,6 +12,7 @@ import type {
   InvariantCandidate,
   TermTraceLink,
 } from "./contracts.js";
+import type { ProgressReporter } from "./progress.js";
 
 export function mapAggregateInvariants(input: {
   aggregateDefinitions: AggregateDefinition[];
@@ -21,17 +22,31 @@ export function mapAggregateInvariants(input: {
   invariants: InvariantCandidate[];
   model: DomainModel;
   unknowns: string[];
+  reportProgress?: ProgressReporter;
 }): AggregateInvariantMapping[] {
   const fragmentContextMentions = buildFragmentContextMentions(input.fragments, input.model);
   const linkByTermId = new Map(input.links.map((link) => [link.termId, link]));
+  input.reportProgress?.({
+    phase: "docs",
+    message: "AFS: collecting glossary term contexts for aggregate mapping.",
+  });
   const mappedTerms = input.terms
     .map((term) => ({
       canonicalTerm: term.canonicalTerm,
       contexts: collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model),
     }))
     .filter((entry) => entry.contexts.length > 0);
-
-  return input.invariants.map((invariant) => {
+  let lastHeartbeatAt = Date.now();
+  return input.invariants.map((invariant, index) => {
+    const now = Date.now();
+    if (now - lastHeartbeatAt >= 5000) {
+      input.reportProgress?.({
+        phase: "docs",
+        message: `AFS: mapped ${index}/${input.invariants.length} invariant candidate(s).`,
+        elapsedMs: now - lastHeartbeatAt,
+      });
+      lastHeartbeatAt = now;
+    }
     const contexts = collectStatementContexts(
       invariant.statement,
       invariant.fragmentIds,

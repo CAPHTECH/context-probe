@@ -1,5 +1,6 @@
 import { collectStatementContexts } from "./boundary-fitness-contexts.js";
 import type { DomainModel, Fragment, GlossaryTerm, InvariantCandidate, RuleCandidate } from "./contracts.js";
+import type { ProgressReporter } from "./progress.js";
 
 const USE_CASE_SIGNALS = [
   /ユースケース/u,
@@ -40,7 +41,12 @@ export function buildAttractionSignals(input: {
   fragments: Fragment[];
   fragmentContextMentions: Map<string, string[]>;
   model: DomainModel;
+  reportProgress?: ProgressReporter;
 }): BoundarySignal[] {
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: collecting localized glossary term signals.",
+  });
   const mappedTerms = input.terms
     .map((term) => ({
       term,
@@ -64,6 +70,10 @@ export function buildAttractionSignals(input: {
     });
   }
 
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: mapping rule statements to domain contexts.",
+  });
   for (const rule of input.rules) {
     const contexts = collectStatementContexts(
       rule.statement,
@@ -85,6 +95,10 @@ export function buildAttractionSignals(input: {
     });
   }
 
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: mapping invariants to domain contexts.",
+  });
   for (const invariant of input.invariants) {
     const contexts = collectStatementContexts(
       invariant.statement,
@@ -106,6 +120,10 @@ export function buildAttractionSignals(input: {
     });
   }
 
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: scanning use-case fragments for context signals.",
+  });
   for (const fragment of input.fragments) {
     if (!hasUseCaseSignal(fragment.text)) {
       continue;

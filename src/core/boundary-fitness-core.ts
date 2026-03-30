@@ -16,6 +16,7 @@ import type {
   RuleCandidate,
   TermTraceLink,
 } from "./contracts.js";
+import type { ProgressReporter } from "./progress.js";
 
 export interface BoundaryFitnessResult {
   A: number;
@@ -42,6 +43,7 @@ export function computeBoundaryFitness(input: {
   contractUsage: ContractUsageReport;
   leakFindings: BoundaryLeakFinding[];
   modelCodeLinks: ModelCodeLink[];
+  reportProgress?: ProgressReporter;
 }): BoundaryFitnessResult {
   const computed = computeBoundaryFitnessComponents(input);
 
@@ -66,17 +68,38 @@ function computeBoundaryFitnessComponents(input: {
   contractUsage: ContractUsageReport;
   leakFindings: BoundaryLeakFinding[];
   modelCodeLinks: ModelCodeLink[];
+  reportProgress?: ProgressReporter;
 }) {
   const unknowns: string[] = [];
   const diagnostics: string[] = [];
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: mapping document fragments to domain contexts.",
+  });
   const fragmentContextMentions = buildFragmentContextMentions(input.fragments, input.model);
   const linkByTermId = new Map(input.links.map((link) => [link.termId, link]));
-  const termContexts = new Map(
-    input.terms.map((term) => [
+  const termContextEntries: Array<[string, string[]]> = [];
+  let lastHeartbeatAt = Date.now();
+  for (const [index, term] of input.terms.entries()) {
+    const now = Date.now();
+    if (now - lastHeartbeatAt >= 5000) {
+      input.reportProgress?.({
+        phase: "docs",
+        message: `BFS: mapped ${index}/${input.terms.length} glossary term context(s).`,
+        elapsedMs: now - lastHeartbeatAt,
+      });
+      lastHeartbeatAt = now;
+    }
+    termContextEntries.push([
       term.termId,
       collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model),
-    ]),
-  );
+    ]);
+  }
+  const termContexts = new Map(termContextEntries);
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: building attraction signals from glossary, rules, and invariants.",
+  });
   const attractionSignals = buildAttractionSignals({
     terms: input.terms,
     termContexts,
@@ -85,6 +108,7 @@ function computeBoundaryFitnessComponents(input: {
     fragments: input.fragments,
     fragmentContextMentions,
     model: input.model,
+    reportProgress: input.reportProgress,
   });
 
   const localizedSignals = attractionSignals.filter((signal) => signal.contexts.length === 1);
@@ -110,6 +134,10 @@ function computeBoundaryFitnessComponents(input: {
     input.modelCodeLinks.map((link) => link.coverage),
     0.55,
   );
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: evaluating code-level separation and model coverage.",
+  });
   const codeBoundaryStrength = computeCodeBoundaryStrength({
     applicableReferences: input.contractUsage.applicableReferences,
     adherence: input.contractUsage.adherence,
@@ -146,6 +174,10 @@ function computeBoundaryFitnessComponents(input: {
   if (input.modelCodeLinks.some((link) => link.coverage === 0)) {
     diagnostics.push("Some contexts could not be linked to code, which lowers model coverage.");
   }
+  input.reportProgress?.({
+    phase: "docs",
+    message: "BFS: building evidence and confidence summary.",
+  });
 
   return {
     A,

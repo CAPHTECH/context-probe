@@ -200,6 +200,22 @@ describe("command surface", () => {
         ([update]) => update.phase === "history" && String(update.message).includes("history analysis"),
       ),
     ).toBe(true);
+    expect(
+      reportProgress.mock.calls.some(
+        ([update]) =>
+          update.phase === "docs" &&
+          (String(update.message).includes("Computing ULI from document evidence.") ||
+            String(update.message).includes("BFS: mapping document fragments to domain contexts.") ||
+            String(update.message).includes("AFS: mapping invariants to aggregates and contexts.")),
+      ),
+    ).toBe(true);
+    expect(
+      reportProgress.mock.calls.some(
+        ([update]) =>
+          update.phase === "domain_design" &&
+          String(update.message).includes("Assembling final domain score response."),
+      ),
+    ).toBe(true);
     expect(reportProgress.mock.calls.some(([update]) => update.phase === "domain_design")).toBe(true);
   }, 30000);
 });

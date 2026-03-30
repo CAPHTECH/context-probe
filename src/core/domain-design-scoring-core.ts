@@ -167,18 +167,20 @@ export async function computeDomainDesignScores(options: {
     pilot = pilotResolution.pilot;
   }
 
-  return buildDomainDesignScoreResponse({
-    repoPath,
-    scores,
-    leakFindings,
-    history,
-    contractUsage,
-    shadow,
-    pilot,
-    diagnostics,
-    progress: progress.progress,
-    unknowns,
-    evidence: additionalEvidence,
-    ...(options.docsRoot ? { docsRoot: options.docsRoot } : {}),
-  });
+  return progress.withProgress("domain_design", "Assembling final domain score response.", () =>
+    buildDomainDesignScoreResponse({
+      repoPath,
+      scores,
+      leakFindings,
+      history,
+      contractUsage,
+      shadow,
+      pilot,
+      diagnostics,
+      progress: progress.progress,
+      unknowns,
+      evidence: additionalEvidence,
+      ...(options.docsRoot ? { docsRoot: options.docsRoot } : {}),
+    }),
+  );
 }
