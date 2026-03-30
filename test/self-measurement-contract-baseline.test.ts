@@ -57,7 +57,17 @@ describe("architecture self-measurement contract baseline", () => {
         capturedAt: "2026-03-30T00:00:00Z",
       }),
     );
-    expect(baseline.contracts?.map((entry) => entry.path)).toEqual(["src/core/contracts.ts"]);
+    expect(baseline.contracts?.map((entry) => entry.path)).toEqual(
+      expect.arrayContaining([
+        "src/core/contracts.ts",
+        "src/core/contracts/analysis.ts",
+        "src/core/contracts/architecture.ts",
+        "src/core/contracts/common.ts",
+        "src/core/contracts/domain-design.ts",
+        "src/core/contracts/domain-model.ts",
+        "src/core/contracts/governance.ts",
+      ]),
+    );
 
     const response = await COMMANDS["score.compute"]!(
       {

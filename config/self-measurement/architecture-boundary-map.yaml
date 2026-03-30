@@ -1,14 +1,15 @@
 version: "1.0"
 snapshot:
   sourceKind: derived
-  capturedAt: 2026-03-29T21:05:21.757Z
+  capturedAt: 2026-03-30T11:05:50.376Z
   derivedFrom:
     path: config/self-measurement/architecture-constraints.yaml
-    sha256: 52cc4bdd45918604e58f207c6d94880f3efc7f62b25aa66083415e68942b377c
+    sha256: 410793a1954b00c73f7e091b9cce7d3bd1db3ca6d158afb32bf4d859f8735ab0
 boundaries:
   - name: contracts
     pathGlobs:
       - src/core/contracts.ts
+      - src/core/contracts/**
   - name: foundation
     pathGlobs:
       - src/core/formula.ts
@@ -24,7 +25,32 @@ boundaries:
       - src/packs/**
   - name: application
     pathGlobs:
+      - src/command-architecture.ts
+      - src/command-domain.ts
       - src/cli.ts
+      - src/command-history.ts
+      - src/command-architecture-inputs.ts
+      - src/command-architecture-inputs-sources.ts
+      - src/command-architecture-inputs-loaders.ts
+      - src/command-architecture-inputs-loaders-config.ts
+      - src/command-architecture-inputs-loaders-data.ts
+      - src/command-architecture-inputs-provenance.ts
+      - src/command-architecture-inputs-resolved.ts
+      - src/command-extraction-helpers.ts
       - src/command-helpers.ts
+      - src/command-input-loaders.ts
+      - src/command-input-loaders-architecture.ts
+      - src/command-input-loaders-architecture-config.ts
+      - src/command-input-loaders-architecture-data.ts
+      - src/command-input-loaders-core.ts
+      - src/command-path-helpers.ts
+      - src/command-score-driven.ts
+      - src/command-score.ts
+      - src/command-shadow-rollout.ts
+      - src/command-shadow-rollout-batch.ts
+      - src/command-shadow-rollout-gate.ts
+      - src/command-shadow-rollout-observe.ts
+      - src/command-shadow-rollout-shared.ts
+      - src/command-types.ts
       - src/commands.ts
       - src/index.ts

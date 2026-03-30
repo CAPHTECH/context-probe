@@ -24,6 +24,16 @@ export function registerSelfMeasurementClassificationTests(state: { repoPath?: s
     }).sort();
 
     expect(unclassifiedSrc).toEqual([]);
-    expect(contractPaths).toEqual(["src/core/contracts.ts"]);
+    expect(contractPaths).toEqual(
+      expect.arrayContaining([
+        "src/core/contracts.ts",
+        "src/core/contracts/analysis.ts",
+        "src/core/contracts/architecture.ts",
+        "src/core/contracts/common.ts",
+        "src/core/contracts/domain-design.ts",
+        "src/core/contracts/domain-model.ts",
+        "src/core/contracts/governance.ts",
+      ]),
+    );
   });
 }

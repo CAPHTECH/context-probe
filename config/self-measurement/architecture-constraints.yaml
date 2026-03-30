@@ -5,6 +5,7 @@ layers:
     rank: 0
     globs:
       - "src/core/contracts.ts"
+      - "src/core/contracts/**"
   - name: foundation
     rank: 1
     globs:
