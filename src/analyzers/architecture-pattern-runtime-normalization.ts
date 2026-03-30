@@ -2,9 +2,15 @@ import type {
   ArchitecturePatternRuntimeNormalizationProfile,
   ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeRawObservationSet,
-  ScenarioDirection,
   TelemetryNormalizationRule,
 } from "../core/contracts.js";
+import { PATTERN_RUNTIME_NORMALIZATION_BLOCK_SPECS } from "./architecture-pattern-runtime-normalization-blocks.js";
+import {
+  average,
+  clamp01,
+  normalizeObservedValue,
+  uniqueUnknowns,
+} from "./architecture-pattern-runtime-normalization-math.js";
 
 export interface PatternRuntimeNormalizationFinding {
   kind: "normalized_signal" | "missing_raw_signal" | "missing_normalization_rule";
@@ -22,34 +28,6 @@ export interface NormalizedPatternRuntimeResult {
   confidence: number;
   unknowns: string[];
   findings: PatternRuntimeNormalizationFinding[];
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
-function average(values: number[], fallback: number): number {
-  if (values.length === 0) {
-    return fallback;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function uniqueUnknowns(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
-
-function normalizeObservedValue(input: {
-  direction: ScenarioDirection;
-  observed: number;
-  target: number;
-  worstAcceptable: number;
-}): number {
-  const { direction, observed, target, worstAcceptable } = input;
-  if (direction === "lower_is_better") {
-    return clamp01((worstAcceptable - observed) / Math.max(0.0001, worstAcceptable - target));
-  }
-  return clamp01((observed - worstAcceptable) / Math.max(0.0001, target - worstAcceptable));
 }
 
 export function normalizePatternRuntimeObservations(input: {
@@ -95,55 +73,15 @@ export function normalizePatternRuntimeObservations(input: {
     ...(raw.note ? { note: raw.note } : {}),
   };
 
-  const blockSpecs = [
-    {
-      blockName: "layeredRuntime" as const,
-      rawBlock: raw.layeredRuntime,
-      profileBlock: profile.layeredRuntime,
-      mappings: [
-        { rawSignal: "FailureContainment", scoreSignal: "FailureContainmentScore" },
-        { rawSignal: "DependencyIsolation", scoreSignal: "DependencyIsolationScore" },
-      ],
-    },
-    {
-      blockName: "serviceBasedRuntime" as const,
-      rawBlock: raw.serviceBasedRuntime,
-      profileBlock: profile.serviceBasedRuntime,
-      mappings: [
-        { rawSignal: "PartialFailureContainment", scoreSignal: "PartialFailureContainmentScore" },
-        { rawSignal: "RetryAmplification", scoreSignal: "RetryAmplificationScore" },
-        { rawSignal: "SyncHopDepth", scoreSignal: "SyncHopDepthScore" },
-      ],
-    },
-    {
-      blockName: "cqrsRuntime" as const,
-      rawBlock: raw.cqrsRuntime,
-      profileBlock: profile.cqrsRuntime,
-      mappings: [
-        { rawSignal: "ProjectionFreshness", scoreSignal: "ProjectionFreshnessScore" },
-        { rawSignal: "ReplayDivergence", scoreSignal: "ReplayDivergenceScore" },
-        { rawSignal: "StaleReadAcceptability", scoreSignal: "StaleReadAcceptabilityScore" },
-      ],
-    },
-    {
-      blockName: "eventDrivenRuntime" as const,
-      rawBlock: raw.eventDrivenRuntime,
-      profileBlock: profile.eventDrivenRuntime,
-      mappings: [
-        { rawSignal: "DeadLetterHealth", scoreSignal: "DeadLetterHealthScore" },
-        { rawSignal: "ConsumerLag", scoreSignal: "ConsumerLagScore" },
-        { rawSignal: "ReplayRecovery", scoreSignal: "ReplayRecoveryScore" },
-      ],
-    },
-  ];
-
-  for (const blockSpec of blockSpecs) {
-    if (!blockSpec.rawBlock) {
+  for (const blockSpec of PATTERN_RUNTIME_NORMALIZATION_BLOCK_SPECS) {
+    const rawBlock = raw[blockSpec.blockName] as Record<string, number | undefined> | undefined;
+    const profileBlock = profile[blockSpec.blockName] as
+      | Record<string, TelemetryNormalizationRule | undefined>
+      | undefined;
+    if (!rawBlock) {
       continue;
     }
     const normalizedBlock: Record<string, number> = {};
-    const rawBlock = blockSpec.rawBlock as Record<string, number | undefined>;
-    const profileBlock = blockSpec.profileBlock as Record<string, TelemetryNormalizationRule | undefined> | undefined;
     for (const mapping of blockSpec.mappings) {
       possibleSignals += 1;
       const rule = profileBlock?.[mapping.rawSignal];
