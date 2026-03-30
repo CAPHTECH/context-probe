@@ -37,9 +37,11 @@
     "prepublishOnly": "npm run check && npm test",
     "self:architecture:audit": "node scripts/self-measurement/audit-architecture-freshness.mjs",
     "self:architecture:baseline": "tsx scripts/self-measurement/capture-architecture-contract-baseline.ts",
+    "self:architecture:check": "node scripts/self-measurement/check-architecture-self-measurement.mjs",
     "self:architecture:complexity": "node scripts/self-measurement/capture-architecture-complexity-export.mjs",
     "self:architecture:refresh": "node scripts/self-measurement/refresh-architecture-inputs.mjs",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:pbt": "vitest run test/pbt/*.test.ts",
     "test:watch": "vitest"
   },
@@ -54,6 +56,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.9",
     "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "dependency-cruiser": "^17.3.10",
     "fast-check": "^4.6.0",
     "knip": "^6.1.0",

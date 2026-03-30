@@ -1,7 +1,9 @@
+import { computeAttractionScore } from "./boundary-fitness-attraction.js";
 import { buildFragmentContextMentions, collectTermContexts } from "./boundary-fitness-contexts.js";
 import { buildBoundaryFitnessEvidence } from "./boundary-fitness-evidence.js";
+import { computeCodeBoundaryStrength, computeSeparationScore } from "./boundary-fitness-separation.js";
 import { average, clamp01, hasSeparationSignal, unique } from "./boundary-fitness-shared.js";
-import { buildAttractionSignals, localizationScore } from "./boundary-fitness-signals.js";
+import { buildAttractionSignals } from "./boundary-fitness-signals.js";
 import type {
   BoundaryLeakFinding,
   ContractUsageReport,
@@ -87,18 +89,7 @@ function computeBoundaryFitnessComponents(input: {
 
   const localizedSignals = attractionSignals.filter((signal) => signal.contexts.length === 1);
   const ambiguousSignals = attractionSignals.filter((signal) => signal.contexts.length > 1);
-  const weightedAttraction = attractionSignals.map((signal) => localizationScore(signal.contexts) * signal.confidence);
-  const attractionWeight = attractionSignals.map((signal) => signal.confidence);
-  const A =
-    attractionSignals.length === 0
-      ? 0.45
-      : clamp01(
-          weightedAttraction.reduce((sum, value) => sum + value, 0) /
-            Math.max(
-              0.0001,
-              attractionWeight.reduce((sum, value) => sum + value, 0),
-            ),
-        );
+  const A = computeAttractionScore(attractionSignals);
 
   if (attractionSignals.length === 0) {
     unknowns.push("Terms, rules, and invariants tied to contexts are too weakly observed, so A(P) is provisional.");
@@ -119,23 +110,23 @@ function computeBoundaryFitnessComponents(input: {
     input.modelCodeLinks.map((link) => link.coverage),
     0.55,
   );
-  const leakRatio =
-    input.contractUsage.applicableReferences === 0
-      ? 0
-      : input.leakFindings.length / input.contractUsage.applicableReferences;
-  const codeBoundaryStrength =
-    input.contractUsage.applicableReferences > 0
-      ? clamp01((input.contractUsage.adherence + (1 - leakRatio)) / 2)
-      : clamp01(0.55 + modelCoverageScore * 0.25);
+  const codeBoundaryStrength = computeCodeBoundaryStrength({
+    applicableReferences: input.contractUsage.applicableReferences,
+    adherence: input.contractUsage.adherence,
+    leakCount: input.leakFindings.length,
+    modelCoverageScore,
+  });
   if (input.contractUsage.applicableReferences === 0) {
     unknowns.push("There are too few cross-context references to derive strong code-level separation evidence.");
   }
 
-  const documentSeparationScore =
-    attractionSignals.length === 0 ? 0.5 : clamp01(localizedSignals.length / Math.max(1, attractionSignals.length));
-  const R = clamp01(
-    average([documentSeparationScore, explicitSeparationScore, codeBoundaryStrength, modelCoverageScore], 0.55),
-  );
+  const R = computeSeparationScore({
+    attractionSignalCount: attractionSignals.length,
+    localizedSignalCount: localizedSignals.length,
+    explicitSeparationScore,
+    codeBoundaryStrength,
+    modelCoverageScore,
+  });
 
   const confidenceSignals = [
     attractionSignals.length > 0
