@@ -3,7 +3,8 @@ import YAML from "yaml";
 import { parseCodebase } from "../analyzers/code.js";
 import type { ArchitectureConstraintsScaffoldResult } from "./contracts.js";
 import { clampConfidence } from "./response.js";
-import { buildLayerCandidate } from "./scaffold-architecture-layer-candidates.js";
+import { buildArchitectureLayerBalances } from "./scaffold-architecture-balances.js";
+import { buildArchitectureScaffoldLayers } from "./scaffold-architecture-layers.js";
 import { buildArchitectureConstraints, inferLayerOrder } from "./scaffold-architecture-ordering.js";
 import {
   averageLayerConfidence,
@@ -24,39 +25,8 @@ export async function scaffoldArchitectureConstraints(options: {
 
   const orderedGroups = inferLayerOrder(codebase, grouped);
   const constraints = buildArchitectureConstraints(orderedGroups);
-  const balances = new Map<string, number>();
-  const fileToGroup = new Map<string, string>();
-  for (const group of orderedGroups) {
-    for (const filePath of group.files) {
-      fileToGroup.set(filePath, group.key);
-    }
-    balances.set(group.key, 0);
-  }
-  for (const dependency of codebase.dependencies) {
-    if (dependency.targetKind !== "file") {
-      continue;
-    }
-    const sourceGroup = fileToGroup.get(dependency.source);
-    const targetGroup = fileToGroup.get(dependency.target);
-    if (!sourceGroup || !targetGroup || sourceGroup === targetGroup) {
-      continue;
-    }
-    balances.set(sourceGroup, (balances.get(sourceGroup) ?? 0) + 1);
-    balances.set(targetGroup, (balances.get(targetGroup) ?? 0) - 1);
-  }
-
-  const layers = orderedGroups.map((group, index) => {
-    const candidate = buildLayerCandidate(group, balances.get(group.key) ?? 0);
-    return {
-      ...candidate,
-      definition: {
-        ...candidate.definition,
-        name: constraints.layers[index]?.name ?? candidate.definition.name,
-        rank: index,
-        globs: constraints.layers[index]?.globs ?? candidate.definition.globs,
-      },
-    };
-  });
+  const balances = buildArchitectureLayerBalances(codebase, orderedGroups);
+  const layers = buildArchitectureScaffoldLayers(orderedGroups, constraints, balances);
 
   const result: ArchitectureConstraintsScaffoldResult = {
     constraints,

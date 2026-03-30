@@ -1,6 +1,9 @@
 import type { CommandResponse, DomainDesignScoreResult, Evidence } from "./contracts.js";
-import { confidenceFromSignals, createResponse, toProvenance } from "./response.js";
-import { dedupeEvidence } from "./scoring-shared.js";
+import {
+  buildDomainDesignScoreResponseOptions,
+  buildDomainDesignScoreResult,
+} from "./domain-design-scoring-response-shared.js";
+import { createResponse } from "./response.js";
 
 export function buildDomainDesignScoreResponse(input: {
   repoPath: string;
@@ -30,27 +33,26 @@ export function buildDomainDesignScoreResponse(input: {
     unknowns,
     evidence,
   } = input;
+  const responseOptions: Parameters<typeof buildDomainDesignScoreResponseOptions>[0] = {
+    repoPath,
+    scores,
+    diagnostics,
+    unknowns,
+    evidence,
+  };
+  if (docsRoot !== undefined) {
+    responseOptions.docsRoot = docsRoot;
+  }
 
   return createResponse(
-    {
-      domainId: "domain_design",
-      metrics: scores,
+    buildDomainDesignScoreResult({
+      scores,
       leakFindings,
       history,
-      crossContextReferences: contractUsage.applicableReferences,
-      ...(shadow ? { shadow } : {}),
-      ...(pilot ? { pilot } : {}),
-    },
-    {
-      status: diagnostics.length > 0 ? "warning" : "ok",
-      evidence: dedupeEvidence(evidence),
-      confidence: confidenceFromSignals(scores.map((score) => score.confidence)),
-      unknowns: Array.from(new Set(unknowns)),
-      diagnostics,
-      provenance: [
-        toProvenance(repoPath, "domain_design"),
-        ...(docsRoot ? [toProvenance(docsRoot, "domain_design_docs")] : []),
-      ],
-    },
+      contractUsage,
+      shadow,
+      pilot,
+    }),
+    buildDomainDesignScoreResponseOptions(responseOptions),
   );
 }
