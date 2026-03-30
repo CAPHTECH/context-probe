@@ -140,6 +140,12 @@ Audit freshness drift without rewriting snapshots:
 npm run self:architecture:audit
 ```
 
+Run the CI-shaped local check that combines the advisory freshness audit with a score smoke:
+
+```bash
+npm run self:architecture:check
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -158,7 +164,22 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` remain curated observation inputs. `complexity-export` is a derived artifact built from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` remain curated observation inputs. `complexity-export` is a derived artifact built from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift, and `npm run self:architecture:check` is the local/CI operational check that runs that audit plus a score smoke.
+
+The expected maintenance loop is:
+
+```bash
+npm run self:architecture:refresh
+npm run self:architecture:complexity
+npm run self:architecture:baseline   # only when you intentionally want a new IPS comparison point
+npm run self:architecture:check
+```
+
+Coverage is also part of the quality gate now:
+
+```bash
+npm run test:coverage
+```
 
 For this repository specifically, some architecture unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` remain evidence-limited, and `PCS` remains a proxy composite. Treat those as self-measurement caveats, not immediate defects.
 

@@ -112,6 +112,12 @@ To audit freshness drift without rewriting any snapshots:
 npm run self:architecture:audit
 ```
 
+To run the CI-shaped local operational check, which combines the freshness audit with a score smoke:
+
+```bash
+npm run self:architecture:check
+```
+
 ```bash
 npm run dev -- score.compute \
   --domain architecture_design \
@@ -130,7 +136,22 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` are maintained as curated observation snapshots. `complexity-export` is derived from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures a reviewable `IPS` baseline from the current contract surface and intentionally stays outside `refresh` so baseline deltas remain stable. `npm run self:architecture:audit` is the CI-friendly advisory version of that freshness check.
+Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` are maintained as curated observation snapshots. `complexity-export` is derived from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures a reviewable `IPS` baseline from the current contract surface and intentionally stays outside `refresh` so baseline deltas remain stable. `npm run self:architecture:audit` is the CI-friendly advisory version of that freshness check. `npm run self:architecture:check` is the operational check that runs the advisory audit plus an architecture score smoke.
+
+Recommended upkeep order:
+
+```bash
+npm run self:architecture:refresh
+npm run self:architecture:complexity
+npm run self:architecture:baseline   # only when you intentionally want a new IPS comparison point
+npm run self:architecture:check
+```
+
+When you want the same quality gate locally that CI uses, run:
+
+```bash
+npm run test:coverage
+```
 
 On this repository, some unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` are evidence-limited, and `PCS` remains a proxy composite. That is a self-measurement caveat, not an automatic bug report.
 
