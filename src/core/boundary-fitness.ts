@@ -1,3 +1,5 @@
+import { buildFragmentContextMentions, collectTermContexts } from "./boundary-fitness-contexts.js";
+import { buildAttractionSignals, localizationScore } from "./boundary-fitness-signals.js";
 import type {
   BoundaryLeakFinding,
   ContractUsageReport,
@@ -9,21 +11,9 @@ import type {
   ModelCodeLink,
   RuleCandidate,
   TermTraceLink,
-  TraceLinkOccurrence,
 } from "./contracts.js";
-import { matchGlobs } from "./io.js";
 import { toEvidence } from "./response.js";
 
-const USE_CASE_SIGNALS = [
-  /ユースケース/u,
-  /シナリオ/u,
-  /期待(?:される)?結果/u,
-  /受け入れ基準/u,
-  /利用者/u,
-  /\buse case\b/i,
-  /\bscenario\b/i,
-  /\bacceptance\b/i,
-];
 const SEPARATION_SIGNALS = [
   /ownership/u,
   /security/u,
@@ -36,15 +26,6 @@ const SEPARATION_SIGNALS = [
   /\bseparation\b/i,
   /\boundary\b/i,
 ];
-
-interface BoundarySignal {
-  kind: "term" | "rule" | "invariant" | "use_case";
-  summary: string;
-  contexts: string[];
-  confidence: number;
-  fragmentIds?: string[];
-  linkedEntities?: string[];
-}
 
 export interface BoundaryFitnessResult {
   A: number;
@@ -76,215 +57,8 @@ function unique(values: string[]): string[] {
   return Array.from(new Set(values));
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function isAsciiLabel(value: string): boolean {
-  return /^[A-Za-z0-9 _-]+$/.test(value);
-}
-
-function contextMentionPattern(name: string): RegExp | null {
-  if (isAsciiLabel(name)) {
-    return new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(name)}([^A-Za-z0-9_]|$)`, "i");
-  }
-  return null;
-}
-
-function detectContextMentions(text: string, model: DomainModel): string[] {
-  return model.contexts
-    .filter((context) => {
-      const pattern = contextMentionPattern(context.name);
-      if (pattern) {
-        return pattern.test(text);
-      }
-      return text.includes(context.name);
-    })
-    .map((context) => context.name);
-}
-
-function mapOccurrenceToContexts(occurrence: TraceLinkOccurrence, model: DomainModel): string[] {
-  if (occurrence.kind !== "code") {
-    return [];
-  }
-  return model.contexts
-    .filter((context) => matchGlobs(occurrence.path, context.pathGlobs))
-    .map((context) => context.name);
-}
-
-function localizationScore(contexts: string[]): number {
-  if (contexts.length === 0) {
-    return 0;
-  }
-  return 1 / contexts.length;
-}
-
-function hasUseCaseSignal(text: string): boolean {
-  return USE_CASE_SIGNALS.some((pattern) => pattern.test(text));
-}
-
 function hasSeparationSignal(text: string): boolean {
   return SEPARATION_SIGNALS.some((pattern) => pattern.test(text));
-}
-
-export function buildFragmentContextMentions(fragments: Fragment[], model: DomainModel): Map<string, string[]> {
-  return new Map(
-    fragments.map((fragment) => [fragment.fragmentId, unique(detectContextMentions(fragment.text, model))]),
-  );
-}
-
-export function collectTermContexts(
-  term: GlossaryTerm,
-  link: TermTraceLink | undefined,
-  fragmentContextMentions: Map<string, string[]>,
-  model: DomainModel,
-): string[] {
-  const contexts = new Set<string>();
-
-  for (const occurrence of link?.occurrences ?? []) {
-    for (const contextName of mapOccurrenceToContexts(occurrence, model)) {
-      contexts.add(contextName);
-    }
-    if (occurrence.kind === "document" && occurrence.fragmentId) {
-      for (const contextName of fragmentContextMentions.get(occurrence.fragmentId) ?? []) {
-        contexts.add(contextName);
-      }
-    }
-  }
-
-  for (const fragmentId of term.fragmentIds) {
-    for (const contextName of fragmentContextMentions.get(fragmentId) ?? []) {
-      contexts.add(contextName);
-    }
-  }
-
-  return Array.from(contexts);
-}
-
-export function collectStatementContexts(
-  statement: string,
-  fragmentIds: string[],
-  fragmentContextMentions: Map<string, string[]>,
-  mappedTerms: Array<{ canonicalTerm: string; contexts: string[] }>,
-  model: DomainModel,
-): string[] {
-  const contexts = new Set<string>();
-  const normalizedStatement = statement.toLowerCase();
-
-  for (const contextName of detectContextMentions(statement, model)) {
-    contexts.add(contextName);
-  }
-  for (const fragmentId of fragmentIds) {
-    for (const contextName of fragmentContextMentions.get(fragmentId) ?? []) {
-      contexts.add(contextName);
-    }
-  }
-  for (const term of mappedTerms) {
-    if (term.contexts.length === 0) {
-      continue;
-    }
-    if (normalizedStatement.includes(term.canonicalTerm.toLowerCase())) {
-      for (const contextName of term.contexts) {
-        contexts.add(contextName);
-      }
-    }
-  }
-
-  return Array.from(contexts);
-}
-
-function buildAttractionSignals(input: {
-  terms: GlossaryTerm[];
-  termContexts: Map<string, string[]>;
-  rules: RuleCandidate[];
-  invariants: InvariantCandidate[];
-  fragments: Fragment[];
-  fragmentContextMentions: Map<string, string[]>;
-  model: DomainModel;
-}): BoundarySignal[] {
-  const mappedTerms = input.terms
-    .map((term) => ({
-      term,
-      contexts: input.termContexts.get(term.termId) ?? [],
-    }))
-    .filter((entry) => entry.contexts.length > 0);
-  const termSummaries = mappedTerms.map((entry) => ({
-    canonicalTerm: entry.term.canonicalTerm,
-    contexts: entry.contexts,
-  }));
-  const signals: BoundarySignal[] = [];
-
-  for (const entry of mappedTerms) {
-    signals.push({
-      kind: "term",
-      summary: entry.term.canonicalTerm,
-      contexts: entry.contexts,
-      confidence: entry.term.confidence,
-      fragmentIds: entry.term.fragmentIds,
-      linkedEntities: [entry.term.termId],
-    });
-  }
-
-  for (const rule of input.rules) {
-    const contexts = collectStatementContexts(
-      rule.statement,
-      rule.fragmentIds,
-      input.fragmentContextMentions,
-      termSummaries,
-      input.model,
-    );
-    if (contexts.length === 0) {
-      continue;
-    }
-    signals.push({
-      kind: "rule",
-      summary: rule.statement,
-      contexts,
-      confidence: rule.confidence,
-      fragmentIds: rule.fragmentIds,
-      linkedEntities: [rule.ruleId],
-    });
-  }
-
-  for (const invariant of input.invariants) {
-    const contexts = collectStatementContexts(
-      invariant.statement,
-      invariant.fragmentIds,
-      input.fragmentContextMentions,
-      termSummaries,
-      input.model,
-    );
-    if (contexts.length === 0) {
-      continue;
-    }
-    signals.push({
-      kind: "invariant",
-      summary: invariant.statement,
-      contexts,
-      confidence: invariant.confidence,
-      fragmentIds: invariant.fragmentIds,
-      linkedEntities: [invariant.invariantId],
-    });
-  }
-
-  for (const fragment of input.fragments) {
-    if (!hasUseCaseSignal(fragment.text)) {
-      continue;
-    }
-    const contexts = input.fragmentContextMentions.get(fragment.fragmentId) ?? [];
-    if (contexts.length === 0) {
-      continue;
-    }
-    signals.push({
-      kind: "use_case",
-      summary: fragment.text,
-      contexts,
-      confidence: 0.72,
-      fragmentIds: [fragment.fragmentId],
-    });
-  }
-
-  return signals;
 }
 
 export function computeBoundaryFitness(input: {
@@ -449,3 +223,9 @@ export function computeBoundaryFitness(input: {
     },
   };
 }
+
+export {
+  buildFragmentContextMentions,
+  collectStatementContexts,
+  collectTermContexts,
+} from "./boundary-fitness-contexts.js";

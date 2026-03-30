@@ -1,0 +1,46 @@
+import path from "node:path";
+
+import { expect, test } from "vitest";
+
+import { detectBoundaryLeaks, detectContractUsage, parseCodebase } from "../src/analyzers/code.js";
+import { COMMANDS } from "../src/commands.js";
+import { loadDomainModel } from "../src/core/model.js";
+import type { DomainDesignTestState } from "./domain-design.helpers.js";
+import { FIXTURE_ROOT } from "./domain-design.helpers.js";
+import { createTemporaryGitRepoFromFixture } from "./helpers.js";
+
+export function registerDomainDesignCoreTests(state: DomainDesignTestState): void {
+  test("detects contract usage and boundary leaks", async () => {
+    const model = await loadDomainModel(path.join(FIXTURE_ROOT, "model.yaml"));
+    const codebase = await parseCodebase(path.join(FIXTURE_ROOT, "sample-repo"));
+    const contractUsage = detectContractUsage(codebase, model);
+    const leaks = detectBoundaryLeaks(codebase, model);
+
+    expect(contractUsage.applicableReferences).toBe(2);
+    expect(contractUsage.adherence).toBe(0.5);
+    expect(leaks).toHaveLength(1);
+  });
+
+  test("computes MCCS and ELS through the command interface", async () => {
+    state.repoPath = await createTemporaryGitRepoFromFixture(path.join(FIXTURE_ROOT, "sample-repo"));
+
+    const response = await COMMANDS["score.compute"]!(
+      {
+        repo: state.repoPath,
+        model: path.join(FIXTURE_ROOT, "model.yaml"),
+        policy: path.resolve("fixtures/policies/default.yaml"),
+        domain: "domain_design",
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).toBe("ok");
+    const metrics = (
+      response.result as {
+        metrics: Array<{ metricId: string; value: number }>;
+      }
+    ).metrics;
+    expect(metrics.find((metric) => metric.metricId === "MCCS")?.value).toBeLessThan(1);
+    expect(metrics.find((metric) => metric.metricId === "ELS")?.value).toBeGreaterThanOrEqual(0);
+  }, 20000);
+}
