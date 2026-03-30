@@ -24,6 +24,8 @@ Goal:
 Goal:
 
 - convert complexity snapshots into canonical complexity metadata
+- repo-local self-measurement keeps a curated raw snapshot at `config/self-measurement/architecture-complexity-snapshot.yaml`
+- `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from that snapshot
 
 ### `QSF`
 

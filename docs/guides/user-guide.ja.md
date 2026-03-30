@@ -136,7 +136,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`complexity-export` `telemetry` `pattern runtime` `delivery` は maintainers が更新する観測スナップショットとして扱います。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、curated snapshot が古いときは warn-only で知らせます。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。
+ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark から作り、`telemetry` `pattern runtime` `delivery` と raw な `architecture-complexity-snapshot.yaml` は maintainers が更新する curated observation として扱います。`complexity-export` はその complexity snapshot から生成する derived artifact です。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、`npm run self:architecture:complexity` は curated な complexity snapshot から `architecture-complexity-export.yaml` を再生成します。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。
 
 このリポジトリでは small CLI codebase という性質上、`ALR` `FCC` `SICR` `SLA` は evidence-limited の unknown が残りやすく、`PCS` も proxy composite のままです。これは自己計測の limitation として読みます。
 

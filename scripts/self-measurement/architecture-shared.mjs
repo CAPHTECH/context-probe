@@ -86,6 +86,13 @@ export async function sha256File(filePath) {
   return createHash("sha256").update(content).digest("hex");
 }
 
+export async function maybeSha256File(filePath) {
+  if (!existsSync(filePath)) {
+    return undefined;
+  }
+  return sha256File(filePath);
+}
+
 export function isOlderThanThreshold(isoTimestamp, nowIsoTimestamp, days) {
   const capturedAt = Date.parse(isoTimestamp);
   const now = Date.parse(nowIsoTimestamp);
@@ -98,6 +105,8 @@ export function isOlderThanThreshold(isoTimestamp, nowIsoTimestamp, days) {
 function relativePathToKey(relativePath) {
   const fileName = path.basename(relativePath);
   switch (fileName) {
+    case "architecture-complexity-snapshot.yaml":
+      return "complexitySnapshot";
     case "architecture-complexity-export.yaml":
       return "complexityExport";
     case "architecture-scenarios.yaml":
@@ -192,6 +201,36 @@ export async function collectDerivedBoundaryWarnings({ repoRoot, paths, constrai
   return warnings;
 }
 
+export async function collectDerivedComplexityWarnings({ repoRoot, paths, snapshotHash }) {
+  const warnings = [];
+  const relativePath = normalizeRelativePath(repoRoot, paths.complexityExport);
+  if (!existsSync(paths.complexityExport)) {
+    warnings.push(`Derived complexity export ${relativePath} is missing.`);
+    return warnings;
+  }
+  if (!snapshotHash) {
+    return warnings;
+  }
+
+  const document = await readStructuredFile(paths.complexityExport);
+  const derivedFrom = document?.snapshot?.derivedFrom;
+  const expectedPath = normalizeRelativePath(repoRoot, paths.complexitySnapshot);
+
+  if (!derivedFrom?.sha256) {
+    warnings.push(`Derived complexity export ${relativePath} is missing snapshot.derivedFrom.sha256.`);
+  } else if (derivedFrom.sha256 !== snapshotHash) {
+    warnings.push(`Derived complexity export ${relativePath} was generated from a different complexity snapshot hash.`);
+  }
+
+  if (!derivedFrom?.path) {
+    warnings.push(`Derived complexity export ${relativePath} is missing snapshot.derivedFrom.path.`);
+  } else if (derivedFrom.path !== expectedPath) {
+    warnings.push(`Derived complexity export ${relativePath} points to ${derivedFrom.path} instead of ${expectedPath}.`);
+  }
+
+  return warnings;
+}
+
 export async function collectContractBaselineWarnings({ repoRoot, paths }) {
   const warnings = [];
   const relativePath = normalizeRelativePath(repoRoot, paths.contractBaseline);
@@ -214,11 +253,18 @@ export async function collectContractBaselineWarnings({ repoRoot, paths }) {
   return warnings;
 }
 
-export async function collectArchitectureSelfMeasurementWarnings({ repoRoot, nowIsoTimestamp, paths, constraintsHash }) {
+export async function collectArchitectureSelfMeasurementWarnings({
+  repoRoot,
+  nowIsoTimestamp,
+  paths,
+  constraintsHash,
+  complexitySnapshotHash,
+}) {
   return [
     ...(await collectMeasuredSnapshotWarnings({ repoRoot, nowIsoTimestamp, paths })),
     ...(await collectCuratedSnapshotWarnings({ nowIsoTimestamp, paths })),
     ...(await collectDerivedBoundaryWarnings({ repoRoot, paths, constraintsHash })),
+    ...(await collectDerivedComplexityWarnings({ repoRoot, paths, snapshotHash: complexitySnapshotHash })),
     ...(await collectContractBaselineWarnings({ repoRoot, paths })),
   ];
 }

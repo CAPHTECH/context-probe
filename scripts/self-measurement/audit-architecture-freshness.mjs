@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { resolveArchitectureSelfMeasurementPaths } from "./architecture-bundle.mjs";
 import {
   collectArchitectureSelfMeasurementWarnings,
+  maybeSha256File,
   parseRepoRootAndNowArgs,
   sha256File,
 } from "./architecture-shared.mjs";
@@ -25,11 +26,13 @@ async function main() {
   const { repoRoot, now } = parseRepoRootAndNowArgs(process.argv.slice(2), TOOL_ROOT);
   const paths = resolveArchitectureSelfMeasurementPaths(repoRoot);
   const constraintsHash = await sha256File(paths.constraints);
+  const complexitySnapshotHash = await maybeSha256File(paths.complexitySnapshot);
   const warnings = await collectArchitectureSelfMeasurementWarnings({
     repoRoot,
     nowIsoTimestamp: now,
     paths,
     constraintsHash,
+    complexitySnapshotHash,
   });
 
   if (warnings.length === 0) {

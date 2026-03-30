@@ -30,6 +30,7 @@ collector が canonical JSON を stdout または file へ出し、それを `--
 - 入力: team / deployable / pipeline / on-call / cost snapshot
 - 出力: `ArchitectureComplexityExportBundle`
 - 目的: `CTI` の operational metadata を canonical shape に揃える
+- self-measurement では curated な raw snapshot を `config/self-measurement/architecture-complexity-snapshot.yaml` に置き、`npm run self:architecture:complexity` で `architecture-complexity-export.yaml` を再生成する
 
 ### `scenario-actualization-to-qsf.mjs`
 

@@ -158,7 +158,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark、`complexity-export` `telemetry` `pattern runtime` `delivery` は curated observation として見直します。`npm run self:architecture:refresh` は repo-local automation で、measured な `scenario-observations` と derived な `boundary-map` を更新し、古い curated snapshot には warn-only の freshness notice を出します。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` は CI に載せやすい advisory check です。
+これらは live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark から作り、`telemetry` `pattern runtime` `delivery` と raw な `architecture-complexity-snapshot.yaml` は curated observation として管理します。`complexity-export` はその complexity snapshot から作る derived artifact です。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、`npm run self:architecture:complexity` は curated な complexity snapshot から `architecture-complexity-export.yaml` を再生成します。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` は CI に載せやすい advisory check です。
 
 このリポジトリ固有の注意として、small CLI codebase なので `ALR` `FCC` `SICR` `SLA` は evidence-limited のまま残りやすく、`PCS` も proxy composite のままです。これらは直ちに不具合を示すというより、自己計測の limitation として読みます。
 
@@ -213,7 +213,7 @@ npm run dev -- doc.extract_glossary \
 
 ## このプロジェクト自身を計測する
 
-自己計測用の最小定義は [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml)、[config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml)、[config/self-measurement/architecture-complexity-export.yaml](config/self-measurement/architecture-complexity-export.yaml) に置いています。
+自己計測用の最小定義は [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml)、[config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml)、[config/self-measurement/architecture-complexity-snapshot.yaml](config/self-measurement/architecture-complexity-snapshot.yaml)、[config/self-measurement/architecture-complexity-export.yaml](config/self-measurement/architecture-complexity-export.yaml) に置いています。
 
 ### 1. Git 履歴を有効化する
 

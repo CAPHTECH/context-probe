@@ -13,6 +13,7 @@ import {
   collectArchitectureSelfMeasurementWarnings,
   deriveBoundaryMap,
   formatSourceDate,
+  maybeSha256File,
   normalizeRelativePath,
   parseRepoRootAndNowArgs,
   sha256File,
@@ -86,12 +87,14 @@ async function main() {
   const paths = resolveArchitectureSelfMeasurementPaths(repoRoot);
   const sourceDate = formatSourceDate(now);
   const constraintsHash = await sha256File(paths.constraints);
+  const complexitySnapshotHash = await maybeSha256File(paths.complexitySnapshot);
 
   const warnings = await collectArchitectureSelfMeasurementWarnings({
     repoRoot,
     nowIsoTimestamp: now,
     paths,
     constraintsHash,
+    complexitySnapshotHash,
   });
 
   const derivedBoundaryMap = await deriveBoundaryMap({

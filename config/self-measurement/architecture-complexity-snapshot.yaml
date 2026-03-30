@@ -1,0 +1,20 @@
+version: "1.0"
+snapshot:
+  sourceKind: "curated"
+  reviewedAt: "2026-03-29T00:00:00Z"
+sourceSystem: "self-measurement-curated"
+team:
+  count: 1
+platform:
+  deployableCount: 1
+  pipelineCount: 1
+  datastoreCount: 0
+  onCallSurface: 2
+  syncDepthP95: 1
+architecture:
+  contractOrSchemaCount: 1
+  serviceCount: 1
+  serviceGroupCount: 1
+finance:
+  runCostPerBusinessTransaction: 1
+note: "Curated CTI snapshot for repository self-measurement."

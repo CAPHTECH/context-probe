@@ -158,7 +158,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks, while `complexity-export`, `telemetry`, `pattern runtime`, and `delivery` are curated observation inputs. `npm run self:architecture:refresh` is repo-local automation: it refreshes the measured `scenario-observations` and the derived `boundary-map`, and it prints warn-only freshness notices for stale curated snapshots. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
+These are reviewable snapshots, not live collectors. `scenario-observations` comes from local benchmarks. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` remain curated observation inputs. `complexity-export` is a derived artifact built from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures the current contract surface into a reviewable `IPS` baseline and intentionally stays outside `refresh` so baseline deltas remain meaningful. `npm run self:architecture:audit` is the CI-friendly advisory check for freshness drift.
 
 For this repository specifically, some architecture unknowns are still expected limitations of a small CLI codebase: `ALR`, `FCC`, `SICR`, and `SLA` remain evidence-limited, and `PCS` remains a proxy composite. Treat those as self-measurement caveats, not immediate defects.
 
@@ -213,7 +213,7 @@ npm run dev -- doc.extract_glossary \
 
 ## Measure This Repository
 
-Minimal self-measurement definitions are stored in [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml), [config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml), and [config/self-measurement/architecture-complexity-export.yaml](config/self-measurement/architecture-complexity-export.yaml).
+Minimal self-measurement definitions are stored in [config/self-measurement/domain-model.yaml](config/self-measurement/domain-model.yaml), [config/self-measurement/architecture-constraints.yaml](config/self-measurement/architecture-constraints.yaml), [config/self-measurement/architecture-complexity-snapshot.yaml](config/self-measurement/architecture-complexity-snapshot.yaml), and [config/self-measurement/architecture-complexity-export.yaml](config/self-measurement/architecture-complexity-export.yaml).
 
 ### 1. Enable Git History
 

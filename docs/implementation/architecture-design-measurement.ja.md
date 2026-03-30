@@ -75,7 +75,7 @@
 2. `complexity-source`
 3. constraints metadata と codebase-derived proxy
 
-このリポジトリの self-measurement bundle では、運用 metadata を `architecture-constraints.yaml` に持たず、curated な `complexity-export` file を明示的に渡します。
+このリポジトリの self-measurement bundle では、運用 metadata を `architecture-constraints.yaml` に持たず、curated な `architecture-complexity-snapshot.yaml` から canonical な `complexity-export` file を再生成して渡します。
 
 ### contract baseline input
 

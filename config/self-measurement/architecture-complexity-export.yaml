@@ -1,8 +1,5 @@
 version: "1.0"
-snapshot:
-  sourceKind: "curated"
-  reviewedAt: "2026-03-29T00:00:00Z"
-sourceSystem: "self-measurement-curated"
+sourceSystem: self-measurement-curated
 metrics:
   teamCount: 1
   deployableCount: 1
@@ -14,4 +11,10 @@ metrics:
   onCallSurface: 2
   syncDepthP95: 1
   runCostPerBusinessTransaction: 1
-note: "Curated CTI input for repository self-measurement."
+note: Curated CTI snapshot for repository self-measurement.
+snapshot:
+  sourceKind: derived
+  capturedAt: 2026-03-30T00:00:00Z
+  derivedFrom:
+    path: config/self-measurement/architecture-complexity-snapshot.yaml
+    sha256: 5cfa0e440d400e38155c298b850aab1d96745dff01cfede6a3f17bf44c9bd7f5
