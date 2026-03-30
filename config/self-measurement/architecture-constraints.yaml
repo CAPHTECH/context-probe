@@ -30,6 +30,8 @@ layers:
       - "src/command-architecture-inputs.ts"
       - "src/command-architecture-inputs-sources.ts"
       - "src/command-architecture-inputs-loaders.ts"
+      - "src/command-architecture-inputs-loaders-config.ts"
+      - "src/command-architecture-inputs-loaders-data.ts"
       - "src/command-architecture-inputs-provenance.ts"
       - "src/command-architecture-inputs-resolved.ts"
       - "src/command-extraction-helpers.ts"

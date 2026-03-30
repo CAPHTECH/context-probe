@@ -1,88 +1,10 @@
 import type {
-  DomainDesignShadowRolloutGateAggregate,
   DomainDesignShadowRolloutGateCategorySummary,
   DomainDesignShadowRolloutGateEvaluation,
   DomainDesignShadowRolloutGateObservation,
 } from "./contracts.js";
-import {
-  SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS,
-  SHADOW_ROLLOUT_MIN_REAL_REPO_OBSERVATIONS,
-} from "./shadow-rollout-summary.js";
-
-const SHADOW_ROLLOUT_MAX_WEIGHTED_AVERAGE_DELTA = 0.05;
-const SHADOW_ROLLOUT_MAX_DELTA_RANGE = 0.15;
-
-function summarizeGateObservations(
-  observations: DomainDesignShadowRolloutGateObservation[],
-): DomainDesignShadowRolloutGateAggregate {
-  if (observations.length === 0) {
-    return {
-      repoCount: 0,
-      averageDelta: 0,
-      weightedAverageDelta: 0,
-      medianDelta: 0,
-      minDelta: 0,
-      maxDelta: 0,
-      deltaRange: 0,
-      positiveDeltaCount: 0,
-      negativeDeltaCount: 0,
-    };
-  }
-
-  const deltas = observations.map((entry) => entry.delta).sort((left, right) => left - right);
-  const totalRelevantCommits = observations.reduce((sum, entry) => sum + entry.relevantCommitCount, 0);
-  const weightedDeltaTotal = observations.reduce((sum, entry) => sum + entry.delta * entry.relevantCommitCount, 0);
-  const averageDelta = observations.reduce((sum, entry) => sum + entry.delta, 0) / observations.length;
-  const middleIndex = Math.floor(deltas.length / 2);
-  const medianDelta =
-    deltas.length % 2 === 0
-      ? ((deltas[middleIndex - 1] ?? 0) + (deltas[middleIndex] ?? 0)) / 2
-      : (deltas[middleIndex] ?? 0);
-  const minDelta = deltas[0] ?? 0;
-  const maxDelta = deltas.at(-1) ?? 0;
-
-  return {
-    repoCount: observations.length,
-    averageDelta,
-    weightedAverageDelta: totalRelevantCommits === 0 ? averageDelta : weightedDeltaTotal / totalRelevantCommits,
-    medianDelta,
-    minDelta,
-    maxDelta,
-    deltaRange: maxDelta - minDelta,
-    positiveDeltaCount: observations.filter((entry) => entry.delta > 0).length,
-    negativeDeltaCount: observations.filter((entry) => entry.delta < 0).length,
-  };
-}
-
-function evaluateGateReasons(
-  aggregate: DomainDesignShadowRolloutGateAggregate,
-  observationCount: number,
-  options?: {
-    requireManifestPaths?: boolean;
-    hasMissingVersionedManifestPath?: boolean;
-    minObservationCount?: number;
-    insufficientObservationReason?: string;
-  },
-): string[] {
-  const reasons: string[] = [];
-  const minObservationCount = options?.minObservationCount ?? SHADOW_ROLLOUT_MIN_REAL_REPO_OBSERVATIONS;
-  const insufficientObservationReason = options?.insufficientObservationReason ?? "insufficient_real_repo_observations";
-
-  if (observationCount < minObservationCount) {
-    reasons.push(insufficientObservationReason);
-  }
-  if (options?.requireManifestPaths && options.hasMissingVersionedManifestPath) {
-    reasons.push("missing_versioned_manifest_path");
-  }
-  if (aggregate.deltaRange > SHADOW_ROLLOUT_MAX_DELTA_RANGE) {
-    reasons.push("real_repo_delta_range_above_threshold");
-  }
-  if (Math.abs(aggregate.weightedAverageDelta) > SHADOW_ROLLOUT_MAX_WEIGHTED_AVERAGE_DELTA) {
-    reasons.push("real_repo_weighted_average_delta_above_threshold");
-  }
-
-  return reasons;
-}
+import { evaluateGateReasons, SHADOW_ROLLOUT_GATE_CATEGORY_MIN_OBSERVATIONS } from "./shadow-rollout-gate-reasons.js";
+import { summarizeGateObservations } from "./shadow-rollout-gate-summary.js";
 
 export function evaluateShadowRolloutGate(
   observations: DomainDesignShadowRolloutGateObservation[],
@@ -112,7 +34,7 @@ export function evaluateShadowRolloutGate(
             hasMissingVersionedManifestPath: categoryObservations.some(
               (entry) => entry.modelSource === "versioned_manifest" && !entry.modelPath,
             ),
-            minObservationCount: SHADOW_ROLLOUT_MIN_CATEGORY_REPO_OBSERVATIONS,
+            minObservationCount: SHADOW_ROLLOUT_GATE_CATEGORY_MIN_OBSERVATIONS,
             insufficientObservationReason: "insufficient_category_observations",
           });
           return {
