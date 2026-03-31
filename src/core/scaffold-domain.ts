@@ -25,7 +25,16 @@ export async function scaffoldDomainModel(options: {
     ? await buildDocsBundle(options.repoRoot, options.docsRoot, codebase, options.extractionOptions)
     : undefined;
 
-  const contextCandidates = buildContextCandidates(codebase, docsBundle?.glossary.fragments);
+  const contextCandidates = buildContextCandidates(
+    codebase,
+    docsBundle
+      ? {
+          fragments: docsBundle.glossary.fragments,
+          terms: docsBundle.glossary.terms,
+          termLinks: docsBundle.termLinks,
+        }
+      : undefined,
+  );
   const aggregateCandidates = buildAggregateCandidates(contextCandidates, docsBundle);
 
   const model: DomainModel = {

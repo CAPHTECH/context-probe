@@ -55,13 +55,13 @@ export function registerScaffoldModelTests(tempRoots: string[]): void {
     expect(response.status).toBe("warning");
     const result = response.result as DomainModelScaffoldResult;
     expect(result.model.contexts.map((context) => context.name)).toEqual([
-      "EvaluationQuality",
+      "EvaluationAndQuality",
       "IngestAndExtraction",
-      "RuntimeInfrastructure",
-      "WorkspaceBootstrap",
+      "RuntimeAndSurfaces",
+      "WorkspaceAndBootstrap",
       "Contracts",
-      "Domain",
-      "UseCases",
+      "KnowledgeSubstrate",
+      "QueryAndPlanning",
     ]);
     const aggregateNames = (result.model.aggregates ?? []).map((aggregate) => aggregate.name);
     expect(aggregateNames).not.toContain("APPPORT");

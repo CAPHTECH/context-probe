@@ -1,8 +1,8 @@
-export interface FactLedgerEntry {
+export interface FactLedger {
   id: string;
   payload: string;
 }
 
-export function appendFact(entry: FactLedgerEntry): FactLedgerEntry {
+export function appendFact(entry: FactLedger): FactLedger {
   return entry;
 }
