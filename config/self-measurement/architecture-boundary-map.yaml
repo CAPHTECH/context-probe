@@ -1,7 +1,7 @@
 version: "1.0"
 snapshot:
   sourceKind: derived
-  capturedAt: 2026-03-31T22:59:27.000Z
+  capturedAt: 2026-03-31T23:27:47.119Z
   derivedFrom:
     path: config/self-measurement/architecture-constraints.yaml
     sha256: f0e211963537ee32e9beec5605b165288c3e33b700742005eb1fc97a22ace05b
