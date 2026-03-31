@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "context-probe-plugin",
-      "source": "./plugins/context-probe-plugin",
-      "description": "Guided context-probe workflows for setup, scoring, extraction, review, result interpretation, and disposition",
+      "source": "./plugin",
+      "description": "Context-probe inputs and analysis workflows for scaffold curation, scoring, review, and result investigation",
       "version": "1.0.0",
       "author": {
         "name": "CAPH TECH Inc."
