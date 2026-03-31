@@ -116,4 +116,44 @@ export function registerScaffoldModelTests(tempRoots: string[]): void {
     expect(result.model.contexts.map((context) => context.name)).toEqual(["RuntimeAndSurfaces"]);
     expect(result.model.contexts[0]?.pathGlobs).toEqual(["src/runtime/**", "src/surfaces/**"]);
   });
+
+  test("model.scaffold ignores appendix-style docs headings for context naming", async () => {
+    const workspace = await createTemporaryWorkspace([]);
+    tempRoots.push(workspace);
+
+    await Promise.all([
+      mkdir(path.join(workspace, "repo/src"), { recursive: true }),
+      mkdir(path.join(workspace, "docs"), { recursive: true }),
+    ]);
+
+    await Promise.all([
+      writeFile(
+        path.join(workspace, "repo/src/index.ts"),
+        "export interface ServerContext { requestId: string; }\n",
+        "utf8",
+      ),
+      writeFile(
+        path.join(workspace, "docs/architecture.md"),
+        [
+          "## Appendix: Component Diagram (Mermaid)",
+          "",
+          "- `ServerContext` is referenced by the appendix diagram only.",
+          "",
+        ].join("\n"),
+        "utf8",
+      ),
+    ]);
+
+    const response = await COMMANDS["model.scaffold"]!(
+      {
+        repo: path.join(workspace, "repo"),
+        "docs-root": path.join(workspace, "docs"),
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).toBe("warning");
+    const result = response.result as DomainModelScaffoldResult;
+    expect(result.model.contexts.map((context) => context.name)).toEqual(["Application"]);
+  });
 }

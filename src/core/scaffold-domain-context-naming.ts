@@ -9,6 +9,23 @@ export interface DocsContextNamingInput {
   termLinks: TermTraceLink[];
 }
 
+const DOCS_HEADING_NOISE_TOKENS = new Set([
+  "appendix",
+  "diagram",
+  "diagrams",
+  "mermaid",
+  "guide",
+  "guides",
+  "reference",
+  "references",
+  "index",
+  "example",
+  "examples",
+  "setup",
+  "installation",
+  "usage",
+]);
+
 function cleanHeadingLabel(value: string): string {
   return value
     .replace(/^#+\s*/u, "")
@@ -29,7 +46,11 @@ function isUsefulHeadingLabel(value: string): boolean {
     return false;
   }
   const lowered = normalizeName(normalized);
-  return !new Set(["docs", "glossary", "rules", "invariants", "architecture", "overview"]).has(lowered);
+  if (new Set(["docs", "glossary", "rules", "invariants", "architecture", "overview"]).has(lowered)) {
+    return false;
+  }
+  const tokens = lowered.split(/\s+/u).filter(Boolean);
+  return !tokens.some((token) => DOCS_HEADING_NOISE_TOKENS.has(token));
 }
 
 function buildHeadingByFragmentId(fragments: Fragment[]): Map<string, string> {

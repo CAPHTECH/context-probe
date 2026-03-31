@@ -235,7 +235,7 @@ export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
       const prefix = parts.slice(0, sourceRootIndex).join("/");
       const segmentName = parts[sourceRootIndex + 1];
       basePath = prefix ? `${prefix}/${sourceRoot}` : sourceRoot;
-      if (segmentName) {
+      if (segmentName && !path.extname(segmentName)) {
         segment = segmentName;
         basePath = `${basePath}/${segment}`;
         key = basePath;
