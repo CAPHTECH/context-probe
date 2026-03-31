@@ -2,6 +2,7 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureComplexityExportBundle,
   ArchitectureDeliveryExportBundle,
+  ArchitecturePatternRuntimeObservationSet,
   ArchitectureScenarioCatalog,
   ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryObservationSet,
@@ -69,55 +70,375 @@ function normalizeScenarioPriority(value: unknown): number {
   return 0.5;
 }
 
+function asScenarioDirection(
+  value: unknown,
+): ArchitectureScenarioCatalog["scenarios"][number]["direction"] | undefined {
+  return value === "higher_is_better" || value === "lower_is_better" ? value : undefined;
+}
+
+const TOPOLOGY_NODE_KINDS = new Set<ArchitectureTopologyModel["nodes"][number]["kind"]>([
+  "service",
+  "datastore",
+  "queue",
+  "cache",
+  "gateway",
+  "worker",
+  "unknown",
+]);
+const TOPOLOGY_EDGE_KINDS = new Set<ArchitectureTopologyModel["edges"][number]["kind"]>([
+  "sync_call",
+  "async_message",
+  "shared_resource",
+  "runtime_dependency",
+]);
+const PATTERN_FAMILIES = new Set<NonNullable<ArchitecturePatternRuntimeObservationSet["patternFamily"]>>([
+  "layered",
+  "clean",
+  "hexagonal",
+  "modular-monolith",
+  "microservices",
+  "cqrs",
+  "event-driven",
+]);
+
+function asTopologyNodeKind(value: unknown): ArchitectureTopologyModel["nodes"][number]["kind"] | undefined {
+  return typeof value === "string" &&
+    TOPOLOGY_NODE_KINDS.has(value as ArchitectureTopologyModel["nodes"][number]["kind"])
+    ? (value as ArchitectureTopologyModel["nodes"][number]["kind"])
+    : undefined;
+}
+
+function asTopologyEdgeKind(value: unknown): ArchitectureTopologyModel["edges"][number]["kind"] | undefined {
+  return typeof value === "string" &&
+    TOPOLOGY_EDGE_KINDS.has(value as ArchitectureTopologyModel["edges"][number]["kind"])
+    ? (value as ArchitectureTopologyModel["edges"][number]["kind"])
+    : undefined;
+}
+
+function asPatternFamily(value: unknown): ArchitecturePatternRuntimeObservationSet["patternFamily"] | undefined {
+  return typeof value === "string" &&
+    PATTERN_FAMILIES.has(value as NonNullable<ArchitecturePatternRuntimeObservationSet["patternFamily"]>)
+    ? (value as ArchitecturePatternRuntimeObservationSet["patternFamily"])
+    : undefined;
+}
+
+function withOptionalString<T extends string>(key: T, value: string | undefined): Partial<Record<T, string>> {
+  return value !== undefined ? ({ [key]: value } as Record<T, string>) : {};
+}
+
+function withOptionalBoolean<T extends string>(key: T, value: boolean | undefined): Partial<Record<T, boolean>> {
+  return value !== undefined ? ({ [key]: value } as Record<T, boolean>) : {};
+}
+
+function withOptionalObject<T extends string, U extends object>(key: T, value: U | undefined): Partial<Record<T, U>> {
+  return value !== undefined ? ({ [key]: value } as Record<T, U>) : {};
+}
+
+function withOptionalValue<T extends string, U>(key: T, value: U | undefined): Partial<Record<T, U>> {
+  return value !== undefined ? ({ [key]: value } as Record<T, U>) : {};
+}
+
+function sanitizeScenarioCatalogEntries(input: unknown): ArchitectureScenarioCatalog["scenarios"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const scenarioId = asString(entry.scenarioId) ?? asString(entry.id);
+    if (!scenarioId) {
+      return [];
+    }
+    const expectations = Array.isArray(entry.quality_expectations) ? entry.quality_expectations.filter(isRecord) : [];
+    const firstExpectation = expectations[0];
+    const responseMeasure = isRecord(entry.responseMeasure)
+      ? {
+          ...withOptionalString("metric", asString(entry.responseMeasure.metric)),
+          ...withOptionalString("unit", asString(entry.responseMeasure.unit)),
+        }
+      : undefined;
+    const sanitizedResponseMeasure =
+      responseMeasure && Object.keys(responseMeasure).length > 0 ? responseMeasure : undefined;
+    return [
+      {
+        scenarioId,
+        direction: asScenarioDirection(entry.direction) ?? "higher_is_better",
+        priority: normalizeScenarioPriority(entry.priority),
+        target: asNumber(entry.target) ?? 1,
+        worstAcceptable: asNumber(entry.worstAcceptable) ?? 0,
+        ...withOptionalString("name", asString(entry.name)),
+        ...withOptionalString(
+          "qualityAttribute",
+          asString(entry.qualityAttribute) ?? asString(firstExpectation?.attribute),
+        ),
+        ...withOptionalString(
+          "stimulus",
+          asString(entry.stimulus) ??
+            (isRecord(entry.entry_surface) ? asString(entry.entry_surface.trigger) : undefined),
+        ),
+        ...withOptionalString(
+          "environment",
+          asString(entry.environment) ??
+            (isRecord(entry.entry_surface) ? asString(entry.entry_surface.user_surface) : undefined),
+        ),
+        ...withOptionalString("response", asString(entry.response) ?? asString(firstExpectation?.expectation)),
+        ...withOptionalObject("responseMeasure", sanitizedResponseMeasure),
+      },
+    ];
+  });
+}
+
+function sanitizeScenarioObservations(input: unknown): ScenarioObservationSet["observations"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const scenarioId = asString(entry.scenarioId) ?? asString(entry.id);
+    const observed = asNumber(entry.observed);
+    if (!scenarioId || observed === undefined) {
+      return [];
+    }
+    return [
+      {
+        scenarioId,
+        observed,
+        ...withOptionalString("source", asString(entry.source)),
+        ...withOptionalString("note", asString(entry.note)),
+      },
+    ];
+  });
+}
+
+function sanitizeTopologyNodes(input: unknown): ArchitectureTopologyModel["nodes"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const nodeId = asString(entry.nodeId) ?? asString(entry.id);
+    if (!nodeId) {
+      return [];
+    }
+    const kindHint = asString(entry.kind) ?? asString(entry.runtime);
+    return [
+      {
+        nodeId,
+        kind: asTopologyNodeKind(entry.kind) ?? inferNodeKind(kindHint),
+        ...withOptionalString(
+          "isolationBoundary",
+          asString(entry.isolationBoundary) ?? asString(entry.isolation_boundary),
+        ),
+      },
+    ];
+  });
+}
+
+function sanitizeTopologyEdges(input: unknown): ArchitectureTopologyModel["edges"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const source = asString(entry.source);
+    const target = asString(entry.target);
+    const kind = asTopologyEdgeKind(entry.kind);
+    if (!source || !target || !kind) {
+      return [];
+    }
+    const shared = typeof entry.shared === "boolean" ? entry.shared : undefined;
+    return [
+      {
+        source,
+        target,
+        kind,
+        ...withOptionalBoolean("shared", shared),
+      },
+    ];
+  });
+}
+
+function sanitizeBoundaryDefinitions(input: unknown): ArchitectureBoundaryMap["boundaries"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const name = asString(entry.name);
+    if (!name) {
+      return [];
+    }
+    return [
+      {
+        name,
+        pathGlobs: asStringArray(entry.pathGlobs),
+      },
+    ];
+  });
+}
+
+function sanitizeDeliveryMeasurements(input: unknown): ArchitectureDeliveryExportBundle["measurements"] {
+  if (!isRecord(input)) {
+    return {};
+  }
+  return {
+    ...withNumericField("leadTime", asNumber(input.leadTime)),
+    ...withNumericField("deployFrequency", asNumber(input.deployFrequency)),
+    ...withNumericField("recoveryTime", asNumber(input.recoveryTime)),
+    ...withNumericField("changeFailRate", asNumber(input.changeFailRate)),
+    ...withNumericField("reworkRate", asNumber(input.reworkRate)),
+  };
+}
+
+function sanitizeComplexityMetrics(input: unknown): ArchitectureComplexityExportBundle["metrics"] {
+  if (!isRecord(input)) {
+    return {};
+  }
+  return {
+    ...withNumericField("teamCount", asNumber(input.teamCount)),
+    ...withNumericField("deployableCount", asNumber(input.deployableCount)),
+    ...withNumericField("pipelineCount", asNumber(input.pipelineCount)),
+    ...withNumericField("contractOrSchemaCount", asNumber(input.contractOrSchemaCount)),
+    ...withNumericField("serviceCount", asNumber(input.serviceCount)),
+    ...withNumericField("serviceGroupCount", asNumber(input.serviceGroupCount)),
+    ...withNumericField("datastoreCount", asNumber(input.datastoreCount)),
+    ...withNumericField("onCallSurface", asNumber(input.onCallSurface)),
+    ...withNumericField("syncDepthP95", asNumber(input.syncDepthP95)),
+    ...withNumericField("runCostPerBusinessTransaction", asNumber(input.runCostPerBusinessTransaction)),
+  };
+}
+
+function sanitizeTelemetryObservationBands(input: unknown): ArchitectureTelemetryObservationSet["bands"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const bandId = asString(entry.bandId);
+    const trafficWeight = asNumber(entry.trafficWeight);
+    if (!bandId || trafficWeight === undefined) {
+      return [];
+    }
+    return [
+      {
+        bandId,
+        trafficWeight,
+        ...withNumericField("LatencyScore", asNumber(entry.LatencyScore)),
+        ...withNumericField("ErrorScore", asNumber(entry.ErrorScore)),
+        ...withNumericField("SaturationScore", asNumber(entry.SaturationScore)),
+      },
+    ];
+  });
+}
+
+function sanitizeTelemetryExportBands(input: unknown): ArchitectureTelemetryExportBundle["bands"] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return [];
+    }
+    const bandId = asString(entry.bandId);
+    const trafficWeight = asNumber(entry.trafficWeight);
+    if (!bandId || trafficWeight === undefined) {
+      return [];
+    }
+    return [
+      {
+        bandId,
+        trafficWeight,
+        ...withNumericField("latencyP95", asNumber(entry.latencyP95)),
+        ...withNumericField("errorRate", asNumber(entry.errorRate)),
+        ...withNumericField("saturationRatio", asNumber(entry.saturationRatio)),
+        ...withOptionalString("source", asString(entry.source)),
+        ...withOptionalString("window", asString(entry.window)),
+      },
+    ];
+  });
+}
+
+function sanitizePatternRuntimeBlock<T extends string>(
+  input: unknown,
+  keys: readonly T[],
+): Partial<Record<T, number>> | undefined {
+  if (!isRecord(input)) {
+    return undefined;
+  }
+  const sanitized: Partial<Record<T, number>> = {};
+  for (const key of keys) {
+    const value = asNumber(input[key]);
+    if (value !== undefined) {
+      sanitized[key] = value;
+    }
+  }
+  return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+}
+
+function sanitizePatternRuntimeObservations(input: unknown): ArchitecturePatternRuntimeObservationSet | undefined {
+  if (!isRecord(input)) {
+    return undefined;
+  }
+  const metrics = isRecord(input.metrics)
+    ? Object.fromEntries(
+        Object.entries(input.metrics).filter(
+          (entry): entry is [string, number] => typeof entry[0] === "string" && asNumber(entry[1]) !== undefined,
+        ),
+      )
+    : undefined;
+  const sanitizedMetrics = metrics && Object.keys(metrics).length > 0 ? metrics : undefined;
+  const layeredRuntime = sanitizePatternRuntimeBlock(input.layeredRuntime, [
+    "FailureContainmentScore",
+    "DependencyIsolationScore",
+  ]);
+  const serviceBasedRuntime = sanitizePatternRuntimeBlock(input.serviceBasedRuntime, [
+    "PartialFailureContainmentScore",
+    "RetryAmplificationScore",
+    "SyncHopDepthScore",
+  ]);
+  const cqrsRuntime = sanitizePatternRuntimeBlock(input.cqrsRuntime, [
+    "ProjectionFreshnessScore",
+    "ReplayDivergenceScore",
+    "StaleReadAcceptabilityScore",
+  ]);
+  const eventDrivenRuntime = sanitizePatternRuntimeBlock(input.eventDrivenRuntime, [
+    "DeadLetterHealthScore",
+    "ConsumerLagScore",
+    "ReplayRecoveryScore",
+  ]);
+
+  return {
+    version: asString(input.version) ?? "1.0",
+    ...withOptionalString("source", asString(input.source)),
+    ...withOptionalString("note", asString(input.note)),
+    ...withOptionalObject("layeredRuntime", layeredRuntime),
+    ...withOptionalObject("serviceBasedRuntime", serviceBasedRuntime),
+    ...withOptionalObject("cqrsRuntime", cqrsRuntime),
+    ...withOptionalObject("eventDrivenRuntime", eventDrivenRuntime),
+    ...withOptionalObject("metrics", sanitizedMetrics),
+    ...withOptionalValue("patternFamily", asPatternFamily(input.patternFamily)),
+    ...withNumericField("score", asNumber(input.score)),
+  };
+}
+
 export function normalizeArchitectureScenarioCatalog(input: unknown): ArchitectureScenarioCatalog {
   if (!isRecord(input)) {
     return { version: "1.0", scenarios: [] };
   }
-  if (Array.isArray(input.scenarios) && input.scenarios.every((entry) => isRecord(entry) && "scenarioId" in entry)) {
-    return input as unknown as ArchitectureScenarioCatalog;
-  }
-
-  const scenarios = Array.isArray(input.scenarios)
-    ? input.scenarios.flatMap((entry) => {
-        if (!isRecord(entry)) {
-          return [];
-        }
-        const scenarioId = asString(entry.scenarioId) ?? asString(entry.id);
-        if (!scenarioId) {
-          return [];
-        }
-        const expectations = Array.isArray(entry.quality_expectations)
-          ? entry.quality_expectations.filter(isRecord)
-          : [];
-        const firstExpectation = expectations[0];
-        const normalized = {
-          scenarioId,
-          direction: "higher_is_better" as const,
-          priority: normalizeScenarioPriority(entry.priority),
-          target: 1,
-          worstAcceptable: 0,
-        };
-        const name = asString(entry.name);
-        const qualityAttribute = asString(firstExpectation?.attribute);
-        const response = asString(firstExpectation?.expectation);
-        const stimulus = isRecord(entry.entry_surface) ? asString(entry.entry_surface.trigger) : undefined;
-        const environment = isRecord(entry.entry_surface) ? asString(entry.entry_surface.user_surface) : undefined;
-        return [
-          {
-            ...normalized,
-            ...(name ? { name } : {}),
-            ...(qualityAttribute ? { qualityAttribute } : {}),
-            ...(stimulus ? { stimulus } : {}),
-            ...(environment ? { environment } : {}),
-            ...(response ? { response } : {}),
-          },
-        ];
-      })
-    : [];
-
   return {
     version: toVersion(input),
-    scenarios,
+    scenarios: sanitizeScenarioCatalogEntries(input.scenarios),
   };
 }
 
@@ -126,7 +447,10 @@ export function normalizeArchitectureScenarioObservations(input: unknown): Scena
     return { version: "1.0", observations: [] };
   }
   if (Array.isArray(input.observations)) {
-    return input as unknown as ScenarioObservationSet;
+    return {
+      version: toVersion(input),
+      observations: sanitizeScenarioObservations(input.observations),
+    };
   }
 
   const observationsSource =
@@ -137,32 +461,9 @@ export function normalizeArchitectureScenarioObservations(input: unknown): Scena
       ? input.incidentReviewSummary.observations
       : undefined);
 
-  const observations = Array.isArray(observationsSource)
-    ? observationsSource.flatMap((entry) => {
-        if (!isRecord(entry)) {
-          return [];
-        }
-        const scenarioId = asString(entry.scenarioId) ?? asString(entry.id);
-        const observed = asNumber(entry.observed);
-        const source = asString(entry.source);
-        const note = asString(entry.note);
-        if (!scenarioId || observed === undefined) {
-          return [];
-        }
-        return [
-          {
-            scenarioId,
-            observed,
-            ...(source ? { source } : {}),
-            ...(note ? { note } : {}),
-          },
-        ];
-      })
-    : [];
-
   return {
     version: toVersion(input),
-    observations,
+    observations: sanitizeScenarioObservations(observationsSource),
   };
 }
 
@@ -197,7 +498,11 @@ export function normalizeArchitectureTopologyModel(input: unknown): Architecture
     return { version: "1.0", nodes: [], edges: [] };
   }
   if (Array.isArray(input.nodes) && Array.isArray(input.edges)) {
-    return input as unknown as ArchitectureTopologyModel;
+    return {
+      version: toVersion(input),
+      nodes: sanitizeTopologyNodes(input.nodes),
+      edges: sanitizeTopologyEdges(input.edges),
+    };
   }
 
   const nodeMap = new Map<string, ArchitectureTopologyModel["nodes"][number]>();
@@ -283,24 +588,15 @@ export function normalizeArchitectureBoundaryMap(input: unknown): ArchitectureBo
     return { version: "1.0", boundaries: [] };
   }
   if (Array.isArray(input.boundaries)) {
-    return input as unknown as ArchitectureBoundaryMap;
+    return {
+      version: toVersion(input),
+      boundaries: sanitizeBoundaryDefinitions(input.boundaries),
+    };
   }
 
-  const contexts = Array.isArray(input.contexts) ? input.contexts.filter(isRecord) : [];
   return {
     version: toVersion(input),
-    boundaries: contexts.flatMap((context) => {
-      const name = asString(context.name);
-      if (!name) {
-        return [];
-      }
-      return [
-        {
-          name,
-          pathGlobs: asStringArray(context.pathGlobs),
-        },
-      ];
-    }),
+    boundaries: sanitizeBoundaryDefinitions(input.contexts),
   };
 }
 
@@ -309,7 +605,12 @@ export function normalizeArchitectureDeliveryExportBundle(input: unknown): Archi
     return { version: "1.0", measurements: {} };
   }
   if (isRecord(input.measurements)) {
-    return input as unknown as ArchitectureDeliveryExportBundle;
+    return {
+      version: toVersion(input),
+      ...withOptionalString("sourceSystem", asString(input.sourceSystem)),
+      measurements: sanitizeDeliveryMeasurements(input.measurements),
+      ...withOptionalString("note", asString(input.note)),
+    };
   }
 
   const embeddedExport =
@@ -317,7 +618,12 @@ export function normalizeArchitectureDeliveryExportBundle(input: unknown): Archi
       ? input.contextProbe.exportBundle
       : undefined;
   if (isRecord(embeddedExport) && isRecord(embeddedExport.measurements)) {
-    return embeddedExport as unknown as ArchitectureDeliveryExportBundle;
+    return {
+      version: toVersion(embeddedExport),
+      ...withOptionalString("sourceSystem", asString(embeddedExport.sourceSystem)),
+      measurements: sanitizeDeliveryMeasurements(embeddedExport.measurements),
+      ...withOptionalString("note", asString(embeddedExport.note)),
+    };
   }
 
   const dora = isRecord(input.dora) ? input.dora : undefined;
@@ -349,7 +655,12 @@ export function normalizeArchitectureComplexityExportBundle(input: unknown): Arc
     return { version: "1.0", metrics: {} };
   }
   if (isRecord(input.metrics)) {
-    return input as unknown as ArchitectureComplexityExportBundle;
+    return {
+      version: toVersion(input),
+      ...withOptionalString("sourceSystem", asString(input.sourceSystem)),
+      metrics: sanitizeComplexityMetrics(input.metrics),
+      ...withOptionalString("note", asString(input.note)),
+    };
   }
 
   const embeddedExport =
@@ -357,7 +668,12 @@ export function normalizeArchitectureComplexityExportBundle(input: unknown): Arc
       ? input.contextProbe.exportBundle
       : undefined;
   if (isRecord(embeddedExport) && isRecord(embeddedExport.metrics)) {
-    return embeddedExport as unknown as ArchitectureComplexityExportBundle;
+    return {
+      version: toVersion(embeddedExport),
+      ...withOptionalString("sourceSystem", asString(embeddedExport.sourceSystem)),
+      metrics: sanitizeComplexityMetrics(embeddedExport.metrics),
+      ...withOptionalString("note", asString(embeddedExport.note)),
+    };
   }
 
   const team = isRecord(input.team) ? input.team : undefined;
@@ -418,7 +734,10 @@ export function normalizeArchitectureTelemetryObservations(input: unknown): Arch
     return { version: "1.0", bands: [] };
   }
   if (Array.isArray(input.bands)) {
-    return input as unknown as ArchitectureTelemetryObservationSet;
+    return {
+      version: toVersion(input),
+      bands: sanitizeTelemetryObservationBands(input.bands),
+    };
   }
 
   const sources = Array.isArray(input.sources) ? input.sources.filter(isRecord) : [];
@@ -456,7 +775,13 @@ export function normalizeArchitectureTelemetryExportBundle(input: unknown): Arch
     return { version: "1.0", bands: [] };
   }
   if (Array.isArray(input.bands)) {
-    return input as unknown as ArchitectureTelemetryExportBundle;
+    return {
+      version: toVersion(input),
+      bands: sanitizeTelemetryExportBands(input.bands),
+      ...withOptionalString("sourceSystem", asString(input.sourceSystem)),
+      ...withOptionalObject("patternRuntime", sanitizePatternRuntimeObservations(input.patternRuntime)),
+      ...withOptionalString("note", asString(input.note)),
+    };
   }
 
   const embeddedExport =
@@ -464,7 +789,13 @@ export function normalizeArchitectureTelemetryExportBundle(input: unknown): Arch
       ? input.contextProbe.exportBundle
       : undefined;
   if (isRecord(embeddedExport) && Array.isArray(embeddedExport.bands)) {
-    return embeddedExport as unknown as ArchitectureTelemetryExportBundle;
+    return {
+      version: toVersion(embeddedExport),
+      bands: sanitizeTelemetryExportBands(embeddedExport.bands),
+      ...withOptionalString("sourceSystem", asString(embeddedExport.sourceSystem)),
+      ...withOptionalObject("patternRuntime", sanitizePatternRuntimeObservations(embeddedExport.patternRuntime)),
+      ...withOptionalString("note", asString(embeddedExport.note)),
+    };
   }
 
   const sourceSystem = asString(input.sourceSystem);

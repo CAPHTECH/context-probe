@@ -136,4 +136,40 @@ observations:
     expect(oas?.unknowns.some((entry) => entry.includes("No telemetry observations were provided"))).toBe(false);
     expect(response.unknowns.some((entry) => entry.includes("No boundary map was provided"))).toBe(false);
   });
+
+  test("score.compute discards malformed canonical topology entries instead of treating them as valid evidence", async () => {
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "context-probe-malformed-topology-"));
+    tempPaths.push(tempRoot);
+
+    const topologyPath = path.join(tempRoot, "topology-model.yaml");
+    await writeFile(
+      topologyPath,
+      `version: "1.0"
+nodes:
+  - bogus
+edges: []
+`,
+      "utf8",
+    );
+
+    const response = await COMMANDS["score.compute"]!(
+      {
+        domain: "architecture_design",
+        repo: REPO_PATH,
+        constraints: CONSTRAINTS_PATH,
+        policy: POLICY_PATH,
+        "topology-model": topologyPath,
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).not.toBe("error");
+
+    const result = response.result as { metrics: MetricScore[] };
+    const tis = getMetric(result.metrics, "TIS");
+
+    expect(tis).toBeDefined();
+    expect(tis?.unknowns.some((entry) => entry.includes("No topology model was provided"))).toBe(true);
+    expect(tis?.value).toBeLessThan(1);
+  });
 });

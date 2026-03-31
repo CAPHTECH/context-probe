@@ -1,5 +1,4 @@
-import { exec as execCallback } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 
 import type {
   ArchitectureCanonicalSourceConfig,
@@ -12,7 +11,39 @@ import type {
 } from "../core/contracts.js";
 import { type ResolvedCanonicalSource, resolveFromBase } from "./architecture-source-loader-shared.js";
 
-const exec = promisify(execCallback);
+async function runCommand(command: string, cwd: string, label: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, {
+      cwd,
+      shell: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+
+    child.stdout.on("data", (chunk: string | Buffer) => {
+      stdoutChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    child.stderr.on("data", (chunk: string | Buffer) => {
+      stderrChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    child.on("error", (error) => {
+      reject(new Error(`${label} command source failed to start: ${error.message}`));
+    });
+    child.on("close", (code, signal) => {
+      if (signal) {
+        reject(new Error(`${label} command source was terminated by signal ${signal}.`));
+        return;
+      }
+      if (code !== 0) {
+        const stderr = Buffer.concat(stderrChunks).toString("utf8").trim();
+        reject(new Error(`${label} command source exited with code ${code}.${stderr ? ` stderr: ${stderr}` : ""}`));
+        return;
+      }
+      resolve(Buffer.concat(stdoutChunks).toString("utf8"));
+    });
+  });
+}
 
 export async function resolveCommandSourceConfig<T>(input: {
   config: ArchitectureCanonicalSourceConfig;
@@ -24,10 +55,7 @@ export async function resolveCommandSourceConfig<T>(input: {
     throw new Error(`${input.label} source config requires 'command' when sourceType=command.`);
   }
   const resolvedCwd = input.config.cwd ? resolveFromBase(baseDir, input.config.cwd) : baseDir;
-  const { stdout } = await exec(input.config.command, {
-    cwd: resolvedCwd,
-    maxBuffer: 10 * 1024 * 1024,
-  });
+  const stdout = await runCommand(input.config.command, resolvedCwd, input.label);
   const trimmed = stdout.trim();
   if (!trimmed) {
     throw new Error(`${input.label} command source returned empty stdout.`);
