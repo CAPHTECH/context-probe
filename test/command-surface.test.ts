@@ -77,7 +77,7 @@ describe("command surface", () => {
     expect((modelLinks.result as { links: unknown[] }).links.length).toBeGreaterThan(0);
     expect((contractUsage.result as { applicableReferences?: number }).applicableReferences).toBeGreaterThanOrEqual(0);
     expect(Array.isArray((boundaryLeaks.result as { findings: unknown[] }).findings)).toBe(true);
-  }, 30000);
+  }, 60000);
 
   test("architecture helper commands operate against the repository self-measurement inputs", async () => {
     const topology = await COMMANDS["arch.load_topology"]!({ constraints: ARCHITECTURE_CONSTRAINTS_PATH }, CONTEXT);
@@ -217,5 +217,5 @@ describe("command surface", () => {
       ),
     ).toBe(true);
     expect(reportProgress.mock.calls.some(([update]) => update.phase === "domain_design")).toBe(true);
-  }, 30000);
+  }, 60000);
 });

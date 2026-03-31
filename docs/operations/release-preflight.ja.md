@@ -2,6 +2,8 @@
 
 この runbook は、このリポジトリの release 前に何を回すかを固定するものです。
 
+同じ順序は `npm run release:preflight` としても実行でき、文書化した release gate と実際に回すコマンド列を一致させています。
+
 ## いつ何を回すか
 
 - `npm run check` を回して、静的解析の回帰を先に潰します。
@@ -11,6 +13,12 @@
 - `npm pack --dry-run` を回して、publish される内容を確認します。
 
 ## 標準の release 順序
+
+```bash
+npm run release:preflight
+```
+
+展開したコマンド列は次のとおりです。
 
 ```bash
 npm run check

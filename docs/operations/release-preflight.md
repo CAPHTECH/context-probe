@@ -2,6 +2,8 @@
 
 This runbook fixes the release-time order for this repository.
 
+The same sequence is also available as `npm run release:preflight` so the documented release gate and the executable release gate stay aligned.
+
 ## When to run what
 
 - Run `npm run check` before release to catch static analysis regressions.
@@ -11,6 +13,12 @@ This runbook fixes the release-time order for this repository.
 - Run `npm pack --dry-run` before release to inspect the published payload.
 
 ## Standard release sequence
+
+```bash
+npm run release:preflight
+```
+
+Equivalent expanded sequence:
 
 ```bash
 npm run check
