@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { expect, test } from "vitest";
@@ -67,5 +67,53 @@ export function registerScaffoldModelTests(tempRoots: string[]): void {
     expect(aggregateNames).not.toContain("APPPORT");
     expect(aggregateNames).not.toContain("MODIFIED");
     expect(aggregateNames).not.toContain("PnpmIngestDiff");
+  });
+
+  test("model.scaffold merges docs-aligned context groups across heterogeneous source segments", async () => {
+    const workspace = await createTemporaryWorkspace([]);
+    tempRoots.push(workspace);
+
+    await Promise.all([
+      mkdir(path.join(workspace, "repo/src/runtime"), { recursive: true }),
+      mkdir(path.join(workspace, "repo/src/surfaces"), { recursive: true }),
+      mkdir(path.join(workspace, "docs"), { recursive: true }),
+    ]);
+
+    await Promise.all([
+      writeFile(
+        path.join(workspace, "repo/src/runtime/heartbeat.ts"),
+        "export interface RuntimeHeartbeat { lagMs: number; }\n",
+        "utf8",
+      ),
+      writeFile(
+        path.join(workspace, "repo/src/surfaces/http.ts"),
+        "export interface SurfaceAPI { endpoint: string; }\n",
+        "utf8",
+      ),
+      writeFile(
+        path.join(workspace, "docs/domain-model.md"),
+        [
+          "# Runtime and Surfaces context",
+          "",
+          "- `RuntimeHeartbeat` records runtime liveness for the Runtime and Surfaces context.",
+          "- `SurfaceAPI` exposes the public surface for the Runtime and Surfaces context.",
+          "",
+        ].join("\n"),
+        "utf8",
+      ),
+    ]);
+
+    const response = await COMMANDS["model.scaffold"]!(
+      {
+        repo: path.join(workspace, "repo"),
+        "docs-root": path.join(workspace, "docs"),
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).toBe("warning");
+    const result = response.result as DomainModelScaffoldResult;
+    expect(result.model.contexts.map((context) => context.name)).toEqual(["RuntimeAndSurfaces"]);
+    expect(result.model.contexts[0]?.pathGlobs).toEqual(["src/runtime/**", "src/surfaces/**"]);
   });
 }

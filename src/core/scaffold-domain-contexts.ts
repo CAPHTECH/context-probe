@@ -36,6 +36,33 @@ function scoreNameAffinity(candidateName: string, fallbackName: string): number 
   return fallbackTokens.filter((token) => candidateTokens.has(token)).length;
 }
 
+function mergeSourceGroups(key: string, groups: SourceGroup[]): SourceGroup {
+  const sourceRoots = Array.from(
+    new Set(groups.map((group) => group.sourceRoot).filter((value) => value !== undefined)),
+  );
+  const segments = Array.from(new Set(groups.map((group) => group.segment).filter((value) => value !== undefined)));
+  const origins = Array.from(
+    new Set(
+      groups.flatMap((group) =>
+        group.origins && group.origins.length > 0 ? group.origins : group.basePath ? [group.basePath] : [],
+      ),
+    ),
+  ).sort();
+  const files = Array.from(new Set(groups.flatMap((group) => group.files))).sort();
+  const pathGlobs = Array.from(new Set(groups.flatMap((group) => group.pathGlobs))).sort();
+
+  return {
+    key,
+    basePath: origins[0] ?? "",
+    ...(sourceRoots.length === 1 ? { sourceRoot: sourceRoots[0] } : {}),
+    ...(segments.length === 1 ? { segment: segments[0] } : {}),
+    heuristicSplit: true,
+    ...(origins.length > 0 ? { origins } : {}),
+    pathGlobs,
+    files,
+  };
+}
+
 function countContextMentions(name: string, fragments: GlossaryExtractionResult["fragments"] | undefined): number {
   if (!fragments) {
     return 0;
@@ -141,14 +168,44 @@ export function buildContextCandidates(
     acceptedDocsDrivenIndexes.add(best.index);
   }
 
-  return groups.map((group, index) => ({
-    group,
-    candidate: buildContextCandidate(
+  const consumedIndexes = new Set<number>();
+  const mergedEntries: Array<{ group: SourceGroup; name: string; order: number }> = [];
+
+  for (const [proposedName, ownerIndexes] of proposedNameOwners.entries()) {
+    const mergeableOwners = ownerIndexes.filter(
+      (index) => scoreNameAffinity(proposedName, fallbackNames[index] ?? "Context") > 0,
+    );
+    if (mergeableOwners.length < 2) {
+      continue;
+    }
+    for (const index of mergeableOwners) {
+      consumedIndexes.add(index);
+    }
+    const mergeGroups = mergeableOwners
+      .map((index) => groups[index])
+      .filter((group): group is SourceGroup => group !== undefined);
+    mergedEntries.push({
+      group: mergeSourceGroups(`__docs__/${normalizeName(proposedName)}`, mergeGroups),
+      name: proposedName,
+      order: Math.min(...mergeableOwners),
+    });
+  }
+
+  const entries = groups
+    .map((group, index) => ({
+      order: index,
       group,
-      proposedNames[index] && acceptedDocsDrivenIndexes.has(index)
-        ? proposedNames[index]
-        : (fallbackNames[index] ?? "Context"),
-      docsInput?.fragments,
-    ),
+      name:
+        proposedNames[index] && acceptedDocsDrivenIndexes.has(index)
+          ? proposedNames[index]
+          : (fallbackNames[index] ?? "Context"),
+    }))
+    .filter((entry) => !consumedIndexes.has(entry.order))
+    .concat(mergedEntries)
+    .sort((left, right) => left.order - right.order);
+
+  return entries.map((entry) => ({
+    group: entry.group,
+    candidate: buildContextCandidate(entry.group, entry.name, docsInput?.fragments),
   }));
 }

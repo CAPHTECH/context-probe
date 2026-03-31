@@ -1,3 +1,5 @@
+import type { ArchitectureScenarioCatalog } from "./architecture-scenarios.js";
+import type { ArchitectureBoundaryMap, ArchitectureTopologyModel } from "./architecture-topology.js";
 import type { Evidence } from "./common.js";
 
 export interface LayerDefinition {
@@ -53,4 +55,18 @@ export interface ArchitectureConstraintsScaffoldResult {
   yaml: string;
   layers: ArchitectureLayerCandidate[];
   complexityCandidate?: ArchitectureComplexityMetadata;
+  drafts?: {
+    scenarioCatalog: {
+      value: ArchitectureScenarioCatalog;
+      yaml: string;
+    };
+    topologyModel: {
+      value: ArchitectureTopologyModel;
+      yaml: string;
+    };
+    boundaryMap: {
+      value: ArchitectureBoundaryMap;
+      yaml: string;
+    };
+  };
 }

@@ -4,6 +4,7 @@ import { parseCodebase } from "../analyzers/code.js";
 import type { ArchitectureConstraintsScaffoldResult } from "./contracts.js";
 import { clampConfidence } from "./response.js";
 import { buildArchitectureLayerBalances } from "./scaffold-architecture-balances.js";
+import { buildArchitectureScaffoldDrafts } from "./scaffold-architecture-drafts.js";
 import { buildArchitectureScaffoldLayers } from "./scaffold-architecture-layers.js";
 import { buildArchitectureConstraints, inferLayerOrder } from "./scaffold-architecture-ordering.js";
 import {
@@ -27,11 +28,13 @@ export async function scaffoldArchitectureConstraints(options: {
   const constraints = buildArchitectureConstraints(orderedGroups);
   const balances = buildArchitectureLayerBalances(codebase, orderedGroups);
   const layers = buildArchitectureScaffoldLayers(orderedGroups, constraints, balances);
+  const drafts = buildArchitectureScaffoldDrafts(codebase, constraints);
 
   const result: ArchitectureConstraintsScaffoldResult = {
     constraints,
     yaml: YAML.stringify(constraints),
     layers,
+    drafts,
   };
 
   const confidence = clampConfidence(averageLayerConfidence(layers));
