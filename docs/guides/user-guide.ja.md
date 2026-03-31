@@ -53,6 +53,8 @@ npm run dev -- constraints.scaffold \
 
 どちらも `result.yaml` にレビュー用の YAML 文字列を返します。CLI はファイルを自動生成しないので、必要ならその内容を保存して `score.compute` に渡します。
 
+`constraints.scaffold` は `result.drafts` に `scenarioObservationsTemplate` `scenarioCatalog` `topologyModel` `boundaryMap` の starter draft も返します。`scenarioObservationsTemplate` は観測値ではなく review 用のテンプレートで、benchmark や incident review から埋める前提です。docs-first な repo では、初回のスコアリング前に architecture 入力を用意する叩き台として使えます。
+
 ## 最初の 10 分
 
 まずはドメイン設計のスコアを 1 回出して、出力の形を確認します。
@@ -96,7 +98,7 @@ npm run dev -- score.compute \
 
 この系統では `--model` ではなく `--constraints` が必須です。
 
-このコマンドだけでも動きますが、`QSF` `TIS` `OAS` `EES` を neutral / proxy ではなく観測付きで読みたい場合は、scenario / topology / runtime / telemetry / delivery の入力も渡します。
+このコマンドだけでも動きますが、`QSF` `TIS` `OAS` `EES` を neutral / proxy ではなく観測付きで読みたい場合は、scenario / topology / runtime / telemetry / delivery の入力も渡します。`scenario-observations` は scaffold で捏造せず、benchmark や incident review から作ります。
 
 このリポジトリ自身を測るときの最小セットは `config/self-measurement/` に置いてあります。
 
@@ -142,7 +144,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark から作り、`telemetry` `pattern runtime` `delivery` と raw な `architecture-complexity-snapshot.yaml` は maintainers が更新する curated observation として扱います。`complexity-export` はその complexity snapshot から生成する derived artifact です。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、`npm run self:architecture:complexity` は curated な complexity snapshot から `architecture-complexity-export.yaml` を再生成します。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。`npm run self:architecture:check` は、その advisory audit と architecture score smoke をまとめた運用チェックです。
+ここで使っている architecture 入力は live collector ではなく reviewable snapshot です。`scenario-observations` はローカル benchmark か incident review から作り、`constraints.scaffold` が返す `scenarioObservationsTemplate` はその入力を埋めるための review 用テンプレートとして扱います。`telemetry` `pattern runtime` `delivery` と raw な `architecture-complexity-snapshot.yaml` は maintainers が更新する curated observation として扱います。`complexity-export` はその complexity snapshot から生成する derived artifact です。`npm run self:architecture:refresh` は measured な `scenario-observations` と derived な `boundary-map` を更新し、`npm run self:architecture:complexity` は curated な complexity snapshot から `architecture-complexity-export.yaml` を再生成します。`npm run self:architecture:baseline` は current contract surface を reviewable な `IPS` baseline として capture するための別導線で、baseline delta を保つため `refresh` には含めません。`npm run self:architecture:audit` はその advisory 版で、CI に載せる用途を想定しています。`npm run self:architecture:check` は、その advisory audit と architecture score smoke をまとめた運用チェックです。
 
 日常運用では次の順を基本にします。
 

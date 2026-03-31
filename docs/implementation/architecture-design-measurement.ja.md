@@ -44,6 +44,8 @@
 2. `scenario-observation-source`
 3. それ以外は `QSF` 未観測
 
+`constraints.scaffold` は `scenario-observations` の実測値を作らない。代わりに `scenarioObservationsTemplate` を返し、benchmark や incident review から埋める前提を明示する。
+
 ### telemetry / pattern runtime input
 
 `CommonOps`:
@@ -80,6 +82,7 @@
 direct file 入力は canonical 形式だけでなく、collector が自然に出す要約形式も load 時に正規化します。
 
 - `scenario-observations`: canonical observation set に加え、benchmark / incident review summary を受理
+- `constraints.scaffold`: `scenarioObservationsTemplate` を返すが、実測値は生成しない
 - `delivery-export`: canonical export bundle に加え、DORA summary や `contextProbe.exportBundle` を内包する rich document を受理
 - `delivery-export` を `delivery-normalization-profile` なしで使う場合は、canonical export ingestion 側で built-in の DORA normalization defaults を適用する。明示的な raw delivery input は引き続き normalization profile 必須
 - `complexity-export`: canonical export bundle に加え、raw complexity snapshot や `contextProbe.exportBundle` を内包する rich document を受理

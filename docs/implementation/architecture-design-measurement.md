@@ -45,6 +45,8 @@ For human interpretation, read [../reference/architecture-design-metrics.md](../
 2. `scenario-observation-source`
 3. otherwise `QSF` stays unobserved
 
+`constraints.scaffold` does not fabricate `scenario-observations`. It emits a review-only `scenarioObservationsTemplate` so you can capture the right scenarios before collecting benchmark or incident data.
+
 ### Telemetry and pattern-runtime inputs
 
 For `CommonOps`:
@@ -81,6 +83,7 @@ The repository self-measurement bundle keeps curated operational metadata in `ar
 Direct file inputs accept the canonical shapes above, and some collector-native summaries are normalized on load:
 
 - `scenario-observations` can read canonical observation sets or benchmark / incident-review summaries
+- `constraints.scaffold` emits a review-only `scenarioObservationsTemplate`; it does not invent observed values
 - `delivery-export` can read canonical export bundles, DORA summaries, or rich documents that embed `contextProbe.exportBundle`
 - when `delivery-export` is used without `delivery-normalization-profile`, the canonical export ingestion path applies the built-in DORA normalization defaults; explicit raw delivery input still requires an explicit normalization profile
 - `complexity-export` can read canonical export bundles, raw complexity snapshots, or rich documents that embed `contextProbe.exportBundle`

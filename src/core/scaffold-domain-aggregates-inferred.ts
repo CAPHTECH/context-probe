@@ -20,6 +20,38 @@ import {
 import type { ContextCandidateEntry } from "./scaffold-domain-contexts.js";
 import type { DocsBundle } from "./scaffold-domain-docs.js";
 
+const AGGREGATE_CONTEXT_MARKERS = new Set([
+  "app",
+  "application",
+  "contracts",
+  "core",
+  "domain",
+  "foundation",
+  "kernel",
+  "model",
+  "service",
+  "services",
+  "usecase",
+  "usecases",
+]);
+
+function isAggregateEligibleContext(entry: ContextCandidateEntry): boolean {
+  const contextName = normalizeName(entry.candidate.definition.name);
+  const segment = normalizeName(entry.group.segment ?? "");
+  const basePath = normalizeName(entry.group.basePath);
+  const pathSegment = entry.group.basePath.split("/").at(-1) ?? "";
+  const normalizedPathSegment = normalizeName(pathSegment);
+
+  return Array.from(AGGREGATE_CONTEXT_MARKERS).some(
+    (marker) =>
+      contextName === marker ||
+      segment === marker ||
+      normalizedPathSegment === marker ||
+      basePath.includes(`/${marker}/`) ||
+      basePath.endsWith(`/${marker}`),
+  );
+}
+
 function termLooksLikeAggregateCandidate(term: GlossaryTerm): boolean {
   const normalized = term.canonicalTerm.trim();
   if (normalized.length === 0) {
@@ -53,6 +85,7 @@ export function createInferredAggregateCandidates(
     version: "1.0",
     contexts: contextCandidates.map((entry) => entry.candidate.definition),
   };
+  const contextEntryByName = new Map(contextCandidates.map((entry) => [entry.candidate.definition.name, entry]));
   const contextByName = new Map(model.contexts.map((context) => [context.name, context]));
   const linkByTermId = new Map(docsBundle.termLinks.map((link) => [link.termId, link]));
   const fragmentContextMentions = buildFragmentContextMentions(docsBundle.glossary.fragments, model);
@@ -79,7 +112,11 @@ export function createInferredAggregateCandidates(
     }
 
     const supportCount = countTermSupport(term, docsBundle.rules.rules, docsBundle.invariants.invariants);
-    if (supportCount === 0 && (link?.coverage.codeHits ?? 0) === 0) {
+    const contextEntry = contextEntryByName.get(contextName);
+    if (!contextEntry || !isAggregateEligibleContext(contextEntry)) {
+      continue;
+    }
+    if (supportCount === 0) {
       continue;
     }
     const supportScore = supportCount + (link?.coverage.codeHits ?? 0);

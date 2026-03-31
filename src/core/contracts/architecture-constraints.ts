@@ -1,4 +1,4 @@
-import type { ArchitectureScenarioCatalog } from "./architecture-scenarios.js";
+import type { ArchitectureScenarioCatalog, ArchitectureScenarioObservationTemplate } from "./architecture-scenarios.js";
 import type { ArchitectureBoundaryMap, ArchitectureTopologyModel } from "./architecture-topology.js";
 import type { Evidence } from "./common.js";
 
@@ -56,6 +56,10 @@ export interface ArchitectureConstraintsScaffoldResult {
   layers: ArchitectureLayerCandidate[];
   complexityCandidate?: ArchitectureComplexityMetadata;
   drafts?: {
+    scenarioObservationsTemplate: {
+      value: ArchitectureScenarioObservationTemplate;
+      yaml: string;
+    };
     scenarioCatalog: {
       value: ArchitectureScenarioCatalog;
       yaml: string;

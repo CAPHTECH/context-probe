@@ -37,6 +37,7 @@ collector が canonical JSON を stdout または file へ出し、それを `--
 - 入力: benchmark summary または incident review summary
 - 出力: `ScenarioObservationSet`
 - 目的: raw telemetry や incident review を直接 `QSF` に入れず、scenario 単位へ要約してから使う
+- scaffold は観測値を捏造しない。`constraints.scaffold` の `scenarioObservationsTemplate` を review 用テンプレートとして使い、実測値は benchmark や incident review から入れる
 
 ### `IPS` contract baseline
 

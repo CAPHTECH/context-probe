@@ -32,6 +32,7 @@ Goal:
 Goal:
 
 - convert benchmark and incident evidence into canonical scenario observations
+- keep authored scenario observations separate from scaffold templates; scaffold only provides a review-only `scenarioObservationsTemplate`
 
 ### `IPS`
 

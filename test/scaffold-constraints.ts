@@ -71,6 +71,31 @@ export function registerScaffoldConstraintsTests(tempRoots: string[]): void {
     expect(response.status).toBe("warning");
     const result = response.result as ArchitectureConstraintsScaffoldResult;
     expect(result.drafts).toBeDefined();
+    expect(result.drafts?.scenarioObservationsTemplate.value.scenarios.map((scenario) => scenario.scenarioId)).toEqual([
+      "SC-001",
+      "SC-002",
+    ]);
+    expect(
+      result.drafts?.scenarioObservationsTemplate.value.scenarios.every(
+        (scenario) => scenario.measurementStatus === "needs_measurement",
+      ),
+    ).toBe(true);
+    expect(
+      result.drafts?.scenarioObservationsTemplate.value.scenarios.every((scenario) =>
+        scenario.note.includes("benchmark or incident review"),
+      ),
+    ).toBe(true);
+
+    const scenarioObservationsTemplate = YAML.parse(result.drafts?.scenarioObservationsTemplate.yaml ?? "") as {
+      scenarios?: Array<{ scenarioId?: string; measurementStatus?: string; note?: string }>;
+    };
+    expect(scenarioObservationsTemplate.scenarios?.map((scenario) => scenario.scenarioId)).toEqual([
+      "SC-001",
+      "SC-002",
+    ]);
+    expect(
+      scenarioObservationsTemplate.scenarios?.every((scenario) => scenario.measurementStatus === "needs_measurement"),
+    ).toBe(true);
     expect(result.drafts?.boundaryMap.value.boundaries.map((boundary) => boundary.name)).toEqual([
       "Domain",
       "Infrastructure",

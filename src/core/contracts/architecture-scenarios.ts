@@ -22,6 +22,20 @@ export interface ArchitectureScenarioCatalog {
   scenarios: ArchitectureScenario[];
 }
 
+export interface ArchitectureScenarioObservationTemplateEntry {
+  scenarioId: string;
+  name?: string;
+  qualityAttribute?: string;
+  priority: number;
+  measurementStatus: "needs_measurement";
+  note: string;
+}
+
+export interface ArchitectureScenarioObservationTemplate {
+  version: string;
+  scenarios: ArchitectureScenarioObservationTemplateEntry[];
+}
+
 export interface ScenarioObservation {
   scenarioId: string;
   observed: number;

@@ -3,6 +3,7 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
   ArchitectureScenarioCatalog,
+  ArchitectureScenarioObservationTemplate,
   ArchitectureTopologyModel,
   CodebaseAnalysis,
   LayerDefinition,
@@ -15,6 +16,7 @@ export interface ArchitectureScaffoldDraft<T> {
 }
 
 export interface ArchitectureScaffoldDrafts {
+  scenarioObservationsTemplate: ArchitectureScaffoldDraft<ArchitectureScenarioObservationTemplate>;
   scenarioCatalog: ArchitectureScaffoldDraft<ArchitectureScenarioCatalog>;
   topologyModel: ArchitectureScaffoldDraft<ArchitectureTopologyModel>;
   boundaryMap: ArchitectureScaffoldDraft<ArchitectureBoundaryMap>;
@@ -69,6 +71,22 @@ function buildScenarioCatalog(constraints: ArchitectureConstraints): Architectur
       priority: index + 1,
       target: 0.8,
       worstAcceptable: 0.5,
+    })),
+  };
+}
+
+function buildScenarioObservationsTemplate(
+  catalog: ArchitectureScenarioCatalog,
+): ArchitectureScenarioObservationTemplate {
+  return {
+    version: catalog.version,
+    scenarios: catalog.scenarios.map((scenario) => ({
+      scenarioId: scenario.scenarioId,
+      ...(scenario.name ? { name: scenario.name } : {}),
+      ...(scenario.qualityAttribute ? { qualityAttribute: scenario.qualityAttribute } : {}),
+      priority: scenario.priority,
+      measurementStatus: "needs_measurement",
+      note: "Populate from benchmark or incident review before scoring.",
     })),
   };
 }
@@ -138,10 +156,15 @@ export function buildArchitectureScaffoldDrafts(
   constraints: ArchitectureConstraints,
 ): ArchitectureScaffoldDrafts {
   const scenarioCatalog = buildScenarioCatalog(constraints);
+  const scenarioObservationsTemplate = buildScenarioObservationsTemplate(scenarioCatalog);
   const topologyModel = buildTopologyModel(codebase, constraints);
   const boundaryMap = buildBoundaryMap(constraints);
 
   return {
+    scenarioObservationsTemplate: {
+      value: scenarioObservationsTemplate,
+      yaml: YAML.stringify(scenarioObservationsTemplate),
+    },
     scenarioCatalog: {
       value: scenarioCatalog,
       yaml: YAML.stringify(scenarioCatalog),

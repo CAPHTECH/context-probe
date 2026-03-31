@@ -85,6 +85,8 @@ npm run dev -- constraints.scaffold \
   --repo .
 ```
 
+`constraints.scaffold` は `result.drafts` に architecture 入力のレビュー用スタータードラフトも返します。内容は `scenarioCatalog` `topologyModel` `boundaryMap` で、docs-first な repo では初回スコアリング前の叩き台として使えます。
+
 ### ドメイン設計スコアの計測例
 
 ```bash

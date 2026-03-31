@@ -56,6 +56,8 @@ npm run dev -- constraints.scaffold \
 
 Both commands return review-first YAML in `result.yaml`. The CLI does not write files automatically.
 
+`constraints.scaffold` also returns starter drafts for `scenarioObservationsTemplate`, `scenarioCatalog`, `topologyModel`, and `boundaryMap` in `result.drafts`. The `scenarioObservationsTemplate` is a review-only checklist, not an observed dataset. Use it to collect benchmark or incident data without inventing values. The other drafts are starting points when a docs-first repo needs architecture inputs before the first scoring run.
+
 ## First 10 Minutes
 
 Start with a single domain-design run:
@@ -90,7 +92,7 @@ npm run dev -- score.compute \
 
 For architecture runs, `--constraints` is required instead of `--model`.
 
-This bare command is enough to run, but `QSF`, `TIS`, `OAS`, and `EES` stay neutral or proxy-heavy unless you also provide scenario, topology, runtime, telemetry, and delivery inputs.
+This bare command is enough to run, but `QSF`, `TIS`, `OAS`, and `EES` stay neutral or proxy-heavy unless you also provide scenario, topology, runtime, telemetry, and delivery inputs. `scenario-observations` should come from benchmark or incident data; the scaffold only provides a template, not observed values.
 
 This repository keeps a reviewed self-measurement bundle under `config/self-measurement/`.
 
@@ -136,7 +138,7 @@ npm run dev -- score.compute \
   --policy fixtures/policies/default.yaml
 ```
 
-Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` are maintained as curated observation snapshots. `complexity-export` is derived from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures a reviewable `IPS` baseline from the current contract surface and intentionally stays outside `refresh` so baseline deltas remain stable. `npm run self:architecture:audit` is the CI-friendly advisory version of that freshness check. `npm run self:architecture:check` is the operational check that runs the advisory audit plus an architecture score smoke.
+Those architecture inputs are reviewable snapshots rather than live collectors. `scenario-observations` comes from local benchmarks or incident reviews; scaffold only provides a template so you can fill it in manually. `telemetry`, `pattern runtime`, `delivery`, and the raw `architecture-complexity-snapshot.yaml` are maintained as curated observation snapshots. `complexity-export` is derived from that raw complexity snapshot. `npm run self:architecture:refresh` refreshes the measured `scenario-observations` and the derived `boundary-map`. `npm run self:architecture:complexity` regenerates `architecture-complexity-export.yaml` from the curated complexity snapshot. `npm run self:architecture:baseline` captures a reviewable `IPS` baseline from the current contract surface and intentionally stays outside `refresh` so baseline deltas remain stable. `npm run self:architecture:audit` is the CI-friendly advisory version of that freshness check. `npm run self:architecture:check` is the operational check that runs the advisory audit plus an architecture score smoke.
 
 Recommended upkeep order:
 

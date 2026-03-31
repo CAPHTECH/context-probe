@@ -135,7 +135,8 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 補足:
 
 - `model.scaffold` は `result.model` に構造化モデル、`result.yaml` にそのまま保存できる YAML 文字列、`result.contexts` / `result.aggregates` に候補と confidence を返します
-- `constraints.scaffold` は `result.constraints` と `result.yaml` を返し、`complexity` は stable な直接観測がない限り自動では埋めません
+- `constraints.scaffold` は `result.constraints` と `result.yaml` を返し、`scenarioObservationsTemplate` `scenarioCatalog` `topologyModel` `boundaryMap` の starter draft も `result.drafts` に返します。`scenarioObservationsTemplate` は観測値ではなく review 用テンプレートで、`needs_measurement` の形で scenario を列挙します。残りの drafts は docs-first repo の初回計測に使う叩き台であり、curated な観測値や review 済み constraints の代わりではありません
+- `complexity` は stable な直接観測がない限り自動では埋めません
 - どちらの scaffold も JSON の共通レスポンス契約を維持し、ファイルは自動生成しません
 
 ## 7. 実行モード

@@ -85,6 +85,8 @@ npm run dev -- constraints.scaffold \
   --repo .
 ```
 
+`constraints.scaffold` also returns reviewable starter drafts for architecture inputs in `result.drafts`: `scenarioCatalog`, `topologyModel`, and `boundaryMap`. Use those drafts as the starting point for docs-first repos when you need architecture input files before the first scoring run.
+
 ### Measure Domain Design
 
 ```bash

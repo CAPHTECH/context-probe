@@ -101,6 +101,8 @@ These are useful when you need to inspect extracted evidence directly.
 - `model.scaffold`: infers context and aggregate candidates from the repo, optionally strengthens them with `--docs-root`, and returns both `result.model` and a loadable YAML string in `result.yaml`
 - `constraints.scaffold`: infers layer candidates from the repo and returns both `result.constraints` and a loadable YAML string in `result.yaml`
 
+`constraints.scaffold` also returns reviewable starter drafts in `result.drafts` for `scenarioObservationsTemplate`, `scenarioCatalog`, `topologyModel`, and `boundaryMap`. The `scenarioObservationsTemplate` is deliberately not a measured observation set. It is a review-only template that names the scenarios and marks them as `needs_measurement`, so you can fill them from benchmark or incident data without inventing observed values. The other drafts are starter inputs for docs-first repos that need architecture files before the first score run; they do not replace curated observations or a reviewed constraints file.
+
 Scaffold commands keep the shared JSON response contract. They do not write files directly.
 
 ## Domain Inputs
