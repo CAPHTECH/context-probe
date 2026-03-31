@@ -38,12 +38,16 @@ function buildContextCandidate(
   const docsMentions = countContextMentions(name, fragments);
   const confidence = clampConfidence(
     0.55 +
-      (group.pathGlobs.length === 1 && group.pathGlobs[0] === group.files[0] ? 0.08 : group.segment ? 0.12 : 0.05) +
+      (group.heuristicSplit ? 0.08 : group.segment ? 0.12 : 0.05) +
       (group.files.length >= 2 ? 0.08 : 0) +
       (contractGlobs.length > 0 ? 0.08 : 0) +
       (internalGlobs.length > 0 ? 0.08 : 0) +
       (docsMentions > 0 ? 0.08 : 0),
   );
+  const groupScope =
+    group.heuristicSplit && (group.origins?.length ?? 0) > 1
+      ? `${group.origins?.length ?? 0} source buckets`
+      : group.basePath || "repository root";
 
   const definition: ContextDefinition = {
     name,
@@ -57,9 +61,10 @@ function buildContextCandidate(
     confidence,
     evidence: [
       toEvidence(
-        `${name} was inferred from ${group.files.length} source file(s) under ${group.basePath || "repository root"}.`,
+        `${name} was inferred from ${group.files.length} source file(s) under ${groupScope}.`,
         {
           group: group.basePath || ".",
+          ...(group.origins && group.origins.length > 0 ? { origins: group.origins } : {}),
           files: group.files.slice(0, 5),
           pathGlobs,
         },
@@ -67,12 +72,11 @@ function buildContextCandidate(
         confidence,
       ),
     ],
-    unknowns:
-      group.pathGlobs.length === 1 && group.pathGlobs[0] === group.files[0]
-        ? ["This context was split from a broad infrastructure bucket by heuristic and should be reviewed."]
-        : group.segment
-          ? []
-          : ["Root-level source files were grouped into a single context by heuristic."],
+    unknowns: group.heuristicSplit
+      ? ["This context was split from a broad infrastructure bucket by heuristic and should be reviewed."]
+      : group.segment
+        ? []
+        : ["Root-level source files were grouped into a single context by heuristic."],
   };
 }
 

@@ -197,6 +197,17 @@ function classifySubgroup(segment: string | undefined, filePath: string, basePat
   return undefined;
 }
 
+function inferGroupOrigin(basePath: string, sourceRoot: string | undefined, filePath: string): string {
+  if (basePath) {
+    return basePath;
+  }
+  if (sourceRoot) {
+    return sourceRoot;
+  }
+  const parts = filePath.split("/");
+  return parts.length > 1 ? (parts[0] ?? ".") : ".";
+}
+
 export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
   const groups = new Map<string, SourceGroup>();
 
@@ -210,6 +221,8 @@ export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
     let basePath = "";
     let sourceRoot: string | undefined;
     let segment: string | undefined;
+    let heuristicSplit = false;
+    let origins: string[] = [];
     let pathGlobs: string[] = [filePath];
 
     const sourceRootIndex = findSourceRootIndex(parts);
@@ -243,8 +256,11 @@ export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
 
     const classifiedSegment = classifySubgroup(segment, filePath, basePath);
     if (classifiedSegment) {
-      key = `${basePath}#${normalizeSegmentKey(classifiedSegment)}`;
+      key = `__heuristic__/${normalizeSegmentKey(classifiedSegment)}`;
       segment = classifiedSegment;
+      heuristicSplit = true;
+      origins = [inferGroupOrigin(basePath, sourceRoot, filePath)];
+      basePath = origins[0] ?? "";
       pathGlobs = [filePath];
     }
 
@@ -253,10 +269,20 @@ export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
       basePath,
       ...(sourceRoot ? { sourceRoot } : {}),
       ...(segment ? { segment } : {}),
+      ...(heuristicSplit ? { heuristicSplit: true } : {}),
+      ...(origins.length > 0 ? { origins } : {}),
       pathGlobs,
       files: [],
     };
     group.files.push(filePath);
+    if (heuristicSplit) {
+      group.heuristicSplit = true;
+      for (const origin of origins) {
+        if (!(group.origins ?? []).includes(origin)) {
+          group.origins = [...(group.origins ?? []), origin];
+        }
+      }
+    }
     for (const glob of pathGlobs) {
       if (!group.pathGlobs.includes(glob)) {
         group.pathGlobs.push(glob);
@@ -289,14 +315,23 @@ export function collectMarkerGlobs(group: SourceGroup, markers: Set<string>): st
   const markerFiles = new Set<string>();
 
   for (const filePath of group.files) {
+    const matchingOrigin =
+      group.origins
+        ?.slice()
+        .sort((left, right) => right.length - left.length)
+        .find((origin) => filePath.startsWith(`${origin}/`)) ?? group.basePath;
     const relative =
-      group.basePath && filePath.startsWith(`${group.basePath}/`)
-        ? filePath.slice(group.basePath.length + 1)
-        : filePath;
+      matchingOrigin && filePath.startsWith(`${matchingOrigin}/`)
+        ? filePath.slice(matchingOrigin.length + 1)
+        : group.basePath && filePath.startsWith(`${group.basePath}/`)
+          ? filePath.slice(group.basePath.length + 1)
+          : filePath;
     const relativeParts = relative.split("/");
     for (const segment of relativeParts.slice(0, -1)) {
       if (markers.has(segment.toLowerCase())) {
-        if (group.basePath) {
+        if (matchingOrigin) {
+          globs.add(`${matchingOrigin}/${segment}/**`);
+        } else if (group.basePath) {
           globs.add(`${group.basePath}/${segment}/**`);
         } else {
           globs.add(`${segment}/**`);

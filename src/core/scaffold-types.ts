@@ -25,6 +25,8 @@ export interface SourceGroup {
   basePath: string;
   sourceRoot?: string;
   segment?: string;
+  heuristicSplit?: boolean;
+  origins?: string[];
   pathGlobs: string[];
   files: string[];
 }
