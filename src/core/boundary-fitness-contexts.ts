@@ -1,4 +1,5 @@
 import type { DomainModel, Fragment, GlossaryTerm, TermTraceLink, TraceLinkOccurrence } from "./contracts.js";
+import { scoreTextAgainstLabel } from "./domain-design-matching.js";
 import { matchGlobs } from "./io.js";
 
 function escapeRegExp(value: string): string {
@@ -79,11 +80,10 @@ export function collectStatementContexts(
   statement: string,
   fragmentIds: string[],
   fragmentContextMentions: Map<string, string[]>,
-  mappedTerms: Array<{ canonicalTerm: string; contexts: string[] }>,
+  mappedTerms: Array<{ labels: string[]; contexts: string[] }>,
   model: DomainModel,
 ): string[] {
   const contexts = new Set<string>();
-  const normalizedStatement = statement.toLowerCase();
 
   for (const contextName of detectContextMentions(statement, model)) {
     contexts.add(contextName);
@@ -97,7 +97,7 @@ export function collectStatementContexts(
     if (term.contexts.length === 0) {
       continue;
     }
-    if (normalizedStatement.includes(term.canonicalTerm.toLowerCase())) {
+    if (term.labels.some((label) => scoreTextAgainstLabel(statement, label) > 0)) {
       for (const contextName of term.contexts) {
         contexts.add(contextName);
       }

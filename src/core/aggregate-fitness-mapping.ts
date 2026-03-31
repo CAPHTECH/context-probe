@@ -32,7 +32,7 @@ export function mapAggregateInvariants(input: {
   });
   const mappedTerms = input.terms
     .map((term) => ({
-      canonicalTerm: term.canonicalTerm,
+      labels: [term.canonicalTerm, ...(term.aliases ?? [])],
       contexts: collectTermContexts(term, linkByTermId.get(term.termId), fragmentContextMentions, input.model),
     }))
     .filter((entry) => entry.contexts.length > 0);
@@ -54,7 +54,7 @@ export function mapAggregateInvariants(input: {
       mappedTerms,
       input.model,
     );
-    const aggregateTargets = collectAggregateTargets(input.aggregateDefinitions, contexts, invariant);
+    const aggregateTargets = collectAggregateTargets(input.aggregateDefinitions, contexts, invariant, mappedTerms);
     const localityTargets = aggregateTargets.targets.length > 0 ? aggregateTargets.targets : contexts;
     input.unknowns.push(...aggregateTargets.unknowns);
     return {

@@ -54,7 +54,7 @@ export function buildAttractionSignals(input: {
     }))
     .filter((entry) => entry.contexts.length > 0);
   const termSummaries = mappedTerms.map((entry) => ({
-    canonicalTerm: entry.term.canonicalTerm,
+    labels: [entry.term.canonicalTerm, ...(entry.term.aliases ?? [])],
     contexts: entry.contexts,
   }));
   const signals: BoundarySignal[] = [];
