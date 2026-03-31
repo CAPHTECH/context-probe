@@ -10,9 +10,11 @@ import { clampConfidence, toEvidence } from "./response.js";
 import {
   hasContractOccurrence,
   hasInternalOccurrence,
+  isNoisyAggregateLabel,
   normalizeName,
   STOPWORD_AGGREGATE_TERMS,
   sanitizeAggregateAliases,
+  tokenizeAggregateLabel,
   toPascalCase,
 } from "./scaffold-domain-aggregates-shared.js";
 import type { ContextCandidateEntry } from "./scaffold-domain-contexts.js";
@@ -21,6 +23,9 @@ import type { DocsBundle } from "./scaffold-domain-docs.js";
 function termLooksLikeAggregateCandidate(term: GlossaryTerm): boolean {
   const normalized = term.canonicalTerm.trim();
   if (normalized.length === 0) {
+    return false;
+  }
+  if (isNoisyAggregateLabel(normalized)) {
     return false;
   }
   return !STOPWORD_AGGREGATE_TERMS.some((pattern) => pattern.test(normalized));
@@ -75,6 +80,11 @@ export function createInferredAggregateCandidates(
 
     const supportCount = countTermSupport(term, docsBundle.rules.rules, docsBundle.invariants.invariants);
     if (supportCount === 0 && (link?.coverage.codeHits ?? 0) === 0) {
+      continue;
+    }
+    const supportScore = supportCount + (link?.coverage.codeHits ?? 0);
+    const tokenCount = tokenizeAggregateLabel(term.canonicalTerm).length;
+    if (tokenCount <= 1 && supportScore < 3) {
       continue;
     }
 

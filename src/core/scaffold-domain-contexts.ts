@@ -32,13 +32,13 @@ function buildContextCandidate(
   name: string,
   fragments: GlossaryExtractionResult["fragments"] | undefined,
 ): DomainContextCandidate {
-  const pathGlobs = group.segment ? [`${group.basePath}/**`] : group.files;
+  const pathGlobs = group.pathGlobs;
   const contractGlobs = collectMarkerGlobs(group, CONTRACT_MARKERS);
   const internalGlobs = collectMarkerGlobs(group, INTERNAL_MARKERS);
   const docsMentions = countContextMentions(name, fragments);
   const confidence = clampConfidence(
     0.55 +
-      (group.segment ? 0.12 : 0.05) +
+      (group.pathGlobs.length === 1 && group.pathGlobs[0] === group.files[0] ? 0.08 : group.segment ? 0.12 : 0.05) +
       (group.files.length >= 2 ? 0.08 : 0) +
       (contractGlobs.length > 0 ? 0.08 : 0) +
       (internalGlobs.length > 0 ? 0.08 : 0) +
@@ -67,7 +67,12 @@ function buildContextCandidate(
         confidence,
       ),
     ],
-    unknowns: group.segment ? [] : ["Root-level source files were grouped into a single context by heuristic."],
+    unknowns:
+      group.pathGlobs.length === 1 && group.pathGlobs[0] === group.files[0]
+        ? ["This context was split from a broad infrastructure bucket by heuristic and should be reviewed."]
+        : group.segment
+          ? []
+          : ["Root-level source files were grouped into a single context by heuristic."],
   };
 }
 

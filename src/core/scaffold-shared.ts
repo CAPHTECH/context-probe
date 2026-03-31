@@ -4,15 +4,15 @@ export {
   mergeEvidence,
   mergeUnknowns,
 } from "./scaffold-aggregation.js";
-export { makeUniqueNames, normalizeName, toPascalCase, unique } from "./scaffold-naming.js";
+export { makeUniqueNames, normalizeName, unique } from "./scaffold-naming.js";
 export { createDefaultExtractionOptions } from "./scaffold-options.js";
 export {
   CONTRACT_MARKERS,
   collectMarkerGlobs,
   groupSourceFiles,
   INTERNAL_MARKERS,
+  inferGroupDisplayName,
   inferGroupNames,
-  inferRootGroupName,
   LAYER_PRIORITY_HINTS,
 } from "./scaffold-source-groups.js";
 export type {

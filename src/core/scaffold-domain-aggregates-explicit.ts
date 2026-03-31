@@ -1,6 +1,11 @@
 import type { DomainAggregateCandidate } from "./contracts.js";
 import { clampConfidence, toEvidence } from "./response.js";
-import { normalizeName, sanitizeAggregateAliases, toPascalCase } from "./scaffold-domain-aggregates-shared.js";
+import {
+  isNoisyAggregateLabel,
+  normalizeName,
+  sanitizeAggregateAliases,
+  toPascalCase,
+} from "./scaffold-domain-aggregates-shared.js";
 import type { ContextCandidateEntry } from "./scaffold-domain-contexts.js";
 import type { GlossaryExtractionResult } from "./scaffold-domain-docs.js";
 
@@ -24,9 +29,12 @@ export function createExplicitAggregateCandidates(
       const fileName = filePath.split("/").pop() ?? filePath;
       const rawName = toPascalCase(fileName);
       const name = rawName === "Aggregate" ? `${entry.candidate.definition.name}Aggregate` : rawName;
-      const withoutSuffix = name.replace(/Aggregate$/u, "");
-      const aliases = sanitizeAggregateAliases(name, [withoutSuffix, entry.candidate.definition.name]);
-      const mentionCount = countContextMentions(name, fragments) + countContextMentions(withoutSuffix, fragments);
+      const baseName = name.replace(/Aggregate$/u, "");
+      if (isNoisyAggregateLabel(name) || isNoisyAggregateLabel(baseName)) {
+        continue;
+      }
+      const aliases = sanitizeAggregateAliases(name, [baseName, entry.candidate.definition.name]);
+      const mentionCount = countContextMentions(name, fragments) + countContextMentions(baseName, fragments);
       const confidence = clampConfidence(0.8 + (mentionCount > 0 ? 0.08 : 0));
 
       aggregateCandidates.push({

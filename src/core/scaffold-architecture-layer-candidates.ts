@@ -1,16 +1,10 @@
 import type { ArchitectureLayerCandidate } from "./contracts.js";
 import { clampConfidence, toEvidence } from "./response.js";
-import {
-  inferRootGroupName,
-  LAYER_PRIORITY_HINTS,
-  normalizeName,
-  type SourceGroup,
-  toPascalCase,
-} from "./scaffold-shared.js";
+import { inferGroupDisplayName, LAYER_PRIORITY_HINTS, normalizeName, type SourceGroup } from "./scaffold-shared.js";
 
 export function buildLayerCandidate(group: SourceGroup, balance: number): ArchitectureLayerCandidate {
-  const name = group.segment ? toPascalCase(group.segment) : inferRootGroupName(group);
-  const globs = group.segment ? [`${group.basePath}/**`] : group.files;
+  const name = inferGroupDisplayName(group);
+  const globs = group.pathGlobs;
   const hintKey = normalizeName(group.segment ?? name).replace(/\s+/gu, "_");
   const confidence = clampConfidence(
     0.58 + (LAYER_PRIORITY_HINTS.has(hintKey) ? 0.18 : 0) + (group.files.length >= 2 ? 0.08 : 0),
@@ -34,6 +28,11 @@ export function buildLayerCandidate(group: SourceGroup, balance: number): Archit
         confidence,
       ),
     ],
-    unknowns: group.segment ? [] : ["Root-level source files were grouped into a single layer by heuristic."],
+    unknowns:
+      group.pathGlobs.length === 1 && group.pathGlobs[0] === group.files[0]
+        ? ["This layer was split from a broad infrastructure bucket by heuristic and should be reviewed."]
+        : group.segment
+          ? []
+          : ["Root-level source files were grouped into a single layer by heuristic."],
   };
 }

@@ -1,11 +1,10 @@
 import type { ArchitectureConstraints, CodebaseAnalysis, LayerDefinition } from "./contracts.js";
 import {
-  inferRootGroupName,
+  inferGroupDisplayName,
   LAYER_PRIORITY_HINTS,
   makeUniqueNames,
   normalizeName,
   type SourceGroup,
-  toPascalCase,
 } from "./scaffold-shared.js";
 
 export function inferLayerOrder(codebase: CodebaseAnalysis, groups: SourceGroup[]): SourceGroup[] {
@@ -37,12 +36,8 @@ export function inferLayerOrder(codebase: CodebaseAnalysis, groups: SourceGroup[
   }
 
   return [...groups].sort((left, right) => {
-    const leftHint = LAYER_PRIORITY_HINTS.get(
-      normalizeName(left.segment ?? inferRootGroupName(left)).replace(/\s+/gu, "_"),
-    );
-    const rightHint = LAYER_PRIORITY_HINTS.get(
-      normalizeName(right.segment ?? inferRootGroupName(right)).replace(/\s+/gu, "_"),
-    );
+    const leftHint = LAYER_PRIORITY_HINTS.get(normalizeName(inferGroupDisplayName(left)).replace(/\s+/gu, "_"));
+    const rightHint = LAYER_PRIORITY_HINTS.get(normalizeName(inferGroupDisplayName(right)).replace(/\s+/gu, "_"));
     const leftPriority = leftHint ?? 100;
     const rightPriority = rightHint ?? 100;
     if (leftPriority !== rightPriority) {
@@ -58,13 +53,11 @@ export function inferLayerOrder(codebase: CodebaseAnalysis, groups: SourceGroup[
 }
 
 export function buildArchitectureConstraints(groups: SourceGroup[]): ArchitectureConstraints {
-  const orderedNames = makeUniqueNames(
-    groups.map((group) => (group.segment ? toPascalCase(group.segment) : inferRootGroupName(group))),
-  );
+  const orderedNames = makeUniqueNames(groups.map((group) => inferGroupDisplayName(group)));
   const layers: LayerDefinition[] = groups.map((group, index) => ({
     name: orderedNames[index] ?? `Layer${index + 1}`,
     rank: index,
-    globs: group.segment ? [`${group.basePath}/**`] : group.files,
+    globs: group.pathGlobs,
   }));
   return {
     version: "1.0",

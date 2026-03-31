@@ -1,3 +1,6 @@
+import { access } from "node:fs/promises";
+import path from "node:path";
+
 import {
   loadBoundaryMapIfRequested,
   loadComplexityExportIfRequested,
@@ -18,6 +21,7 @@ import {
   loadTelemetryRawObservationsIfRequested,
   loadTopologyModelIfRequested,
 } from "./command-helpers.js";
+import { getDocsRoot } from "./command-path-helpers.js";
 import type {
   ArchitectureBoundaryMap,
   ArchitectureComplexityExportBundle,
@@ -61,10 +65,79 @@ export interface LoadedArchitectureInputData {
   complexityExport?: ArchitectureComplexityExportBundle | undefined;
 }
 
+const STANDARD_ARCHITECTURE_DOC_INPUTS: Record<string, string[]> = {
+  "scenario-catalog": ["architecture/context-probe/architecture-scenarios.yaml", "architecture/scenario-catalog.yaml"],
+  "scenario-observations": [
+    "architecture/context-probe/architecture-scenario-observations.yaml",
+    "architecture/context-probe/architecture-scenario-benchmark-summary.json",
+    "architecture/scenario-observations.yaml",
+  ],
+  "topology-model": ["architecture/context-probe/architecture-topology.yaml", "architecture/topology-model.yaml"],
+  "boundary-map": ["architecture/context-probe/architecture-boundary-map.yaml", "architecture/boundary-map.yaml"],
+  "contract-baseline": ["architecture/context-probe/architecture-contract-baseline.yaml"],
+  "runtime-observations": [
+    "architecture/context-probe/architecture-runtime-observations.yaml",
+    "architecture/runtime-observations.yaml",
+  ],
+  "delivery-observations": [
+    "architecture/context-probe/architecture-delivery-observations.yaml",
+    "architecture/delivery-observations.yaml",
+  ],
+  "telemetry-observations": [
+    "architecture/context-probe/architecture-telemetry-observations.yaml",
+    "architecture/telemetry-observations.yaml",
+  ],
+  "pattern-runtime-observations": [
+    "architecture/context-probe/architecture-pattern-runtime-observations.yaml",
+    "architecture/pattern-runtime-observations.yaml",
+  ],
+  "complexity-export": ["architecture/context-probe/architecture-complexity-export.yaml"],
+};
+
+async function findFirstExistingPath(baseDirectory: string, candidates: string[]): Promise<string | undefined> {
+  for (const candidate of candidates) {
+    const resolved = path.resolve(baseDirectory, candidate);
+    try {
+      await access(resolved);
+      return resolved;
+    } catch {
+      // Continue until a matching standard path exists.
+    }
+  }
+  return undefined;
+}
+
+async function discoverArchitectureInputArgs(
+  args: Record<string, string | boolean>,
+  context: CommandContext,
+): Promise<Record<string, string | boolean>> {
+  if (typeof args["docs-root"] !== "string") {
+    return args;
+  }
+
+  const docsRoot = getDocsRoot(args, context);
+  const resolvedArgs: Record<string, string | boolean> = { ...args };
+
+  await Promise.all(
+    Object.entries(STANDARD_ARCHITECTURE_DOC_INPUTS).map(async ([argKey, candidates]) => {
+      if (typeof resolvedArgs[argKey] === "string") {
+        return;
+      }
+      const discovered = await findFirstExistingPath(docsRoot, candidates);
+      if (discovered) {
+        resolvedArgs[argKey] = discovered;
+      }
+    }),
+  );
+
+  return resolvedArgs;
+}
+
 export async function loadArchitectureInputData(
   args: Record<string, string | boolean>,
   context: CommandContext,
 ): Promise<LoadedArchitectureInputData> {
+  const resolvedArgs = await discoverArchitectureInputArgs(args, context);
   const [
     scenarioCatalog,
     scenarioObservations,
@@ -85,24 +158,24 @@ export async function loadArchitectureInputData(
     patternRuntimeNormalizationProfileResult,
     complexityExport,
   ] = await Promise.all([
-    loadScenarioCatalogIfRequested(args, context),
-    loadScenarioObservationsIfRequested(args, context),
-    loadTopologyModelIfRequested(args, context),
-    loadBoundaryMapIfRequested(args, context),
-    loadContractBaselineIfRequested(args, context),
-    loadRuntimeObservationsIfRequested(args, context),
-    loadDeliveryObservationsIfRequested(args, context),
-    loadDeliveryRawObservationsIfRequested(args, context),
-    loadDeliveryExportIfRequested(args, context),
-    loadDeliveryNormalizationProfileIfRequested(args, context),
-    loadTelemetryObservationsIfRequested(args, context),
-    loadTelemetryRawObservationsIfRequested(args, context),
-    loadTelemetryExportIfRequested(args, context),
-    loadTelemetryNormalizationProfileIfRequested(args, context),
-    loadPatternRuntimeObservationsIfRequested(args, context),
-    loadPatternRuntimeRawObservationsIfRequested(args, context),
-    loadPatternRuntimeNormalizationProfileIfRequested(args, context),
-    loadComplexityExportIfRequested(args, context),
+    loadScenarioCatalogIfRequested(resolvedArgs, context),
+    loadScenarioObservationsIfRequested(resolvedArgs, context),
+    loadTopologyModelIfRequested(resolvedArgs, context),
+    loadBoundaryMapIfRequested(resolvedArgs, context),
+    loadContractBaselineIfRequested(resolvedArgs, context),
+    loadRuntimeObservationsIfRequested(resolvedArgs, context),
+    loadDeliveryObservationsIfRequested(resolvedArgs, context),
+    loadDeliveryRawObservationsIfRequested(resolvedArgs, context),
+    loadDeliveryExportIfRequested(resolvedArgs, context),
+    loadDeliveryNormalizationProfileIfRequested(resolvedArgs, context),
+    loadTelemetryObservationsIfRequested(resolvedArgs, context),
+    loadTelemetryRawObservationsIfRequested(resolvedArgs, context),
+    loadTelemetryExportIfRequested(resolvedArgs, context),
+    loadTelemetryNormalizationProfileIfRequested(resolvedArgs, context),
+    loadPatternRuntimeObservationsIfRequested(resolvedArgs, context),
+    loadPatternRuntimeRawObservationsIfRequested(resolvedArgs, context),
+    loadPatternRuntimeNormalizationProfileIfRequested(resolvedArgs, context),
+    loadComplexityExportIfRequested(resolvedArgs, context),
   ]);
 
   return {
