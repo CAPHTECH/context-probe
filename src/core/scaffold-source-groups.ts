@@ -286,7 +286,6 @@ export function groupSourceFiles(codebase: CodebaseAnalysis): SourceGroup[] {
     if (parts.length === 0) {
       continue;
     }
-
     let key = "__root__";
     let basePath = "";
     let sourceRoot: string | undefined;
