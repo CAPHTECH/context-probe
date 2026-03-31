@@ -7,6 +7,7 @@ import { COMMANDS } from "../src/commands.js";
 import type { ArchitectureConstraintsScaffoldResult } from "../src/core/contracts.js";
 import { loadArchitectureConstraints } from "../src/core/model.js";
 import { createTemporaryWorkspace } from "./helpers.js";
+import { SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY } from "./scaffold.helpers.js";
 
 export function registerScaffoldConstraintsTests(tempRoots: string[]): void {
   test("constraints.scaffold returns loadable YAML", async () => {
@@ -28,5 +29,30 @@ export function registerScaffoldConstraintsTests(tempRoots: string[]): void {
     await writeFile(constraintsPath, result.yaml, "utf8");
     const loaded = await loadArchitectureConstraints(constraintsPath);
     expect(loaded.layers.map((layer) => layer.name)).toEqual(["Domain", "Infrastructure"]);
+  });
+
+  test("constraints.scaffold keeps semantic role layers merged in fixture repos", async () => {
+    const workspace = await createTemporaryWorkspace([SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY]);
+    tempRoots.push(workspace);
+
+    const repo = path.join(workspace, SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY, "repo");
+    const response = await COMMANDS["constraints.scaffold"]!(
+      {
+        repo,
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).toBe("warning");
+    const result = response.result as ArchitectureConstraintsScaffoldResult;
+    expect(result.constraints.layers.map((layer) => layer.name)).toEqual([
+      "Contracts",
+      "Domain",
+      "UseCases",
+      "IngestAndExtraction",
+      "RuntimeInfrastructure",
+      "WorkspaceBootstrap",
+      "EvaluationQuality",
+    ]);
   });
 }
