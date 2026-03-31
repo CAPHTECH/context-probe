@@ -1,5 +1,6 @@
 import type { AggregateDefinition, InvariantCandidate } from "./contracts.js";
 import { normalizeDomainDesignLabel, scoreTextAgainstLabel } from "./domain-design-matching.js";
+import { average, clamp01Finite as clamp01, unique } from "./shared-utils.js";
 
 const STRONG_CONSISTENCY_SIGNALS = [
   /一致/u,
@@ -23,20 +24,7 @@ export interface AggregateInvariantMapping {
   aggregateTargets: string[];
 }
 
-export function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
-export function average(values: number[], fallback: number): number {
-  if (values.length === 0) {
-    return fallback;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-export function unique(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
+export { average, clamp01, unique };
 
 export function localizationScore(contexts: string[]): number {
   if (contexts.length === 0) {

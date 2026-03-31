@@ -1,21 +1,15 @@
-import { execFile as execFileCallback } from "node:child_process";
-import { appendFile, cp, mkdtemp, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { promisify } from "node:util";
+import { rm } from "node:fs/promises";
 
 import { afterEach, describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
 import type { CommandResponse, DomainDesignShadowRolloutBatchResult } from "../src/core/contracts.js";
 import { summarizeShadowRolloutBatchObservations } from "../src/core/shadow-rollout.js";
-import { createTemporaryGitRepoFromFixture } from "./helpers.js";
-
-const execFile = promisify(execFileCallback);
-
-const FIXTURE_REPO = path.resolve("fixtures/domain-design/sample-repo");
-const FIXTURE_MODEL = path.resolve("fixtures/domain-design/model.yaml");
-const FIXTURE_POLICY = path.resolve("fixtures/policies/default.yaml");
+import {
+  createShadowRolloutBatchWorkspace,
+  seedScatteredRepo,
+  writeShadowRolloutBatchSpec,
+} from "./shadow-rollout-batch.helpers.js";
 
 describe("shadow rollout batch observation", () => {
   const tempPaths: string[] = [];
@@ -30,57 +24,15 @@ describe("shadow rollout batch observation", () => {
   });
 
   test("aggregates multiple repo observations from a batch spec", async () => {
-    const baselineRepo = await createTemporaryGitRepoFromFixture(FIXTURE_REPO);
-    const scatteredRepo = await createTemporaryGitRepoFromFixture(FIXTURE_REPO);
-    const specRoot = await mkdtemp(path.join(os.tmpdir(), "context-probe-shadow-batch-"));
-    const batchSpecPath = path.join(specRoot, "batch-spec.yaml");
-    const copiedModelPath = path.join(specRoot, "model.yaml");
-    const copiedPolicyPath = path.join(specRoot, "policy.yaml");
-    tempPaths.push(baselineRepo, scatteredRepo, specRoot);
+    const workspace = await createShadowRolloutBatchWorkspace();
+    tempPaths.push(workspace.baselineRepo, workspace.scatteredRepo, workspace.specRoot);
 
-    await appendAndCommit(
-      scatteredRepo,
-      {
-        "src/billing/contracts/invoice-contract.ts": "\nexport interface ShadowScatteredInvoiceOne { id: string; }\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const shadowScatteredOne = 'scattered-1';\n",
-      },
-      "feat: scattered cross-context 1",
-    );
-    await appendAndCommit(
-      scatteredRepo,
-      {
-        "src/billing/contracts/invoice-contract.ts": "\nexport interface ShadowScatteredInvoiceTwo { id: string; }\n",
-        "src/fulfillment/internal/fulfillment-service.ts": "\nexport const shadowScatteredTwo = 'scattered-2';\n",
-      },
-      "feat: scattered cross-context 2",
-    );
-
-    await cp(FIXTURE_MODEL, copiedModelPath);
-    await cp(FIXTURE_POLICY, copiedPolicyPath);
-    await writeFile(
-      batchSpecPath,
-      [
-        'version: "1.0"',
-        'policy: "./policy.yaml"',
-        "tieTolerance: 0.02",
-        "entries:",
-        "  - repoId: baseline",
-        '    label: "Baseline"',
-        '    category: "stable"',
-        `    repo: "${baselineRepo}"`,
-        '    model: "./model.yaml"',
-        "  - repoId: scattered",
-        '    label: "Scattered"',
-        '    category: "risky"',
-        `    repo: "${scatteredRepo}"`,
-        '    model: "./model.yaml"',
-      ].join("\n"),
-      "utf8",
-    );
+    await seedScatteredRepo(workspace.scatteredRepo);
+    await writeShadowRolloutBatchSpec(workspace);
 
     const response = (await COMMANDS["score.observe_shadow_rollout_batch"]!(
       {
-        "batch-spec": batchSpecPath,
+        "batch-spec": workspace.batchSpecPath,
       },
       { cwd: process.cwd() },
     )) as CommandResponse<DomainDesignShadowRolloutBatchResult>;
@@ -97,10 +49,10 @@ describe("shadow rollout batch observation", () => {
     expect(result.overall.repoCount).toBe(2);
     expect(baseline).toBeDefined();
     expect(scattered).toBeDefined();
-    expect(baseline?.modelPath).toBe(copiedModelPath);
-    expect(baseline?.policyPath).toBe(copiedPolicyPath);
-    expect(scattered?.modelPath).toBe(copiedModelPath);
-    expect(scattered?.policyPath).toBe(copiedPolicyPath);
+    expect(baseline?.modelPath).toBe(workspace.copiedModelPath);
+    expect(baseline?.policyPath).toBe(workspace.copiedPolicyPath);
+    expect(scattered?.modelPath).toBe(workspace.copiedModelPath);
+    expect(scattered?.policyPath).toBe(workspace.copiedPolicyPath);
     expect(
       result.overall.driftCounts.aligned +
         result.overall.driftCounts.candidateHigher +
@@ -125,7 +77,7 @@ describe("shadow rollout batch observation", () => {
       12,
     );
     expect(response.provenance).toContainEqual(
-      expect.objectContaining({ path: batchSpecPath, note: "shadow rollout batch spec" }),
+      expect.objectContaining({ path: workspace.batchSpecPath, note: "shadow rollout batch spec" }),
     );
   }, 20000);
 
@@ -193,12 +145,3 @@ describe("shadow rollout batch observation", () => {
     });
   });
 });
-
-async function appendAndCommit(repoPath: string, updates: Record<string, string>, message: string): Promise<void> {
-  for (const [relativePath, content] of Object.entries(updates)) {
-    await appendFile(path.join(repoPath, relativePath), content, "utf8");
-  }
-
-  await execFile("git", ["add", "-A"], { cwd: repoPath });
-  await execFile("git", ["commit", "-m", message], { cwd: repoPath });
-}

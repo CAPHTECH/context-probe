@@ -1,5 +1,6 @@
 import type { CochangeCommit, DomainModel } from "./contracts.js";
 import { matchGlobs, toPosixPath } from "./io.js";
+import { average, clamp01Finite as clamp01, unique } from "./shared-utils.js";
 
 export interface ContextualizedCommit extends CochangeCommit {
   contexts: string[];
@@ -14,20 +15,7 @@ function classifyContext(filePath: string, model: DomainModel): string | undefin
   return model.contexts.find((context) => matchGlobs(filePath, context.pathGlobs))?.name;
 }
 
-export function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
-}
-
-function average(values: number[], fallback: number): number {
-  if (values.length === 0) {
-    return fallback;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-export function unique<T>(values: T[]): T[] {
-  return Array.from(new Set(values));
-}
+export { clamp01, unique };
 
 export function toGitHistoryPathspecs(globs: string[]): string[] {
   return unique(

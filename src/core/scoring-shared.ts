@@ -1,4 +1,5 @@
 import type { BoundaryLeakFinding, MetricScore } from "./contracts.js";
+import { average, clamp01 } from "./shared-utils.js";
 
 export function computeLeakRatio(leaks: BoundaryLeakFinding[], applicableReferences: number): number {
   if (applicableReferences === 0) {
@@ -25,16 +26,7 @@ export function toMetricScore(
   };
 }
 
-export function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-export function average(values: number[], fallback: number): number {
-  if (values.length === 0) {
-    return fallback;
-  }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
+export { average, clamp01 };
 
 export function weightedAverage(
   entries: Array<{ value: number | undefined; weight: number }>,

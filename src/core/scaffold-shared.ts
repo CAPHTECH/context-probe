@@ -7,10 +7,7 @@ export {
 export { makeUniqueNames, normalizeName, unique } from "./scaffold-naming.js";
 export { createDefaultExtractionOptions } from "./scaffold-options.js";
 export {
-  CONTRACT_MARKERS,
-  collectMarkerGlobs,
   groupSourceFiles,
-  INTERNAL_MARKERS,
   inferGroupDisplayName,
   inferGroupNames,
   LAYER_PRIORITY_HINTS,
