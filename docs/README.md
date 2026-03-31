@@ -13,11 +13,11 @@ Japanese documents are the primary source of truth. English documents mirror the
 Choose the shortest path for your task:
 
 1. First-time CLI usage: [guides/user-guide.md](guides/user-guide.md)
-2. How to read `score`, `confidence`, and `unknowns`: [reference/metric-reading-guide.md](reference/metric-reading-guide.md)
-3. Domain metric meaning: [reference/domain-design-metrics.md](reference/domain-design-metrics.md)
-4. Architecture metric meaning: [reference/architecture-design-metrics.md](reference/architecture-design-metrics.md)
-5. Current runtime and command model: [implementation/runtime-and-commands.md](implementation/runtime-and-commands.md)
-6. Current domain-design measurement path: [implementation/domain-design-measurement.md](implementation/domain-design-measurement.md)
+2. Apply `context-probe` to an existing repo: [guides/repo-apply-playbook.md](guides/repo-apply-playbook.md)
+3. How to read `score`, `confidence`, and `unknowns`: [reference/metric-reading-guide.md](reference/metric-reading-guide.md)
+4. Domain metric meaning: [reference/domain-design-metrics.md](reference/domain-design-metrics.md)
+5. Architecture metric meaning: [reference/architecture-design-metrics.md](reference/architecture-design-metrics.md)
+6. Current runtime and command model: [implementation/runtime-and-commands.md](implementation/runtime-and-commands.md)
 7. Current architecture-design measurement path: [implementation/architecture-design-measurement.md](implementation/architecture-design-measurement.md)
 
 ## Directory Guide
@@ -26,6 +26,8 @@ Choose the shortest path for your task:
 
 - [user-guide.md](guides/user-guide.md)
   - Quick-start guidance for first-time CLI users.
+- [repo-apply-playbook.md](guides/repo-apply-playbook.md)
+  - Step-by-step guide for scaffold-first repo application, curation, observations, and assessment.
 
 ### `reference/`
 

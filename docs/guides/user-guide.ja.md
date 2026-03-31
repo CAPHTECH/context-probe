@@ -4,6 +4,8 @@
 
 詳細仕様の読み込みより先に、まず「どう使い始めるか」を押さえることを目的にしています。
 
+既存 repo へ `context-probe` を適用したい場合は、先に [repo-apply-playbook.ja.md](repo-apply-playbook.ja.md) を読んでください。このガイドは初回の成功体験と、その次の判断に絞っています。
+
 ## これは何か
 
 `context-probe` は、AI と決定的な解析器を組み合わせて設計品質を計測する CLI です。
@@ -18,6 +20,14 @@
 - `report.generate`
 - `gate.evaluate`
 - `review.list_unknowns`
+
+## 目的別の入口
+
+今の目的ごとに、最短の導線を使い分けます。
+
+- 最初の 1 回を成功させたい: このガイドを続ける
+- 既存 repo に `context-probe` を適用したい: [repo-apply-playbook.ja.md](repo-apply-playbook.ja.md)
+- このリポジトリの self-measurement を運用したい: [../operations/self-measurement-runbook.ja.md](../operations/self-measurement-runbook.ja.md)
 
 ## 始める前に
 
@@ -55,6 +65,14 @@ npm run dev -- constraints.scaffold \
 
 `constraints.scaffold` は `result.drafts` に `scenarioObservationsTemplate` `scenarioCatalog` `topologyModel` `boundaryMap` の starter draft も返します。`scenarioObservationsTemplate` は観測値ではなく review 用のテンプレートで、benchmark や incident review から埋める前提です。docs-first な repo では、初回のスコアリング前に architecture 入力を用意する叩き台として使えます。
 
+このガイドでは次の境界を統一して使います。
+
+- scaffold 出力: review-first draft
+- starter run: 方向と unknowns を見るための実行
+- authoritative run: curated input と observation snapshot を前提にした本命の実行
+
+repo 適用の全体フローが必要なら [repo-apply-playbook.ja.md](repo-apply-playbook.ja.md) を使います。
+
 ## 最初の 10 分
 
 まずはドメイン設計のスコアを 1 回出して、出力の形を確認します。
@@ -74,6 +92,28 @@ npm run dev -- score.compute \
 - 初回利用時でも、どの根拠で計測したかを JSON で追える
 
 文書も含めて計測したい場合は、`--docs-root docs` を追加します。
+
+`domain_design` では、次を足すと結果が改善しやすくなります。
+
+- `domain-model.yaml` の explicit aggregate
+- `--docs-root` で取れる docs coverage
+- locality 系に効く十分な git history
+
+主に `AFS` `BFS` と history 依存部分に効きます。
+
+## 目的別コマンドマップ
+
+| 目的 | コマンド |
+| --- | --- |
+| 最初の入力を scaffold する | `model.scaffold`, `constraints.scaffold` |
+| 最初の assessment を回す | `score.compute`, `report.generate`, `gate.evaluate` |
+| まだ review が必要な箇所を見る | `review.list_unknowns` |
+| 文書からの抽出証拠を確認する | `doc.extract_*` |
+| model/code や term/code の linking を確認する | `trace.link_model_to_code`, `trace.link_terms` |
+| locality や history の証拠を確認する | `history.*` |
+| 高度な rollout と運用 | shadow rollout commands, self-measurement runbook |
+
+実装レベルのコマンド契約が必要なときは、[../implementation/runtime-and-commands.ja.md](../implementation/runtime-and-commands.ja.md) を参照します。
 
 ```bash
 npm run dev -- score.compute \
@@ -99,6 +139,16 @@ npm run dev -- score.compute \
 この系統では `--model` ではなく `--constraints` が必須です。
 
 このコマンドだけでも動きますが、`QSF` `TIS` `OAS` `EES` を neutral / proxy ではなく観測付きで読みたい場合は、scenario / topology / runtime / telemetry / delivery の入力も渡します。`scenario-observations` は scaffold で捏造せず、benchmark や incident review から作ります。
+
+実務上は、次の順で architecture 結果が改善しやすいです。
+
+- `scenario-observations` は `QSF` を改善する
+- `contract-baseline` は `IPS` を改善する
+- `runtime-observations` は `TIS` を改善する
+- `pattern-runtime-observations` と `telemetry-observations` は `OAS` を改善する
+- `delivery-observations` または delivery export は `EES` を改善する
+
+別 repo に適用するときの具体的な手順は [repo-apply-playbook.ja.md](repo-apply-playbook.ja.md) にまとめています。
 
 このリポジトリ自身を測るときの最小セットは `config/self-measurement/` に置いてあります。
 

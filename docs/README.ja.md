@@ -13,11 +13,11 @@
 目的ごとに次の入口から読むのが最短です。
 
 1. CLI を使い始める: [guides/user-guide.ja.md](guides/user-guide.ja.md)
-2. `score` `confidence` `unknowns` の読み方を知る: [reference/metric-reading-guide.ja.md](reference/metric-reading-guide.ja.md)
-3. ドメイン設計の指標を読む: [reference/domain-design-metrics.ja.md](reference/domain-design-metrics.ja.md)
-4. アーキテクチャ設計の指標を読む: [reference/architecture-design-metrics.ja.md](reference/architecture-design-metrics.ja.md)
-5. 現行の実行パイプラインとコマンド体系を追う: [implementation/runtime-and-commands.ja.md](implementation/runtime-and-commands.ja.md)
-6. ドメイン設計の current implementation を追う: [implementation/domain-design-measurement.ja.md](implementation/domain-design-measurement.ja.md)
+2. 既存 repo に `context-probe` を適用する: [guides/repo-apply-playbook.ja.md](guides/repo-apply-playbook.ja.md)
+3. `score` `confidence` `unknowns` の読み方を知る: [reference/metric-reading-guide.ja.md](reference/metric-reading-guide.ja.md)
+4. ドメイン設計の指標を読む: [reference/domain-design-metrics.ja.md](reference/domain-design-metrics.ja.md)
+5. アーキテクチャ設計の指標を読む: [reference/architecture-design-metrics.ja.md](reference/architecture-design-metrics.ja.md)
+6. 現行の実行パイプラインとコマンド体系を追う: [implementation/runtime-and-commands.ja.md](implementation/runtime-and-commands.ja.md)
 7. アーキテクチャ設計の current implementation を追う: [implementation/architecture-design-measurement.ja.md](implementation/architecture-design-measurement.ja.md)
 
 ## ディレクトリ構成
@@ -26,6 +26,8 @@
 
 - [user-guide.ja.md](guides/user-guide.ja.md)
   - 初回利用者向けのクイックスタートです。
+- [repo-apply-playbook.ja.md](guides/repo-apply-playbook.ja.md)
+  - scaffold-first で repo に適用し、curated input・観測・assessment まで進める実践ガイドです。
 
 ### `reference/`
 

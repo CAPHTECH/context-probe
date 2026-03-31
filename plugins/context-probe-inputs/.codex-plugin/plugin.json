@@ -1,0 +1,39 @@
+{
+  "name": "context-probe-inputs",
+  "version": "0.1.0",
+  "description": "Interactive support for scaffold-first context-probe YAML inputs, curated promotion, and assessment updates.",
+  "author": {
+    "name": "Ryoichi Izumita",
+    "email": "r.izumita@caph.jp",
+    "url": "https://github.com/CAPHTECH/context-probe"
+  },
+  "homepage": "https://github.com/CAPHTECH/context-probe",
+  "repository": "https://github.com/CAPHTECH/context-probe.git",
+  "license": "Apache-2.0",
+  "keywords": [
+    "context-probe",
+    "yaml-inputs",
+    "docs-first"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Context Probe Inputs",
+    "shortDescription": "Scaffold, curate, and review context-probe YAML inputs.",
+    "longDescription": "Supports scaffold-first repo application for context-probe. It helps save drafts, promote curated YAML, prepare observation templates, recommend dedicated worktrees, and refresh assessment notes without inventing evidence.",
+    "developerName": "CAPHTECH",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/CAPHTECH/context-probe",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "defaultPrompt": [
+      "Apply context-probe to this repository.",
+      "Promote scaffold YAML into curated inputs.",
+      "Prepare observation templates and refresh assessment."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

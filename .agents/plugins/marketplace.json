@@ -1,0 +1,20 @@
+{
+  "name": "context-probe-local",
+  "interface": {
+    "displayName": "Context Probe Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "context-probe-inputs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/context-probe-inputs"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

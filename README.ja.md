@@ -10,16 +10,17 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 
 1. [docs/README.ja.md](docs/README.ja.md)
 2. [docs/guides/user-guide.ja.md](docs/guides/user-guide.ja.md)
-3. [docs/concepts/measurement-model.ja.md](docs/concepts/measurement-model.ja.md)
-4. [docs/reference/domain-design-metrics.ja.md](docs/reference/domain-design-metrics.ja.md)
-5. [docs/reference/architecture-design-metrics.ja.md](docs/reference/architecture-design-metrics.ja.md)
-6. [docs/implementation/runtime-and-commands.ja.md](docs/implementation/runtime-and-commands.ja.md)
-7. [docs/roadmap/phased-delivery.ja.md](docs/roadmap/phased-delivery.ja.md)
+3. [docs/guides/repo-apply-playbook.ja.md](docs/guides/repo-apply-playbook.ja.md)
+4. [docs/concepts/measurement-model.ja.md](docs/concepts/measurement-model.ja.md)
+5. [docs/reference/domain-design-metrics.ja.md](docs/reference/domain-design-metrics.ja.md)
+6. [docs/reference/architecture-design-metrics.ja.md](docs/reference/architecture-design-metrics.ja.md)
+7. [docs/implementation/runtime-and-commands.ja.md](docs/implementation/runtime-and-commands.ja.md)
 
 ## 文書構成
 
 - [docs/README.ja.md](docs/README.ja.md): 文書全体の索引
 - [docs/guides/user-guide.ja.md](docs/guides/user-guide.ja.md): 初回利用者向けの最短ガイド
+- [docs/guides/repo-apply-playbook.ja.md](docs/guides/repo-apply-playbook.ja.md): 既存 repo へ適用するための実践ガイド
 - [docs/concepts/](docs/concepts): 概念仕様と計測モデル
 - [docs/reference/](docs/reference): 指標と summary score の読み方
 - [docs/implementation/](docs/implementation): current implementation の計算経路と出力契約
@@ -50,7 +51,11 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 
 ## クイックスタート
 
-最初に CLI の使い方を追いたい場合は、[docs/guides/user-guide.ja.md](docs/guides/user-guide.ja.md) を先に読むのが最短です。
+目的ごとの最短入口は次です。
+
+- CLI を初めて触る: [docs/guides/user-guide.ja.md](docs/guides/user-guide.ja.md)
+- 既存 repo に `context-probe` を適用する: [docs/guides/repo-apply-playbook.ja.md](docs/guides/repo-apply-playbook.ja.md)
+- この repo の self-measurement を運用する: [docs/operations/self-measurement-runbook.ja.md](docs/operations/self-measurement-runbook.ja.md)
 
 ```bash
 npm install
@@ -86,6 +91,16 @@ npm run dev -- constraints.scaffold \
 ```
 
 `constraints.scaffold` は `result.drafts` に architecture 入力のレビュー用スタータードラフトも返します。内容は `scenarioCatalog` `topologyModel` `boundaryMap` で、docs-first な repo では初回スコアリング前の叩き台として使えます。
+
+scaffold の出力はすべて authoritative input ではなく、review-first draft として扱います。新しい repo へ適用するときの安定した最短ルートは次です。
+
+1. `model` と `constraints` を scaffold する
+2. 残す YAML だけを curated 化する
+3. starter の `score.compute` を回す
+4. proxy が重い指標に observation snapshot を足す
+5. assessment を記録する
+
+この流れ全体は [docs/guides/repo-apply-playbook.ja.md](docs/guides/repo-apply-playbook.ja.md) にまとめています。
 
 ### ドメイン設計スコアの計測例
 

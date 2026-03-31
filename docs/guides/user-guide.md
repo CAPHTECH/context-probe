@@ -4,6 +4,8 @@ This guide is the shortest path for a first-time user to run `context-probe`, ex
 
 Use this before diving into the deeper specifications.
 
+If your immediate goal is to apply `context-probe` to an existing repo, jump to [repo-apply-playbook.md](repo-apply-playbook.md). This guide stays focused on the first successful run and the next decisions after that.
+
 ## What It Is
 
 `context-probe` is a CLI for evidence-based design measurement.
@@ -18,6 +20,14 @@ The first commands to learn are:
 - `report.generate`
 - `gate.evaluate`
 - `review.list_unknowns`
+
+## Choose Your Path
+
+Use the shortest path for your current goal:
+
+- First successful CLI run: stay in this guide
+- Apply `context-probe` to an existing repo: [repo-apply-playbook.md](repo-apply-playbook.md)
+- Self-measurement operations for this repository: [../operations/self-measurement-runbook.md](../operations/self-measurement-runbook.md)
 
 ## Before You Start
 
@@ -58,6 +68,14 @@ Both commands return review-first YAML in `result.yaml`. The CLI does not write 
 
 `constraints.scaffold` also returns starter drafts for `scenarioObservationsTemplate`, `scenarioCatalog`, `topologyModel`, and `boundaryMap` in `result.drafts`. The `scenarioObservationsTemplate` is a review-only checklist, not an observed dataset. Use it to collect benchmark or incident data without inventing values. The other drafts are starting points when a docs-first repo needs architecture inputs before the first scoring run.
 
+Use the same boundary throughout the docs:
+
+- scaffold output: review-first draft
+- starter run: enough input to expose direction and unknowns
+- authoritative run: curated input plus observation snapshots
+
+If you need the full repo-application flow, use [repo-apply-playbook.md](repo-apply-playbook.md).
+
 ## First 10 Minutes
 
 Start with a single domain-design run:
@@ -78,6 +96,28 @@ What this gives you:
 
 If you want document-driven metrics as well, add `--docs-root docs`.
 
+For `domain_design`, the highest-leverage follow-up improvements are usually:
+
+- explicit aggregates in `domain-model.yaml`
+- enough docs coverage through `--docs-root`
+- enough git history for locality metrics
+
+Those improvements mainly affect `AFS`, `BFS`, and the history-sensitive parts of the result.
+
+## Command Map by Goal
+
+| Goal | Commands |
+| --- | --- |
+| Scaffold first inputs | `model.scaffold`, `constraints.scaffold` |
+| Run first assessment | `score.compute`, `report.generate`, `gate.evaluate` |
+| See what still needs review | `review.list_unknowns` |
+| Inspect document evidence | `doc.extract_*` |
+| Inspect model/code or term/code linking | `trace.link_model_to_code`, `trace.link_terms` |
+| Inspect locality and history evidence | `history.*` |
+| Advanced rollout and operations | shadow rollout commands, self-measurement runbook |
+
+Read [../implementation/runtime-and-commands.md](../implementation/runtime-and-commands.md) when you need the implementation-level command contract rather than the user flow.
+
 ## Representative Workflows
 
 ### 1. Measure architecture design
@@ -93,6 +133,16 @@ npm run dev -- score.compute \
 For architecture runs, `--constraints` is required instead of `--model`.
 
 This bare command is enough to run, but `QSF`, `TIS`, `OAS`, and `EES` stay neutral or proxy-heavy unless you also provide scenario, topology, runtime, telemetry, and delivery inputs. `scenario-observations` should come from benchmark or incident data; the scaffold only provides a template, not observed values.
+
+In practice, those inputs improve the architecture result in this order:
+
+- `scenario-observations` improves `QSF`
+- `contract-baseline` improves `IPS`
+- `runtime-observations` improves `TIS`
+- `pattern-runtime-observations` and `telemetry-observations` improve `OAS`
+- `delivery-observations` or delivery export improves `EES`
+
+If you are applying `context-probe` to another repo, that step-by-step path is documented in [repo-apply-playbook.md](repo-apply-playbook.md).
 
 This repository keeps a reviewed self-measurement bundle under `config/self-measurement/`.
 

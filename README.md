@@ -10,16 +10,17 @@ Japanese documents are the primary source of truth. English documents mirror the
 
 1. [docs/README.md](docs/README.md)
 2. [docs/guides/user-guide.md](docs/guides/user-guide.md)
-3. [docs/concepts/measurement-model.md](docs/concepts/measurement-model.md)
-4. [docs/reference/domain-design-metrics.md](docs/reference/domain-design-metrics.md)
-5. [docs/reference/architecture-design-metrics.md](docs/reference/architecture-design-metrics.md)
-6. [docs/implementation/runtime-and-commands.md](docs/implementation/runtime-and-commands.md)
-7. [docs/roadmap/phased-delivery.md](docs/roadmap/phased-delivery.md)
+3. [docs/guides/repo-apply-playbook.md](docs/guides/repo-apply-playbook.md)
+4. [docs/concepts/measurement-model.md](docs/concepts/measurement-model.md)
+5. [docs/reference/domain-design-metrics.md](docs/reference/domain-design-metrics.md)
+6. [docs/reference/architecture-design-metrics.md](docs/reference/architecture-design-metrics.md)
+7. [docs/implementation/runtime-and-commands.md](docs/implementation/runtime-and-commands.md)
 
 ## Documentation Map
 
 - [docs/README.md](docs/README.md): documentation index
 - [docs/guides/user-guide.md](docs/guides/user-guide.md): quickest path for first-time CLI use
+- [docs/guides/repo-apply-playbook.md](docs/guides/repo-apply-playbook.md): practical path for applying `context-probe` to an existing repo
 - [docs/concepts/](docs/concepts): conceptual specifications and measurement model
 - [docs/reference/](docs/reference): how to interpret metrics and summary scores
 - [docs/implementation/](docs/implementation): how the current CLI computes and reports the metrics
@@ -50,7 +51,11 @@ Japanese documents are the primary source of truth. English documents mirror the
 
 ## Quick Start
 
-If you want the shortest setup-to-command path, start with [docs/guides/user-guide.md](docs/guides/user-guide.md).
+Choose the shortest path for your goal:
+
+- First-time CLI use: [docs/guides/user-guide.md](docs/guides/user-guide.md)
+- Apply `context-probe` to an existing repo: [docs/guides/repo-apply-playbook.md](docs/guides/repo-apply-playbook.md)
+- Run and maintain this repository's self-measurement: [docs/operations/self-measurement-runbook.md](docs/operations/self-measurement-runbook.md)
 
 ```bash
 npm install
@@ -86,6 +91,16 @@ npm run dev -- constraints.scaffold \
 ```
 
 `constraints.scaffold` also returns reviewable starter drafts for architecture inputs in `result.drafts`: `scenarioCatalog`, `topologyModel`, and `boundaryMap`. Use those drafts as the starting point for docs-first repos when you need architecture input files before the first scoring run.
+
+Treat every scaffold output as a review-first draft, not as an authoritative input. If you are applying `context-probe` to a new repo, the stable path is:
+
+1. scaffold `model` and `constraints`
+2. curate the YAML you actually want to keep
+3. run a starter `score.compute`
+4. add observation snapshots where proxy-heavy metrics matter
+5. save an assessment note alongside the curated inputs
+
+The full repo-application workflow is documented in [docs/guides/repo-apply-playbook.md](docs/guides/repo-apply-playbook.md).
 
 ### Measure Domain Design
 
