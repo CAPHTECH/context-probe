@@ -8,7 +8,7 @@ import { COMMANDS } from "../src/commands.js";
 import type { ArchitectureConstraintsScaffoldResult } from "../src/core/contracts.js";
 import { loadArchitectureConstraints } from "../src/core/model.js";
 import { createTemporaryWorkspace } from "./helpers.js";
-import { SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY } from "./scaffold.helpers.js";
+import { SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY, SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY } from "./scaffold.helpers.js";
 
 export function registerScaffoldConstraintsTests(tempRoots: string[]): void {
   test("constraints.scaffold returns loadable YAML", async () => {
@@ -109,12 +109,13 @@ export function registerScaffoldConstraintsTests(tempRoots: string[]): void {
       scenarios?: Array<{ name?: string; qualityAttribute?: string }>;
     };
     expect(scenarioCatalog.scenarios?.map((scenario) => scenario.name)).toEqual([
-      "Domain locality",
-      "Infrastructure locality",
+      "Domain cohesion",
+      "Runtime containment",
     ]);
-    expect(scenarioCatalog.scenarios?.every((scenario) => scenario.qualityAttribute === "Architecture locality")).toBe(
-      true,
-    );
+    expect(scenarioCatalog.scenarios?.map((scenario) => scenario.qualityAttribute)).toEqual([
+      "Domain cohesion",
+      "Runtime containment",
+    ]);
 
     const topologyModel = YAML.parse(result.drafts?.topologyModel.yaml ?? "") as {
       nodes?: Array<{ nodeId?: string; kind?: string }>;
@@ -129,5 +130,37 @@ export function registerScaffoldConstraintsTests(tempRoots: string[]): void {
       },
     ]);
     expect(topologyModel.nodes?.map((node) => node.kind)).toEqual(["service", "service"]);
+  });
+
+  test("constraints.scaffold merges duplicate monorepo layers across packages and apps", async () => {
+    const workspace = await createTemporaryWorkspace([SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY]);
+    tempRoots.push(workspace);
+
+    const response = await COMMANDS["constraints.scaffold"]!(
+      {
+        repo: path.join(workspace, SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY, "repo"),
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).toBe("warning");
+    const result = response.result as ArchitectureConstraintsScaffoldResult;
+    expect(result.constraints.layers.map((layer) => layer.name)).toEqual([
+      "Runtime",
+      "WorkspaceBootstrap",
+      "EvaluationQuality",
+    ]);
+    expect(result.constraints.layers.find((layer) => layer.name === "Runtime")?.globs).toEqual([
+      "apps/portal/src/runtime/**",
+      "packages/runtime/src/runtime/**",
+    ]);
+    expect(result.constraints.layers.find((layer) => layer.name === "WorkspaceBootstrap")?.globs).toEqual([
+      "apps/portal/src/bootstrap/portal-bootstrap.ts",
+      "packages/bootstrap/src/bootstrap/workspace-registry.ts",
+    ]);
+    expect(result.constraints.layers.find((layer) => layer.name === "EvaluationQuality")?.globs).toEqual([
+      "apps/portal/src/evaluation/evaluation-review.ts",
+      "packages/evaluation/src/evaluation/evaluation-baseline.ts",
+    ]);
   });
 }

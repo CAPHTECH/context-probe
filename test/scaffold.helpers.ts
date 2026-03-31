@@ -3,6 +3,7 @@ import path from "node:path";
 export const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 export const AFS_GOOD_ENTRY = "fixtures/validation/scoring/afs/good";
 export const SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY = "fixtures/validation/scaffold/generic-role-split";
+export const SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY = "fixtures/validation/scaffold/monorepo-dedupe-merge";
 export const SCAFFOLD_AUTODISCOVERY_DOCS_ROOT = path.resolve(
   "fixtures/validation/scaffold/docs-root-autodiscovery/docs",
 );

@@ -7,7 +7,11 @@ import { COMMANDS } from "../src/commands.js";
 import type { DomainModelScaffoldResult } from "../src/core/contracts.js";
 import { loadDomainModel } from "../src/core/model.js";
 import { createTemporaryWorkspace } from "./helpers.js";
-import { AFS_GOOD_ENTRY, SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY } from "./scaffold.helpers.js";
+import {
+  AFS_GOOD_ENTRY,
+  SCAFFOLD_GENERIC_ROLE_SPLIT_ENTRY,
+  SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY,
+} from "./scaffold.helpers.js";
 
 export function registerScaffoldModelTests(tempRoots: string[]): void {
   test("model.scaffold returns loadable YAML with aggregate candidates", async () => {
@@ -155,5 +159,50 @@ export function registerScaffoldModelTests(tempRoots: string[]): void {
     expect(response.status).toBe("warning");
     const result = response.result as DomainModelScaffoldResult;
     expect(result.model.contexts.map((context) => context.name)).toEqual(["Application"]);
+  });
+
+  test("model.scaffold merges duplicate monorepo context roles across packages and apps", async () => {
+    const workspace = await createTemporaryWorkspace([SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY]);
+    tempRoots.push(workspace);
+
+    const response = await COMMANDS["model.scaffold"]!(
+      {
+        repo: path.join(workspace, SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY, "repo"),
+        "docs-root": path.join(workspace, SCAFFOLD_MONOREPO_DEDUPE_MERGE_ENTRY, "docs"),
+      },
+      { cwd: process.cwd() },
+    );
+
+    expect(response.status).toBe("warning");
+    const result = response.result as DomainModelScaffoldResult;
+    expect(result.model.contexts.map((context) => context.name)).toEqual([
+      "EvaluationQuality",
+      "WorkspaceBootstrap",
+      "RuntimeInfrastructure",
+    ]);
+    expect(result.model.contexts.find((context) => context.name === "RuntimeInfrastructure")?.pathGlobs).toEqual([
+      "apps/portal/src/runtime/**",
+      "packages/runtime/src/runtime/**",
+    ]);
+    expect(result.model.contexts.find((context) => context.name === "WorkspaceBootstrap")?.pathGlobs).toEqual(
+      expect.arrayContaining([
+        "apps/portal/src/bootstrap/portal-bootstrap.ts",
+        "packages/bootstrap/src/bootstrap/workspace-registry.ts",
+      ]),
+    );
+    expect(result.model.contexts.find((context) => context.name === "EvaluationQuality")?.pathGlobs).toEqual(
+      expect.arrayContaining([
+        "apps/portal/src/evaluation/evaluation-review.ts",
+        "packages/evaluation/src/evaluation/evaluation-baseline.ts",
+      ]),
+    );
+    expect(result.model.contexts.find((context) => context.name === "WorkspaceBootstrap")?.pathGlobs).toEqual([
+      "apps/portal/src/bootstrap/portal-bootstrap.ts",
+      "packages/bootstrap/src/bootstrap/workspace-registry.ts",
+    ]);
+    expect(result.model.contexts.find((context) => context.name === "RuntimeInfrastructure")?.pathGlobs).toEqual([
+      "apps/portal/src/runtime/**",
+      "packages/runtime/src/runtime/**",
+    ]);
   });
 }
