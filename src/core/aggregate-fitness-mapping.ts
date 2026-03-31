@@ -12,6 +12,7 @@ import type {
   InvariantCandidate,
   TermTraceLink,
 } from "./contracts.js";
+import { INVARIANT_ACCEPTANCE_AMBIGUITY } from "./document-extractor-text-review.js";
 import type { ProgressReporter } from "./progress.js";
 
 export function mapAggregateInvariants(input: {
@@ -23,7 +24,11 @@ export function mapAggregateInvariants(input: {
   model: DomainModel;
   unknowns: string[];
   reportProgress?: ProgressReporter;
-}): AggregateInvariantMapping[] {
+}): {
+  mappings: AggregateInvariantMapping[];
+  consideredInvariants: InvariantCandidate[];
+  skippedInvariants: InvariantCandidate[];
+} {
   const fragmentContextMentions = buildFragmentContextMentions(input.fragments, input.model);
   const linkByTermId = new Map(input.links.map((link) => [link.termId, link]));
   input.reportProgress?.({
@@ -37,7 +42,11 @@ export function mapAggregateInvariants(input: {
     }))
     .filter((entry) => entry.contexts.length > 0);
   let lastHeartbeatAt = Date.now();
-  return input.invariants.map((invariant, index) => {
+  const mappings: AggregateInvariantMapping[] = [];
+  const consideredInvariants: InvariantCandidate[] = [];
+  const skippedInvariants: InvariantCandidate[] = [];
+
+  for (const [index, invariant] of input.invariants.entries()) {
     const now = Date.now();
     if (now - lastHeartbeatAt >= 5000) {
       input.reportProgress?.({
@@ -55,15 +64,30 @@ export function mapAggregateInvariants(input: {
       input.model,
     );
     const aggregateTargets = collectAggregateTargets(input.aggregateDefinitions, contexts, invariant, mappedTerms);
+    const shouldSkip =
+      invariant.unknowns.includes(INVARIANT_ACCEPTANCE_AMBIGUITY) &&
+      (invariant.relatedTerms?.length ?? 0) === 0 &&
+      !aggregateTargets.hasAnchorEvidence;
+    if (shouldSkip) {
+      skippedInvariants.push(invariant);
+      continue;
+    }
     const localityTargets = aggregateTargets.targets.length > 0 ? aggregateTargets.targets : contexts;
     input.unknowns.push(...aggregateTargets.unknowns);
-    return {
+    consideredInvariants.push(invariant);
+    mappings.push({
       invariant,
       contexts,
       localityTargets,
       localization: localizationScore(localityTargets),
       usedContextProxy: aggregateTargets.targets.length === 0,
       aggregateTargets: aggregateTargets.targets,
-    };
-  });
+    });
+  }
+
+  return {
+    mappings,
+    consideredInvariants,
+    skippedInvariants,
+  };
 }

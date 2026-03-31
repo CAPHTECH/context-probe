@@ -29,9 +29,10 @@ export function scoreAggregateFitness(input: {
   aggregateDefinitions: AggregateDefinition[];
   mappedInvariants: AggregateInvariantMapping[];
   unknowns: string[];
+  diagnostics?: string[];
 }): AggregateFitnessScoringResult {
   const hasExplicitAggregates = input.aggregateDefinitions.length > 0;
-  const diagnostics: string[] = [];
+  const diagnostics: string[] = [...(input.diagnostics ?? [])];
   const localizedInvariants = input.mappedInvariants.filter((entry) => entry.localityTargets.length === 1);
   const crossContextInvariants = input.mappedInvariants.filter((entry) => entry.localityTargets.length > 1);
   const mappedInvariantCount = input.mappedInvariants.filter((entry) => entry.localityTargets.length > 0).length;

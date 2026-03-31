@@ -35,7 +35,7 @@ export function computeAggregateFitness(input: {
     phase: "docs",
     message: "AFS: mapping invariants to aggregates and contexts.",
   });
-  const mappedInvariants = mapAggregateInvariants({
+  const mappingResult = mapAggregateInvariants({
     aggregateDefinitions,
     fragments: input.fragments,
     terms: input.terms,
@@ -45,15 +45,22 @@ export function computeAggregateFitness(input: {
     unknowns,
     ...(input.reportProgress ? { reportProgress: input.reportProgress } : {}),
   });
+  const diagnostics =
+    mappingResult.skippedInvariants.length > 0
+      ? [
+          `Ignored ${mappingResult.skippedInvariants.length} acceptance-condition-like invariant(s) without aggregate anchors when computing AFS.`,
+        ]
+      : [];
   input.reportProgress?.({
     phase: "docs",
     message: "AFS: scoring consistency and cross-transaction coordination signals.",
   });
   return scoreAggregateFitness({
     model: input.model,
-    invariants: input.invariants,
+    invariants: mappingResult.consideredInvariants,
     aggregateDefinitions,
-    mappedInvariants,
+    mappedInvariants: mappingResult.mappings,
     unknowns,
+    diagnostics,
   });
 }

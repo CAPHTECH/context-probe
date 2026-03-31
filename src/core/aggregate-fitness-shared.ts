@@ -58,9 +58,9 @@ export function collectAggregateTargets(
   contexts: string[],
   invariant: InvariantCandidate,
   mappedTerms: Array<{ labels: string[]; contexts: string[] }> = [],
-): { targets: string[]; unknowns: string[] } {
+): { targets: string[]; unknowns: string[]; hasAnchorEvidence: boolean } {
   if (aggregateDefinitions.length === 0) {
-    return { targets: [], unknowns: [] };
+    return { targets: [], unknowns: [], hasAnchorEvidence: false };
   }
 
   const unknowns: string[] = [];
@@ -132,6 +132,7 @@ export function collectAggregateTargets(
         return {
           targets: strongMatches.map((candidate) => `${candidate.aggregate.context}::${candidate.aggregate.name}`),
           unknowns,
+          hasAnchorEvidence: true,
         };
       }
       if (contexts.length === 1) {
@@ -142,6 +143,7 @@ export function collectAggregateTargets(
       return {
         targets: [],
         unknowns,
+        hasAnchorEvidence: true,
       };
     }
     const best = scoredCandidates[0];
@@ -157,6 +159,7 @@ export function collectAggregateTargets(
         return {
           targets: topCandidates.map((candidate) => `${candidate.aggregate.context}::${candidate.aggregate.name}`),
           unknowns,
+          hasAnchorEvidence: true,
         };
       }
       if (contexts.length === 1) {
@@ -164,12 +167,13 @@ export function collectAggregateTargets(
           `Invariant "${invariant.invariantId}" could not be mapped to a specific aggregate within ${contexts[0]}.`,
         );
       }
-      return { targets: [], unknowns };
+      return { targets: [], unknowns, hasAnchorEvidence: true };
     }
     if (best && (!runnerUp || best.score > runnerUp.score)) {
       return {
         targets: [`${best.aggregate.context}::${best.aggregate.name}`],
         unknowns,
+        hasAnchorEvidence: true,
       };
     }
     if (contexts.length === 1) {
@@ -177,7 +181,7 @@ export function collectAggregateTargets(
         `Invariant "${invariant.invariantId}" could not be mapped to a specific aggregate within ${contexts[0]}.`,
       );
     }
-    return { targets: [], unknowns };
+    return { targets: [], unknowns, hasAnchorEvidence: true };
   }
 
   if (contexts.length === 1) {
@@ -186,6 +190,7 @@ export function collectAggregateTargets(
       return {
         targets: [`${sameContextAggregates[0]?.context}::${sameContextAggregates[0]?.name}`],
         unknowns,
+        hasAnchorEvidence: false,
       };
     }
     if (sameContextAggregates.length > 1) {
@@ -195,5 +200,5 @@ export function collectAggregateTargets(
     }
   }
 
-  return { targets: [], unknowns };
+  return { targets: [], unknowns, hasAnchorEvidence: false };
 }

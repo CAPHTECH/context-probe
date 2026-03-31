@@ -1,7 +1,8 @@
 import { INVARIANT_REVIEW_SIGNALS } from "./document-extractor-text-signals.js";
 import type { HeuristicStatementCandidate } from "./document-extractor-types.js";
 
-const INVARIANT_ACCEPTANCE_AMBIGUITY = "The boundary between an invariant and an acceptance condition is ambiguous.";
+export const INVARIANT_ACCEPTANCE_AMBIGUITY =
+  "The boundary between an invariant and an acceptance condition is ambiguous.";
 
 export function buildInvariantReviewState(
   statement: string,
