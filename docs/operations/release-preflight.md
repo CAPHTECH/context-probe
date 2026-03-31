@@ -7,6 +7,7 @@ The same sequence is also available as `npm run release:preflight` so the docume
 ## When to run what
 
 - Run `npm run check` before release to catch static analysis regressions.
+- Run `npm run check:audit` before release to catch known dependency vulnerabilities at the chosen audit threshold.
 - Run `npm run test:coverage` before release to confirm the test and branch-coverage floor.
 - Run `npm run self:architecture:check` before release to verify the reviewed architecture snapshots.
 - Run `npm run build` before release to make sure the package still compiles cleanly.
@@ -22,6 +23,7 @@ Equivalent expanded sequence:
 
 ```bash
 npm run check
+npm run check:audit
 npm run test:coverage
 npm run self:architecture:check
 npm run build
@@ -31,6 +33,7 @@ npm pack --dry-run
 ## What this covers
 
 - `check` covers type-checking, Biome, dependency-cruiser, and Knip.
+- `check:audit` covers known npm advisories at `moderate` severity and above.
 - `test:coverage` confirms the test suite and coverage gate.
 - `self:architecture:check` checks freshness drift and the architecture score smoke.
 - `build` verifies the release artifact can still be produced.

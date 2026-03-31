@@ -20,8 +20,9 @@ Recommended usage:
 
 1. run `score.compute`
 2. run `gate.evaluate`
-3. publish `report.generate` output when helpful
-4. route `review.list_unknowns` output to human review
+3. run `npm audit --audit-level=moderate`
+4. publish `report.generate` output when helpful
+5. route `review.list_unknowns` output to human review
 
 For the operational order around self-measurement snapshots, coverage, and release-preflight checks, see [self-measurement-runbook.md](self-measurement-runbook.md).
 For the release-time checklist that covers validation and packaging, see [release-preflight.md](release-preflight.md).

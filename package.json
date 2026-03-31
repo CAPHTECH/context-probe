@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
+    "check:audit": "npm audit --audit-level=moderate",
     "check": "npm run check:ts && npm run check:biome && npm run check:deps && npm run check:knip",
     "check:biome": "biome ci .",
     "check:deps": "depcruise --config .dependency-cruiser.cjs src",
@@ -35,7 +36,7 @@
     "lint:fix": "biome check --write .",
     "prepack": "npm run build",
     "prepublishOnly": "npm run release:preflight",
-    "release:preflight": "npm run check && npm run test:coverage && npm run self:architecture:check && npm run build && npm pack --dry-run",
+    "release:preflight": "npm run check && npm run check:audit && npm run test:coverage && npm run self:architecture:check && npm run build && npm pack --dry-run",
     "self:architecture:audit": "node scripts/self-measurement/audit-architecture-freshness.mjs",
     "self:architecture:baseline": "tsx scripts/self-measurement/capture-architecture-contract-baseline.ts",
     "self:architecture:check": "node scripts/self-measurement/check-architecture-self-measurement.mjs",
