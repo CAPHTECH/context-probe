@@ -10,18 +10,20 @@ import {
 
 function collectTerms(fragments: Fragment[]): Map<string, HeuristicTermCandidate> {
   const terms = new Map<string, HeuristicTermCandidate>();
-  const pushTerm = (term: string, fragment: Fragment) => {
+  const pushTerm = (term: string, fragment: Fragment, aliases: string[] = []) => {
     if (term.length < 3) {
       return;
     }
     const current = terms.get(term) ?? {
       canonicalTerm: term,
+      aliases: [],
       count: 0,
       evidence: [],
       fragmentIds: [],
     };
     current.count += 1;
     current.fragmentIds.push(fragment.fragmentId);
+    current.aliases = Array.from(new Set([...current.aliases, ...aliases.filter((alias) => alias !== term)]));
     current.evidence.push(createEvidenceFromFragment(fragment, `Term candidate: ${term}`, 0.7));
     terms.set(term, current);
   };
@@ -29,6 +31,16 @@ function collectTerms(fragments: Fragment[]): Map<string, HeuristicTermCandidate
   for (const fragment of fragments) {
     if (isStructuredNoiseFragment(fragment)) {
       continue;
+    }
+    for (const match of fragment.text.matchAll(/`([^`]+)`\s*\(([^)]*)\)/g)) {
+      const canonical = match[1] ? normalizeInlineTerm(match[1]) : undefined;
+      const aliasSection = match[2] ?? "";
+      const aliases = Array.from(aliasSection.matchAll(/`([^`]+)`/g))
+        .map((aliasMatch) => (aliasMatch[1] ? normalizeInlineTerm(aliasMatch[1]) : undefined))
+        .filter((alias): alias is string => Boolean(alias));
+      if (canonical) {
+        pushTerm(canonical, fragment, aliases);
+      }
     }
     for (const match of fragment.text.matchAll(/`([^`]+)`/g)) {
       const normalized = match[1] ? normalizeInlineTerm(match[1]) : undefined;
@@ -53,7 +65,7 @@ export function normalizeGlossaryFromHeuristic(fragments: Fragment[]): GlossaryT
     .map((candidate) => ({
       termId: createTermId(`${candidate.canonicalTerm}:${candidate.fragmentIds.join(",")}`),
       canonicalTerm: candidate.canonicalTerm,
-      aliases: [],
+      aliases: candidate.aliases,
       count: candidate.count,
       collision: false,
       confidence: 0.7,

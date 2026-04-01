@@ -1,0 +1,27 @@
+version: "1.0"
+contexts:
+  - name: Billing
+    pathGlobs:
+      - "src/billing/**"
+    contractGlobs:
+      - "src/billing/contracts/**"
+    internalGlobs:
+      - "src/billing/internal/**"
+  - name: Fulfillment
+    pathGlobs:
+      - "src/fulfillment/**"
+    contractGlobs:
+      - "src/fulfillment/contracts/**"
+    internalGlobs:
+      - "src/fulfillment/internal/**"
+aggregates:
+  - name: InvoiceLedger
+    context: Billing
+    aliases:
+      - InvoiceContract
+      - PaymentSummary
+  - name: ShipmentLedger
+    context: Fulfillment
+    aliases:
+      - ShipmentTicket
+      - ShipmentSummary

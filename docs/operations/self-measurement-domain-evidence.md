@@ -22,6 +22,16 @@ The ReviewQueue aggregate owns one ordered unknown-review queue for `review.list
 
 The PolicyDecision aggregate owns one gate evaluation for `gate.evaluate`.
 
+## Curated Terms
+
+`Measurement Quality` (`measurementQuality`) is the run-level evidence-quality summary attached to score, report, gate, and review output.
+
+`Runtime Summary` (`runtime`) is the stage-based runtime metadata for one command run.
+
+`Scenario Quality` (`scenarioQuality`) is the curated scenario-health summary for architecture inputs.
+
+`Locality Watchlist` (`localityWatchlist`) is the prioritized cross-boundary co-change watchlist carried into architecture reports and reviews.
+
 ## Strong Invariants
 
 Within the MeasurementPipeline aggregate, metric scores and the measurement-quality summary always are consistent.

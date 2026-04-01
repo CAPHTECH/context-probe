@@ -20,6 +20,7 @@ export interface ExtractionOptions {
 
 export interface HeuristicTermCandidate {
   canonicalTerm: string;
+  aliases: string[];
   count: number;
   evidence: GlossaryTerm["evidence"];
   fragmentIds: string[];

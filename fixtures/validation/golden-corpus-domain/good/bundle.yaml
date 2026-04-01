@@ -1,0 +1,4 @@
+version: "1.0"
+repo: "repo"
+model: "domain-model.yaml"
+docsRoot: "docs"

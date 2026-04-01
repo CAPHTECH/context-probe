@@ -1,0 +1,17 @@
+version: "1.0"
+contexts:
+  - name: Billing
+    pathGlobs:
+      - "src/billing/**"
+    contractGlobs:
+      - "src/billing/contracts/**"
+  - name: Fulfillment
+    pathGlobs:
+      - "src/fulfillment/**"
+    contractGlobs:
+      - "src/fulfillment/contracts/**"
+aggregates:
+  - name: InvoiceLedger
+    context: Billing
+  - name: ShipmentLedger
+    context: Fulfillment

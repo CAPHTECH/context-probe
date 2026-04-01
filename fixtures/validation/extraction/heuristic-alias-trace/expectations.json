@@ -1,0 +1,12 @@
+{
+  "extractor": {
+    "backend": "heuristic"
+  },
+  "glossary": {
+    "mustInclude": ["Measurement Quality", "Runtime Summary"],
+    "mustExclude": []
+  },
+  "trace": {
+    "mustLinkToCode": ["Measurement Quality", "Runtime Summary"]
+  }
+}

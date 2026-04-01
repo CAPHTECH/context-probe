@@ -22,6 +22,16 @@ ReviewQueue aggregate は `review.list_unknowns` の 1 回の ordered unknown-re
 
 PolicyDecision aggregate は `gate.evaluate` の 1 回の gate evaluation を所有する。
 
+## Curated Terms
+
+`Measurement Quality` (`measurementQuality`) は、score / report / gate / review の出力に付く run-level の evidence-quality summary である。
+
+`Runtime Summary` (`runtime`) は、1 回の command run に付随する stage-based runtime metadata である。
+
+`Scenario Quality` (`scenarioQuality`) は、architecture input に対する curated な scenario-health summary である。
+
+`Locality Watchlist` (`localityWatchlist`) は、architecture report / review に持ち込まれる prioritized な cross-boundary co-change watchlist である。
+
 ## Strong Invariants
 
 MeasurementPipeline aggregate では、metric scores と measurement-quality summary は常に一致している。

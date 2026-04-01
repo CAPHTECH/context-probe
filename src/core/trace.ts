@@ -60,6 +60,7 @@ export async function buildTermTraceLinks(options: {
   );
 
   const links = options.terms.map((term, index) => {
+    const queries = Array.from(new Set([term.canonicalTerm, ...(term.aliases ?? [])].filter(Boolean)));
     if (Date.now() - lastProgressAt >= progressIntervalMs) {
       lastProgressAt = Date.now();
       const processedTerms = Math.max(index, 1);
@@ -75,7 +76,7 @@ export async function buildTermTraceLinks(options: {
     }
     const occurrences: TraceLinkOccurrence[] = [];
     for (const fragment of fragments) {
-      const matchCount = countOccurrences(fragment.text, term.canonicalTerm);
+      const matchCount = queries.reduce((sum, query) => sum + countOccurrences(fragment.text, query), 0);
       if (matchCount > 0 || term.fragmentIds.includes(fragment.fragmentId)) {
         occurrences.push({
           kind: "document",
@@ -86,7 +87,7 @@ export async function buildTermTraceLinks(options: {
       }
     }
     for (const codeFile of codeContents) {
-      const matchCount = countOccurrences(codeFile.content, term.canonicalTerm);
+      const matchCount = queries.reduce((sum, query) => sum + countOccurrences(codeFile.content, query), 0);
       if (matchCount > 0) {
         occurrences.push({
           kind: "code",
