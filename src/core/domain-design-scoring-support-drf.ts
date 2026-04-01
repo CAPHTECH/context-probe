@@ -29,6 +29,10 @@ const CONSTRAINT_SIGNALS = [
   /表示(?:される|されている)/u,
 ];
 
+const USE_CASE_HEADING_PATTERNS = [/\bcore use cases?\b/i, /\buse cases?\b/i, /ユースケース/u];
+const RULE_HEADING_PATTERNS = [/\bdecision rules?\b/i, /\brules?\b/i, /ルール/u];
+const INVARIANT_HEADING_PATTERNS = [/\bstrong invariants?\b/i, /\binvariants?\b/i, /不変条件/u];
+
 export function buildReviewItemsForCandidates(
   key: "rules" | "invariants",
   candidates: RuleCandidate[] | InvariantCandidate[],
@@ -95,5 +99,71 @@ export function computeDrfComponents(
     useCaseFragments,
     signalFragments,
     totalCandidates,
+  };
+}
+
+function headingMatches(heading: string | undefined, patterns: RegExp[]): boolean {
+  if (!heading) {
+    return false;
+  }
+  return patterns.some((pattern) => pattern.test(heading));
+}
+
+function buildHeadingByFragmentId(fragments: Fragment[]): Map<string, string> {
+  const byFile = new Map<string, Fragment[]>();
+  for (const fragment of fragments) {
+    const list = byFile.get(fragment.path) ?? [];
+    list.push(fragment);
+    byFile.set(fragment.path, list);
+  }
+
+  const headingByFragmentId = new Map<string, string>();
+  for (const fragmentsInFile of byFile.values()) {
+    const ordered = [...fragmentsInFile].sort((left, right) => left.lineStart - right.lineStart);
+    let currentHeading: string | undefined;
+    for (const fragment of ordered) {
+      if (fragment.kind === "heading") {
+        currentHeading = fragment.text.replace(/^#+\s*/u, "").trim();
+      }
+      if (currentHeading) {
+        headingByFragmentId.set(fragment.fragmentId, currentHeading);
+      }
+    }
+  }
+
+  return headingByFragmentId;
+}
+
+function countAnchoredCandidates(
+  candidates: Array<RuleCandidate | InvariantCandidate>,
+  headingByFragmentId: Map<string, string>,
+  patterns: RegExp[],
+): number {
+  return candidates.filter((candidate) =>
+    candidate.fragmentIds.some((fragmentId) => headingMatches(headingByFragmentId.get(fragmentId), patterns)),
+  ).length;
+}
+
+export function inspectDrfEvidenceQuality(
+  fragments: Fragment[],
+  rules: RuleCandidate[],
+  invariants: InvariantCandidate[],
+): {
+  explicitUseCaseCount: number;
+  explicitRuleCount: number;
+  explicitInvariantCount: number;
+} {
+  const headingByFragmentId = buildHeadingByFragmentId(fragments);
+  const explicitUseCaseCount = fragments.filter(
+    (fragment) =>
+      fragment.kind === "paragraph" &&
+      USE_CASE_SIGNALS.some((pattern) => pattern.test(fragment.text)) &&
+      headingMatches(headingByFragmentId.get(fragment.fragmentId), USE_CASE_HEADING_PATTERNS),
+  ).length;
+
+  return {
+    explicitUseCaseCount,
+    explicitRuleCount: countAnchoredCandidates(rules, headingByFragmentId, RULE_HEADING_PATTERNS),
+    explicitInvariantCount: countAnchoredCandidates(invariants, headingByFragmentId, INVARIANT_HEADING_PATTERNS),
   };
 }

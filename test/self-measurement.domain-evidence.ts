@@ -43,9 +43,9 @@ export function registerSelfMeasurementDomainEvidenceTests(state: { repoPath?: s
     expect(afs.confidence).toBeGreaterThan(0.5);
     expect(drf.value).toBeGreaterThan(DRF_BASELINE);
     expect(afs.value).toBeGreaterThan(AFS_BASELINE);
-    expect(measurementQuality?.proxyMetrics).toContain("DRF");
+    expect(measurementQuality?.proxyMetrics ?? []).not.toContain("DRF");
     expect(measurementQuality?.proxyMetrics).not.toContain("ULI");
-    expect(measurementQuality?.unknownsCount ?? 99).toBeLessThanOrEqual(5);
+    expect(measurementQuality?.unknownsCount ?? 99).toBeLessThanOrEqual(1);
     expect(response.unknowns).not.toContain(AGGREGATE_PROXY_UNKNOWN);
     expect(drf.unknowns).not.toContain(AGGREGATE_PROXY_UNKNOWN);
     expect(afs.unknowns).not.toContain(AGGREGATE_PROXY_UNKNOWN);

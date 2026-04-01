@@ -1,5 +1,9 @@
 import type { DomainDocsMetricContribution, DomainDocsMetricOptionsBase } from "./domain-design-scoring-docs-shared.js";
-import { buildReviewItemsForCandidates, computeDrfComponents } from "./domain-design-scoring-support.js";
+import {
+  buildReviewItemsForCandidates,
+  computeDrfComponents,
+  inspectDrfEvidenceQuality,
+} from "./domain-design-scoring-support.js";
 import { evaluateFormula } from "./formula.js";
 import { confidenceFromSignals } from "./response.js";
 import { dedupeEvidence, toMetricScore } from "./scoring-shared.js";
@@ -33,12 +37,19 @@ export async function computeDomainDocsDrfContribution(
     invariantsResult.invariants,
     reviewItems.length,
   );
-  const drfUnknowns = [
-    ...rulesResult.unknowns,
-    ...invariantsResult.unknowns,
-    "SC is an approximation based on use-case signals.",
-    "IV is an approximation based on review burden.",
-  ];
+  const drfEvidenceQuality = inspectDrfEvidenceQuality(
+    rulesResult.fragments,
+    rulesResult.rules,
+    invariantsResult.invariants,
+  );
+  const drfUnknowns = [...rulesResult.unknowns, ...invariantsResult.unknowns];
+
+  if (drfEvidenceQuality.explicitUseCaseCount === 0) {
+    drfUnknowns.push("SC is an approximation based on use-case signals.");
+  }
+  if (drfEvidenceQuality.explicitRuleCount === 0 && drfEvidenceQuality.explicitInvariantCount === 0) {
+    drfUnknowns.push("IV is an approximation based on review burden.");
+  }
 
   if (drfComponents.totalCandidates === 0) {
     drfUnknowns.push("No rules or invariants were extracted, so DRF evidence is insufficient.");

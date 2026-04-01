@@ -12,6 +12,16 @@ Use case: maintainer が次に改善すべき evidence を決めるために `re
 
 Use case: maintainer が release 前の CI で `gate.evaluate` を実行する。PolicyDecision aggregate は、scored metrics を active policy に照らして評価し、対応する gate reasons を返さなければならない。
 
+## Decision Rules
+
+Rule: `score.compute` は、metric outputs、evidence references、confidence、unknowns、provenance、`measurementQuality`、`runtime` を 1 つの整合した scoring result として返さなければならない。
+
+Rule: `report.generate` は、scored result が保持している metric values、guidance、measurement-quality summary、runtime metadata をそのまま render しなければならない。
+
+Rule: `review.list_unknowns` は、missing curated inputs、proxy-heavy metrics、low-confidence items、history hotspots を generic unknowns より前に並べなければならない。
+
+Rule: `gate.evaluate` は、active policy threshold から gate status と reasons を導かなければならず、scored metric values 自体を変更してはならない。
+
 ## Aggregate Ownership
 
 MeasurementPipeline aggregate は `score.compute` の 1 回の scoring run を所有する。

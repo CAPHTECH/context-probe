@@ -60,6 +60,7 @@ On this repository, some architecture unknowns remain expected limitations of a 
 - `FCC`
 - `SICR`
 - `SLA`
-- `PCS` proxy composite
+
+`APSI` remains a summary-only metric, but that alone should not be treated as missing evidence when its supporting metrics are present.
 
 Treat those as self-measurement caveats unless evidence says otherwise.

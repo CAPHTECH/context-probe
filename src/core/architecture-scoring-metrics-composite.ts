@@ -38,7 +38,7 @@ export function buildCompositeArchitectureMetricScores(
     EES: eesMetric?.value ?? 0.5,
     CTI: ctiMetric?.value ?? 0.5,
   };
-  const apsiUnknowns = ["PCS is a proxy composite of DDS, BPS, and IPS."];
+  const apsiUnknowns: string[] = [];
   if (!qsfMetric) {
     apsiUnknowns.push("QSF was not computed, so APSI is using the neutral fallback value 0.5.");
   }

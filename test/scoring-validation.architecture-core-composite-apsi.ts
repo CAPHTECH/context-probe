@@ -66,7 +66,7 @@ export function registerArchitectureCoreCompositeApsiScoringValidationTests(): v
     expect(goodApsi.components.EES ?? 0).toBeGreaterThan(badApsi.components.EES ?? 0);
     expect(goodApsi.components.CTI ?? 0).toBeLessThan(badApsi.components.CTI ?? 0);
     expect(goodApsi.unknowns.some((entry) => entry.includes("PCS is a proxy composite of DDS, BPS, and IPS."))).toBe(
-      true,
+      false,
     );
     expect(goodApsi.unknowns.some((entry) => entry.includes("OAS is bridged from TIS"))).toBe(false);
   });

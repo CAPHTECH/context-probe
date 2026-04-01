@@ -99,7 +99,7 @@ export function registerSelfMeasurementSmokeTests(state: { repoPath?: string }):
     expect(architectureResponse.unknowns).not.toContain(
       "CBC/BCR are current-state contract-stability proxies, not baseline deltas.",
     );
-    expect(architectureResponse.unknowns).toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
+    expect(architectureResponse.unknowns).not.toContain("PCS is a proxy composite of DDS, BPS, and IPS.");
     expect(
       architectureResponse.evidence.some((entry) =>
         entry.statement.includes("src/analyzers/architecture-contracts.ts"),

@@ -12,6 +12,16 @@ Use case: a maintainer runs `review.list_unknowns` to decide what evidence to im
 
 Use case: a maintainer runs `gate.evaluate` in CI before release. The PolicyDecision aggregate must evaluate the scored metrics against the active policy and surface the matching gate reasons.
 
+## Decision Rules
+
+Rule: `score.compute` must return metric outputs, evidence references, confidence, unknowns, provenance, `measurementQuality`, and `runtime` as one consistent scoring result.
+
+Rule: `report.generate` must render the same metric values, guidance, measurement-quality summary, and runtime metadata that the scored result carries.
+
+Rule: `review.list_unknowns` must keep missing curated inputs, proxy-heavy metrics, low-confidence items, and history hotspots ordered ahead of generic unknowns.
+
+Rule: `gate.evaluate` must derive gate status and reasons from the active policy thresholds without changing the scored metric values.
+
 ## Aggregate Ownership
 
 The MeasurementPipeline aggregate owns one scoring run for `score.compute`.

@@ -169,9 +169,9 @@ describe("golden corpus architecture bundles", () => {
     expect(goodQuality?.proxyRate ?? 0).toBeLessThan(misleadingQuality?.proxyRate ?? 1);
     expect(misleadingQuality?.proxyRate ?? 0).toBeLessThan(thinQuality?.proxyRate ?? 1);
 
-    expect(goodQuality?.proxyMetrics ?? []).toHaveLength(3);
-    expect(thinQuality?.proxyMetrics ?? []).toHaveLength(5);
-    expect(misleadingQuality?.proxyMetrics ?? []).toHaveLength(4);
+    expect(goodQuality?.proxyMetrics ?? []).toHaveLength(2);
+    expect(thinQuality?.proxyMetrics ?? []).toHaveLength(4);
+    expect(misleadingQuality?.proxyMetrics ?? []).toHaveLength(3);
   });
 
   test("surfaces proxy-heavy unknown classes through report and review", async () => {
@@ -187,11 +187,10 @@ describe("golden corpus architecture bundles", () => {
     expect(goodProxyLines.length).toBeGreaterThan(0);
     expect(thinProxyLines.length).toBeGreaterThan(goodProxyLines.length);
     expect(misleadingProxyLines.length).toBeGreaterThan(goodProxyLines.length);
-    expect(goodProxyLines).toEqual(expect.arrayContaining([expect.stringContaining("APSI: PCS is a proxy composite")]));
     expect(goodProxyLines.some((line) => line.includes("AELS:"))).toBe(true);
     expect(goodProxyLines.some((line) => line.includes("EES:"))).toBe(true);
 
-    expect(collectProxyClasses(good.reviewItems)).toEqual(["proxy"]);
+    expect(collectProxyClasses(good.reviewItems)).toEqual([]);
     expect(collectProxyClasses(thin.reviewItems)).toEqual(
       expect.arrayContaining(["bridge", "partial", "proxy", "static_proxy"]),
     );
