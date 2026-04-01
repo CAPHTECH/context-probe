@@ -7,6 +7,10 @@ description: `context-probe` を既存 repo に適用するための YAML 入力
 
 `context-probe` の repo 適用を、scaffold から curated YAML、観測入力、assessment まで段階的に進める。
 
+この skill で `context-probe` を実行する時は、リポジトリ内の `npm run dev -- ...` ではなく、公開済み CLI の `npx context-probe ...` を使う。
+
+正確なコマンド形が必要になったら [references/command-recipes.md](references/command-recipes.md) を読む。
+
 ## 用語
 
 - `scaffold`: CLI が返す下書き。レビューしてから使う。
@@ -46,6 +50,7 @@ description: `context-probe` を既存 repo に適用するための YAML 入力
 - まず `model.scaffold` と `constraints.scaffold` を使う。
 - `docs-root` がある repo では `model.scaffold --docs-root` を優先する。
 - 出力はそのまま使わず、保存前に「下書き」であることを明示する。
+- 新規作成でも更新でも、scaffold 実行のコマンド形は `references/command-recipes.md` の `npx context-probe` レシピに合わせる。
 
 ### Step 4. scaffold の保存先を提案する
 
@@ -93,6 +98,7 @@ description: `context-probe` を既存 repo に適用するための YAML 入力
   - 何が不足しているか知る
   - YAML が大きく外していないか確認する
 - 結果説明では「もう使える指標」と「まだ proxy-heavy な指標」を分けて伝える。
+- 既存 curated input の更新フローでも、starter run は同じ `npx context-probe score.compute ...` で回す。
 
 ### Step 8. 必要な観測だけ追加する
 
@@ -109,6 +115,7 @@ description: `context-probe` を既存 repo に適用するための YAML 入力
 - curated input と観測入力が揃ったら、本命の計測を回す。
 - `domain_design` は full input のまま最後まで待つことを基本にする。
 - `architecture_design` は bundle 入力を使い、starter run との差を説明する。
+- 実行前に、使う `--model` `--constraints` `--docs-root` `--policy` が最新の curated input を指していることを確認する。
 
 ### Step 10. assessment を更新する
 
