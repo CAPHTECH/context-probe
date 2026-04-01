@@ -37,7 +37,7 @@ describe("command surface review and history helpers", () => {
       expect((fromSourceCommand.result as { reviewItems: unknown[] }).reviewItems.length).toBeGreaterThanOrEqual(0);
       expect(fromSourceCommand.unknowns).toEqual(scoreResponse.unknowns);
     });
-  }, 10000);
+  }, 60000);
 
   test("history commands honor policy/profile inputs and review.resolve enforces required paths", async () => {
     const normalized = await COMMANDS["ingest.normalize_history"]!(

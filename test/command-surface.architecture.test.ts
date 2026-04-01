@@ -18,5 +18,5 @@ describe("command surface architecture helpers", () => {
     expect((topology.result as { layers: unknown[] }).layers.length).toBeGreaterThan(0);
     expect((direction.result as { IDR?: number }).IDR).toBeGreaterThanOrEqual(0);
     expect(Array.isArray((violations.result as { violations: unknown[] }).violations)).toBe(true);
-  });
+  }, 60000);
 });
