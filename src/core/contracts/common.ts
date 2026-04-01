@@ -26,6 +26,37 @@ export interface ProgressUpdate {
   elapsedMs?: number;
 }
 
+export type DecisionRiskLevel = "low" | "medium" | "high";
+
+export interface MeasurementQualitySummary {
+  unknownsCount: number;
+  metricUnknownCounts: Record<string, number>;
+  proxyMetrics: string[];
+  proxyRate: number;
+  approximationNotes: string[];
+  decisionRisk: DecisionRiskLevel;
+}
+
+export interface RuntimeStageSummary {
+  inputLoadMs?: number;
+  extractionMs?: number;
+  historyMs?: number;
+  analysisMs?: number;
+  renderMs?: number;
+  reviewMs?: number;
+  gateMs?: number;
+}
+
+export interface RuntimeSummary {
+  totalMs: number;
+  stages: RuntimeStageSummary;
+}
+
+export interface CommandResponseMeta {
+  measurementQuality?: MeasurementQualitySummary;
+  runtime?: RuntimeSummary;
+}
+
 export type ExtractionKind = "glossary" | "rules" | "invariants";
 export type ExtractionBackend = "heuristic" | "cli";
 export type ExtractionProviderName = "codex" | "claude";
@@ -46,6 +77,7 @@ export interface CommandResponse<T = unknown> {
   diagnostics: string[];
   progress: ProgressUpdate[];
   provenance: ProvenanceRef[];
+  meta?: CommandResponseMeta;
   version: string;
 }
 

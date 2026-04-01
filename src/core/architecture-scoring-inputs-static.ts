@@ -3,6 +3,7 @@ import { scoreInterfaceProtocolStability } from "../analyzers/architecture-contr
 import { scoreBoundaryPurity } from "../analyzers/architecture-purity.js";
 import { scoreQualityScenarioFit } from "../analyzers/architecture-scenarios.js";
 import { scoreTopologyIsolation } from "../analyzers/architecture-topology.js";
+import { summarizeArchitectureScenarioQuality } from "./architecture-scenario-quality.js";
 import type {
   ArchitecturePolicy,
   ArchitectureViolations,
@@ -13,7 +14,7 @@ import type {
   ScenarioScore,
   TopologyScore,
 } from "./architecture-scoring-types.js";
-import type { CodebaseAnalysis } from "./contracts.js";
+import type { ArchitectureScenarioQualitySummary, CodebaseAnalysis } from "./contracts.js";
 import { evaluateFormula } from "./formula.js";
 
 export interface ArchitectureScoringStaticResults {
@@ -21,6 +22,7 @@ export interface ArchitectureScoringStaticResults {
   purityScore: PurityScore;
   protocolScore: ProtocolScore;
   scenarioScore: ScenarioScore;
+  scenarioQuality?: ArchitectureScenarioQualitySummary;
   topologyScore: TopologyScore;
   topologyValue: number;
   violations: ArchitectureViolations;
@@ -46,6 +48,10 @@ export async function resolveArchitectureScoringStaticInputs(
     ...(options.scenarioCatalog ? { catalog: options.scenarioCatalog } : {}),
     ...(scenarioObservationsInput ? { observations: scenarioObservationsInput } : {}),
   });
+  const scenarioQuality = summarizeArchitectureScenarioQuality({
+    ...(options.scenarioCatalog ? { catalog: options.scenarioCatalog } : {}),
+    ...(scenarioObservationsInput ? { observations: scenarioObservationsInput } : {}),
+  });
 
   const topologyScore = scoreTopologyIsolation({
     ...(options.topologyModel ? { topology: options.topologyModel } : {}),
@@ -64,6 +70,7 @@ export async function resolveArchitectureScoringStaticInputs(
     purityScore,
     protocolScore,
     scenarioScore,
+    ...(scenarioQuality ? { scenarioQuality } : {}),
     topologyScore,
     topologyValue,
     violations: detectDirectionViolations(codebase, options.constraints),

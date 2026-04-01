@@ -8,6 +8,7 @@
 - curated な complexity snapshot を更新したら `npm run self:architecture:complexity` を回す
 - `IPS` の比較基準を意図的に更新したいときだけ `npm run self:architecture:baseline` を回す
 - ローカルや CI で self-measurement の結果を使う前に `npm run self:architecture:check` を回す
+- domain / architecture の unknown と proxy 圧力を advisory で見たいときは `npm run self:quality:summary` を回す
 
 ## 標準の更新順序
 
@@ -23,8 +24,9 @@ npm run self:architecture:check
 - `npm run check`
 - `npm run test:coverage`
 - `npm run self:architecture:check`
+- `npm run self:quality:summary`
 
-`test:coverage` は CI quality gate のローカル版です。`self:architecture:check` は reviewed architecture snapshot に対する運用チェックです。
+`test:coverage` は CI quality gate のローカル版です。`self:architecture:check` は reviewed architecture snapshot に対する運用チェックです。`self:quality:summary` は advisory で、unknown-count や proxy-growth の変化を hard fail にせず可視化します。
 
 ## 長時間かかる authoritative run
 
@@ -38,10 +40,17 @@ npm run self:architecture:check
 
 - `scenario-observations`: ローカル benchmark から作る measured input
 - `boundary-map`: constraints から導出する derived input
+- `self-measurement-domain-evidence.md`: このリポジトリを `domain_design` で自己計測するために維持する use case、aggregate ownership、strong invariants
 - `architecture-complexity-snapshot.yaml`: curated な source of truth
 - `architecture-complexity-export.yaml`: complexity snapshot から生成する derived artifact
 - `architecture-contract-baseline.yaml`: `IPS` の intentional な comparison point
 - telemetry / pattern runtime / delivery snapshots: curated observation input
+
+## monitoring signal
+
+- score / gate / report / review に出る `Measurement Quality` が `unknownsCount` `proxyMetrics` `proxyRate` `decisionRisk` の canonical な要約です。
+- `Runtime` metadata は additive な stage summary です。input load / extraction / history / analysis / render のどこに時間が出ているかを見るために使います。
+- `self:quality:summary` は両 domain の unknown / proxy 合計を CI log に出し、drift を目視できるようにします。
 
 ## 想定どおり残る limitation
 

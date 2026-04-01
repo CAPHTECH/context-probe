@@ -1,4 +1,5 @@
 import type { CommandResponse, GlossaryTerm, InvariantCandidate, ReviewItem, RuleCandidate } from "./contracts.js";
+import { classifyReviewItemKind, sortReviewItems } from "./measurement-metadata.js";
 
 type ReviewableEntity = GlossaryTerm | RuleCandidate | InvariantCandidate;
 
@@ -33,6 +34,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
       reviewItems.push({
         reviewItemId: `RV-LOW-${index + 1}`,
         reason: "low_confidence",
+        kind: "low_confidence",
         summary: `${summary} has low confidence`,
         confidence: entity.confidence,
         evidenceRefs,
@@ -43,6 +45,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
       reviewItems.push({
         reviewItemId: `RV-UNK-${index + 1}-${unknownIndex + 1}`,
         reason: "unknown",
+        kind: classifyReviewItemKind(unknown, "unknown"),
         summary: unknown,
         confidence: entity.confidence,
         evidenceRefs,
@@ -53,6 +56,7 @@ function getReviewItemsFromEntities(entities: ReviewableEntity[], evidenceRefs: 
       reviewItems.push({
         reviewItemId: `RV-COLL-${index + 1}`,
         reason: "collision",
+        kind: "collision",
         summary: `${entity.canonicalTerm} may have a collision`,
         confidence: entity.confidence,
         evidenceRefs,
@@ -71,6 +75,7 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
     reviewItems.push({
       reviewItemId: `RV-RSP-${index + 1}`,
       reason: "unknown",
+      kind: classifyReviewItemKind(unknown, "unknown"),
       summary: unknown,
       confidence: response.confidence,
       evidenceRefs,
@@ -96,6 +101,7 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
         reviewItems.push({
           reviewItemId: `RV-METRIC-${index + 1}`,
           reason: "low_confidence",
+          kind: "low_confidence",
           summary: `${metric.metricId} has low confidence`,
           confidence: metric.confidence,
           evidenceRefs,
@@ -104,5 +110,24 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
     }
   }
 
-  return reviewItems;
+  if (Array.isArray(result.localityWatchlist)) {
+    for (const [index, item] of (
+      result.localityWatchlist as Array<{ boundaries: string[]; count: number; sampleCommitHashes?: string[] }>
+    ).entries()) {
+      reviewItems.push({
+        reviewItemId: `RV-HOTSPOT-${index + 1}`,
+        reason: "history_hotspot",
+        kind: "history_hotspot",
+        summary: `Recurring cross-boundary hotspot ${item.boundaries.join(" <-> ")} appears in ${item.count} commits${
+          item.sampleCommitHashes && item.sampleCommitHashes.length > 0
+            ? ` (${item.sampleCommitHashes.join(", ")})`
+            : ""
+        }.`,
+        confidence: response.confidence,
+        evidenceRefs,
+      });
+    }
+  }
+
+  return sortReviewItems(reviewItems);
 }

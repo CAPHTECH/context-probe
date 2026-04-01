@@ -229,6 +229,7 @@ npm run dev -- report.generate \
 ```
 
 `result.report` に Markdown 文字列が入り、メトリクス、`confidence`、`unknowns`、`diagnostics` を人間向けに確認できます。
+最近の report には `Measurement Quality` `Suggested Next Evidence` `Action Queue` も入ります。`architecture_design` では入力が揃っていれば `Scenario Quality` と `Locality Watchlist` も出ます。
 
 ### 3. ゲート判定を確認する
 
@@ -248,6 +249,8 @@ npm run dev -- gate.evaluate \
 - `result.gate.failures`: fail 条件に入った項目
 - `result.gate.warnings`: warn 条件に入った項目
 
+`gate.evaluate` `report.generate` `review.list_unknowns` は、`score.compute` が返す additive な `meta.measurementQuality` をそのまま再利用します。unknown / proxy の圧力を surface ごとに別解釈しないためです。
+
 ### 4. 人手確認が必要な項目を出す
 
 `unknowns` や低 confidence を review 用に見たい場合は、次のコマンドを使います。
@@ -261,7 +264,19 @@ npm run dev -- review.list_unknowns \
   --docs-root docs
 ```
 
-### 5. 上級: application 向け persistence pilot を実行する
+### 5. ローカル限定の command analytics を見る
+
+repo-local な command usage analytics が欲しいときだけ、明示的に opt-in します。
+
+```bash
+export CONTEXT_PROBE_EVENT_LOG="$PWD/.context-probe-events.jsonl"
+npm run dev -- score.compute --repo . --model config/self-measurement/domain-model.yaml --policy fixtures/policies/default.yaml --domain domain_design
+npm run analytics:summarize -- --input "$CONTEXT_PROBE_EVENT_LOG"
+```
+
+この logging はローカル限定です。command、duration、confidence、unknown count、proxy rate、同一 session 内で report/review が続いたかを記録します。remote collection は行いません。
+
+### 6. 上級: application 向け persistence pilot を実行する
 
 curated な shadow-rollout gate で `application` category が `replace` になっている場合は、主導線の report / gate surface からそのまま pilot を実行できます。
 

@@ -65,6 +65,16 @@ profiles:
 self-measurement の snapshot 更新順序、coverage、release 前チェックの流れは [self-measurement-runbook.ja.md](self-measurement-runbook.ja.md) を参照してください。
 validation と packaging を含む release 前チェックは [release-preflight.ja.md](release-preflight.ja.md) を参照してください。
 
+推奨する CI 実行順序は次です。
+
+1. `score.compute`
+2. `gate.evaluate`
+3. `npm audit --audit-level=moderate`
+4. `npm run self:architecture:check`
+5. `npm run self:quality:summary`
+6. 必要に応じて `report.generate`
+7. `review.list_unknowns` を人手レビューへ回す
+
 ### 4.1 ドメイン設計向け
 
 - 新規 `boundary leak` が増えたら fail
@@ -110,6 +120,7 @@ validation と packaging を含む release 前チェックは [release-preflight
 - 用語衝突や分類曖昧性がある
 - ownership / security 情報が不足している
 - 破壊的契約変更が疑われる
+- history hotspot や scenario input gap が review に出ている
 
 ### 7.2 レビューの記録
 

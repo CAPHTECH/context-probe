@@ -1,0 +1,19 @@
+version: "1.0"
+direction: inward
+layers:
+  - name: contracts
+    rank: 0
+    globs:
+      - "src/contracts/**"
+  - name: application
+    rank: 1
+    globs:
+      - "src/application/**"
+  - name: internal
+    rank: 2
+    globs:
+      - "src/internal/**"
+  - name: infrastructure
+    rank: 3
+    globs:
+      - "src/infrastructure/**"

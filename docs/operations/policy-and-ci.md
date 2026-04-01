@@ -21,8 +21,10 @@ Recommended usage:
 1. run `score.compute`
 2. run `gate.evaluate`
 3. run `npm audit --audit-level=moderate`
-4. publish `report.generate` output when helpful
-5. route `review.list_unknowns` output to human review
+4. run `npm run self:architecture:check`
+5. run `npm run self:quality:summary`
+6. publish `report.generate` output when helpful
+7. route `review.list_unknowns` output to human review
 
 For the operational order around self-measurement snapshots, coverage, and release-preflight checks, see [self-measurement-runbook.md](self-measurement-runbook.md).
 For the release-time checklist that covers validation and packaging, see [release-preflight.md](release-preflight.md).
@@ -51,6 +53,7 @@ Escalate when:
 - unknowns are present
 - collisions or ambiguity are detected
 - proxy evidence dominates a decision
+- history hotspots or scenario-input gaps appear in review output
 
 ## History Filters
 

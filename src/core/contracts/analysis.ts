@@ -70,6 +70,12 @@ export interface CochangePairWeight {
   jaccard: number;
 }
 
+export interface LocalityWatchlistItem {
+  boundaries: string[];
+  count: number;
+  sampleCommitHashes: string[];
+}
+
 export interface CochangeStabilityCluster {
   contexts: string[];
   birth: number;

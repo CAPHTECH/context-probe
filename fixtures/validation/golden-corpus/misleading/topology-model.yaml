@@ -1,0 +1,12 @@
+version: "1.0"
+nodes:
+  - nodeId: billing
+    kind: service
+    isolationBoundary: app
+  - nodeId: fulfillment
+    kind: service
+    isolationBoundary: app
+edges:
+  - source: billing
+    target: fulfillment
+    kind: sync_call

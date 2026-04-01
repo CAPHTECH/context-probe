@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { COMMANDS, listCommands, maybeWriteOutput } from "./commands.js";
+import { appendCommandEventLog, resolveCommandSessionId } from "./core/command-analytics.js";
 import type { CommandContext } from "./core/contracts.js";
 import { createResponse } from "./core/response.js";
 
@@ -41,7 +42,9 @@ function parseArgs(argv: string[]): { command: string | undefined; args: Record<
 }
 
 async function main(): Promise<void> {
+  const startedAt = Date.now();
   const { command, args } = parseArgs(process.argv.slice(2));
+  const sessionId = resolveCommandSessionId(process.env);
   const progressEnabled =
     process.stderr.isTTY || process.env.CONTEXT_PROBE_PROGRESS === "1" || process.env.CONTEXT_PROBE_PROGRESS === "true";
   const context: CommandContext = {
@@ -80,6 +83,14 @@ async function main(): Promise<void> {
   try {
     const response = await handler(args, context);
     await maybeWriteOutput(response, args, context);
+    await appendCommandEventLog({
+      env: process.env,
+      command,
+      repoPath: typeof args.repo === "string" ? args.repo : process.cwd(),
+      durationMs: Date.now() - startedAt,
+      response,
+      sessionId,
+    });
     process.stdout.write(`${JSON.stringify(response, null, 2)}\n`);
     if (response.status === "error") {
       process.exitCode = 1;

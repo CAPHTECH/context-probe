@@ -1,4 +1,10 @@
-import type { CommandResponse, DomainDesignPilotAnalysis, MetricScore } from "./contracts.js";
+import type {
+  ArchitectureScenarioQualitySummary,
+  CommandResponse,
+  DomainDesignPilotAnalysis,
+  LocalityWatchlistItem,
+  MetricScore,
+} from "./contracts.js";
 
 export type ReportResponse = CommandResponse<{
   domainId: string;
@@ -6,6 +12,8 @@ export type ReportResponse = CommandResponse<{
   leakFindings?: unknown[];
   violations?: unknown[];
   pilot?: DomainDesignPilotAnalysis;
+  scenarioQuality?: ArchitectureScenarioQualitySummary;
+  localityWatchlist?: LocalityWatchlistItem[];
 }>;
 
 export type GateResponse = CommandResponse<{

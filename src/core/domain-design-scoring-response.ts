@@ -1,4 +1,10 @@
-import type { CommandResponse, DomainDesignScoreResult, Evidence, ProgressUpdate } from "./contracts.js";
+import type {
+  CommandResponse,
+  CommandResponseMeta,
+  DomainDesignScoreResult,
+  Evidence,
+  ProgressUpdate,
+} from "./contracts.js";
 import {
   buildDomainDesignScoreResponseOptions,
   buildDomainDesignScoreResult,
@@ -20,6 +26,7 @@ export function buildDomainDesignScoreResponse(input: {
   progress: ProgressUpdate[];
   unknowns: string[];
   evidence: Evidence[];
+  meta?: CommandResponseMeta;
 }): CommandResponse<DomainDesignScoreResult> {
   const {
     repoPath,
@@ -34,6 +41,7 @@ export function buildDomainDesignScoreResponse(input: {
     progress,
     unknowns,
     evidence,
+    meta,
   } = input;
   const responseOptions: Parameters<typeof buildDomainDesignScoreResponseOptions>[0] = {
     repoPath,
@@ -56,6 +64,9 @@ export function buildDomainDesignScoreResponse(input: {
       shadow,
       pilot,
     }),
-    buildDomainDesignScoreResponseOptions(responseOptions),
+    {
+      ...buildDomainDesignScoreResponseOptions(responseOptions),
+      ...(meta ? { meta } : {}),
+    },
   );
 }

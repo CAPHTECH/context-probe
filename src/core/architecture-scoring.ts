@@ -16,16 +16,22 @@ export async function computeArchitectureScores(options: ComputeArchitectureScor
     domainId: "architecture_design";
     metrics: MetricScore[];
     violations: ArchitectureViolations;
+    scenarioQuality?: ArchitectureScoringContext["scenarioQuality"];
+    localityWatchlist?: ArchitectureScoringContext["localityWatchlist"];
   }>
 > {
+  const startedAt = Date.now();
+  const analysisStartedAt = Date.now();
   const { repoPath, policyConfig, profileName } = options;
   const policy = getDomainPolicy(policyConfig, profileName, "architecture_design");
   const inputResults = await resolveArchitectureScoringInputs(options, policy);
+  const historyStartedAt = Date.now();
   const evolutionResults = await resolveArchitectureEvolutionInputs(
     options,
     policy,
     inputResults.deliveryNormalizationResult,
   );
+  const historyMs = Date.now() - historyStartedAt;
   const context: ArchitectureScoringContext = {
     directionScore: inputResults.directionScore,
     purityScore: inputResults.purityScore,
@@ -57,6 +63,8 @@ export async function computeArchitectureScores(options: ComputeArchitectureScor
     evolutionLocalityScore: evolutionResults.evolutionLocalityScore,
     evolutionEfficiencyScore: evolutionResults.evolutionEfficiencyScore,
     localityValue: evolutionResults.localityValue,
+    localityWatchlist: evolutionResults.evolutionLocalityScore.watchlist,
+    ...(inputResults.scenarioQuality ? { scenarioQuality: inputResults.scenarioQuality } : {}),
     violations: inputResults.violations,
     usablePatternRuntimeRaw: inputResults.usablePatternRuntimeRaw,
   };
@@ -69,6 +77,8 @@ export async function computeArchitectureScores(options: ComputeArchitectureScor
       domainId: "architecture_design",
       metrics: scores,
       violations: inputResults.violations,
+      ...(context.scenarioQuality ? { scenarioQuality: context.scenarioQuality } : {}),
+      ...(context.localityWatchlist.length > 0 ? { localityWatchlist: context.localityWatchlist } : {}),
     },
     {
       status: evolutionResults.architectureHistoryDiagnostics.length > 0 ? "warning" : "ok",
@@ -81,6 +91,15 @@ export async function computeArchitectureScores(options: ComputeArchitectureScor
         toProvenance(repoPath, `profile=${profileName}`),
         ...(options.additionalProvenance ?? []),
       ],
+      meta: {
+        runtime: {
+          totalMs: Date.now() - startedAt,
+          stages: {
+            historyMs,
+            analysisMs: Date.now() - analysisStartedAt - historyMs,
+          },
+        },
+      },
     },
   );
 }

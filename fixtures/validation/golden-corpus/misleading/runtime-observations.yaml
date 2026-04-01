@@ -1,0 +1,8 @@
+version: "1.0"
+observations:
+  - nodeId: billing
+    failureContainmentRatio: 0.3
+    runtimeContainment: 0.4
+  - nodeId: fulfillment
+    failureContainmentRatio: 0.25
+    runtimeContainment: 0.35

@@ -1,0 +1,20 @@
+version: "1.0"
+scenarios:
+  - scenarioId: "S-001"
+    name: "Checkout latency"
+    direction: lower_is_better
+    priority: 5
+    target: 250
+    worstAcceptable: 800
+  - scenarioId: "S-002"
+    name: "Independent deploy ratio"
+    direction: higher_is_better
+    priority: 4
+    target: 0.9
+    worstAcceptable: 0.3
+  - scenarioId: "S-003"
+    name: "Recovery time"
+    direction: lower_is_better
+    priority: 3
+    target: 20
+    worstAcceptable: 90

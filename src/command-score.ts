@@ -9,6 +9,7 @@ import {
   requireShadowRolloutRegistry,
 } from "./command-helpers.js";
 import type { CommandContext, CommandResponse } from "./core/contracts.js";
+import { mergeRuntimeSummary } from "./core/measurement-metadata.js";
 import { loadPolicyConfig } from "./core/policy.js";
 import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import {
@@ -21,6 +22,7 @@ export async function handleScoreCompute(
   args: CommandArgs,
   context: CommandContext,
 ): Promise<CommandResponse<unknown>> {
+  const startedAt = Date.now();
   const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
   const domain = typeof args.domain === "string" ? args.domain : "domain_design";
   const pilotPersistence = args["pilot-persistence"] === true;
@@ -30,7 +32,21 @@ export async function handleScoreCompute(
   }
 
   if (domain === "architecture_design") {
-    return computeArchitectureScores(await buildArchitectureScoreOptions(args, context, policyConfig));
+    const scoreResponse = await computeArchitectureScores(
+      await buildArchitectureScoreOptions(args, context, policyConfig),
+    );
+    return {
+      ...scoreResponse,
+      meta: {
+        ...(scoreResponse.meta ?? {}),
+        runtime: mergeRuntimeSummary(scoreResponse.meta?.runtime, {
+          totalMs: Date.now() - startedAt,
+          stages: {
+            inputLoadMs: Date.now() - startedAt - (scoreResponse.meta?.runtime?.totalMs ?? 0),
+          },
+        }),
+      },
+    };
   }
 
   const model = await requireDomainModel(args, context);
@@ -46,7 +62,7 @@ export async function handleScoreCompute(
     pilotGateEvaluation = evaluateShadowRolloutGate(registryToGateObservations(registry, registryPath));
   }
 
-  return computeDomainDesignScores({
+  const scoreResponse = await computeDomainDesignScores({
     repoPath: getRootPath(args, context),
     model,
     policyConfig,
@@ -70,4 +86,16 @@ export async function handleScoreCompute(
         }
       : {}),
   });
+  return {
+    ...scoreResponse,
+    meta: {
+      ...(scoreResponse.meta ?? {}),
+      runtime: mergeRuntimeSummary(scoreResponse.meta?.runtime, {
+        totalMs: Date.now() - startedAt,
+        stages: {
+          inputLoadMs: Date.now() - startedAt - (scoreResponse.meta?.runtime?.totalMs ?? 0),
+        },
+      }),
+    },
+  };
 }

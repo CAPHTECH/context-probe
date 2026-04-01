@@ -1,0 +1,7 @@
+version: "1.0"
+scores:
+  LeadTimeScore: 0.92
+  DeployFreqScore: 0.86
+  RecoveryScore: 0.88
+  ChangeFailScore: 0.12
+  ReworkScore: 0.10

@@ -48,6 +48,15 @@ export interface ScenarioObservationSet {
   observations: ScenarioObservation[];
 }
 
+export interface ArchitectureScenarioQualitySummary {
+  totalScenarios: number;
+  observedScenarios: number;
+  missingObservationScenarioIds: string[];
+  missingTopPriorityObservationIds: string[];
+  duplicateScenarioIds: string[];
+  findings: string[];
+}
+
 export type ArchitectureSourceType = "file" | "command";
 
 export interface ArchitectureCanonicalSourceConfig {

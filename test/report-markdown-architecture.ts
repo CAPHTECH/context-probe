@@ -30,6 +30,16 @@ export function registerReportMarkdownArchitectureTests(): void {
         diagnostics: [],
         progress: [],
         provenance: [],
+        meta: {
+          measurementQuality: {
+            unknownsCount: 4,
+            metricUnknownCounts: { APSI: 1, OAS: 1, TIS: 1 },
+            proxyMetrics: ["APSI", "OAS", "TIS"],
+            proxyRate: 0.3,
+            approximationNotes: ["PCS is a proxy composite of DDS, BPS, and IPS."],
+            decisionRisk: "medium",
+          },
+        },
         version: "1.0",
       },
       "layered",
@@ -44,9 +54,43 @@ export function registerReportMarkdownArchitectureTests(): void {
     expect(report).toContain("APSI: ideal=");
     expect(report).toContain("QSF: ideal=");
     expect(report).toContain("CTI: ideal=");
+    expect(report).toContain("## Measurement Quality");
+    expect(report).toContain("## Suggested Next Evidence");
+    expect(report).toContain("## Action Queue");
     expect(report).toContain("## Proxy / Partial Signals");
     expect(report).toContain("APSI: PCS is a proxy composite of DDS, BPS, and IPS.");
     expect(report).toContain("OAS: OAS is partial.");
     expect(report).toContain("TIS: TIS is a bridge metric.");
+  });
+
+  test("architecture markdown report includes scenario quality and locality watchlist", () => {
+    const report = renderMarkdownReport({
+      status: "warning",
+      result: {
+        domainId: "architecture_design",
+        metrics: [metric({ metricId: "QSF", value: 0.62 }), metric({ metricId: "APSI", value: 0.71 })],
+        violations: [],
+        scenarioQuality: {
+          totalScenarios: 3,
+          observedScenarios: 2,
+          missingObservationScenarioIds: ["S-003"],
+          missingTopPriorityObservationIds: ["S-003"],
+          duplicateScenarioIds: [],
+          findings: ["Top-priority scenarios are missing observations: S-003."],
+        },
+        localityWatchlist: [{ boundaries: ["Delivery", "Core"], count: 4, sampleCommitHashes: ["abc1234"] }],
+      },
+      evidence: [],
+      confidence: 0.8,
+      unknowns: [],
+      diagnostics: [],
+      progress: [],
+      provenance: [],
+      version: "1.0",
+    });
+
+    expect(report).toContain("## Scenario Quality");
+    expect(report).toContain("## Locality Watchlist");
+    expect(report).toContain("Delivery <-> Core");
   });
 }

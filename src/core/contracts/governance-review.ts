@@ -1,6 +1,9 @@
+export type ReviewItemKind = "proxy" | "missing_input" | "low_confidence" | "collision" | "history_hotspot" | "unknown";
+
 export interface ReviewItem {
   reviewItemId: string;
   reason: string;
+  kind?: ReviewItemKind;
   summary: string;
   confidence: number;
   evidenceRefs: string[];

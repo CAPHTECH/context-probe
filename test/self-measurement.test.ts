@@ -2,6 +2,7 @@ import { afterEach, describe } from "vitest";
 
 import { cleanupTemporaryRepo } from "./helpers.js";
 import { registerSelfMeasurementClassificationTests } from "./self-measurement.classification.js";
+import { registerSelfMeasurementDomainEvidenceTests } from "./self-measurement.domain-evidence.js";
 import { registerSelfMeasurementNoGitTests } from "./self-measurement.no-git.js";
 import { registerSelfMeasurementSmokeTests } from "./self-measurement.smoke.js";
 
@@ -16,6 +17,7 @@ describe("self measurement", () => {
   });
 
   registerSelfMeasurementSmokeTests(state);
+  registerSelfMeasurementDomainEvidenceTests(state);
   registerSelfMeasurementClassificationTests(state);
   registerSelfMeasurementNoGitTests(state);
 });

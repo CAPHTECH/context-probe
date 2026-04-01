@@ -2,6 +2,7 @@ import type {
   ArchitectureBoundaryMap,
   ArchitectureConstraints,
   ArchitectureDeliveryObservationSet,
+  LocalityWatchlistItem,
 } from "../core/contracts.js";
 import { matchGlobs, toPosixPath } from "../core/io.js";
 
@@ -25,6 +26,7 @@ export interface ArchitectureEvolutionLocalityScore {
   confidence: number;
   unknowns: string[];
   findings: ArchitectureEvolutionFinding[];
+  watchlist: LocalityWatchlistItem[];
 }
 
 export interface ArchitectureEvolutionEfficiencyScore {

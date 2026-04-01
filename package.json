@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
+    "analytics:summarize": "tsx scripts/analytics/summarize-event-log.ts",
     "check:audit": "npm audit --audit-level=moderate",
     "check": "npm run check:ts && npm run check:biome && npm run check:deps && npm run check:knip",
     "check:biome": "biome ci .",
@@ -42,6 +43,7 @@
     "self:architecture:check": "node scripts/self-measurement/check-architecture-self-measurement.mjs",
     "self:architecture:complexity": "node scripts/self-measurement/capture-architecture-complexity-export.mjs",
     "self:architecture:refresh": "node scripts/self-measurement/refresh-architecture-inputs.mjs",
+    "self:quality:summary": "node scripts/self-measurement/summarize-self-measurement-quality.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:pbt": "vitest run test/pbt/*.test.ts",

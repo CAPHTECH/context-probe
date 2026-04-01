@@ -27,6 +27,7 @@ export function scoreArchitectureEvolutionLocality(options: {
       confidence: 0.25,
       unknowns: ["There are too few architecture boundaries, so AELS is close to unobserved."],
       findings,
+      watchlist: [],
     };
   }
 
@@ -59,6 +60,7 @@ export function scoreArchitectureEvolutionLocality(options: {
         "No history could be mapped to architecture boundaries, so AELS is close to unobserved.",
       ]),
       findings,
+      watchlist: [],
     };
   }
 
@@ -127,6 +129,25 @@ export function scoreArchitectureEvolutionLocality(options: {
     });
   }
 
+  const watchlist = Array.from(pairCounts.entries())
+    .map(([key, count]) => {
+      const boundaries = key.split("::");
+      const sampleCommitHashes = crossBoundaryCommits
+        .filter((commit) => boundaries.every((boundary) => commit.touchedBoundaries.has(boundary)))
+        .slice(0, 3)
+        .map((commit) => commit.hash.slice(0, 7));
+      return {
+        boundaries,
+        count,
+        sampleCommitHashes,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.count - left.count || left.boundaries.join("::").localeCompare(right.boundaries.join("::")),
+    )
+    .slice(0, 5);
+
   return {
     CrossBoundaryCoChange,
     WeightedPropagationCost,
@@ -143,5 +164,6 @@ export function scoreArchitectureEvolutionLocality(options: {
     ),
     unknowns: uniqueUnknowns(unknowns),
     findings,
+    watchlist,
   };
 }

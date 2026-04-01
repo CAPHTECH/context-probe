@@ -221,6 +221,7 @@ npm run dev -- report.generate \
 ```
 
 `result.report` contains a human-readable Markdown summary of the measurement.
+Recent report output also includes `Measurement Quality`, `Suggested Next Evidence`, and `Action Queue`. For `architecture_design`, the report can additionally surface `Scenario Quality` and `Locality Watchlist` when those inputs are available.
 
 ### 3. Evaluate policy gates
 
@@ -238,6 +239,8 @@ Key outputs:
 - `result.gate.failures`
 - `result.gate.warnings`
 
+`gate.evaluate`, `report.generate`, and `review.list_unknowns` all reuse the same additive `meta.measurementQuality` summary from `score.compute`, so unknown/proxy pressure stays consistent across score, gate, report, and review surfaces.
+
 ### 4. List items that need human review
 
 ```bash
@@ -250,7 +253,19 @@ npm run dev -- review.list_unknowns \
 
 Use this when you want a review queue derived from low confidence, collisions, or unresolved unknowns.
 
-### 5. Advanced: run the application persistence pilot
+### 5. Inspect local-only command analytics
+
+If you want repo-local command usage analytics, opt in explicitly:
+
+```bash
+export CONTEXT_PROBE_EVENT_LOG="$PWD/.context-probe-events.jsonl"
+npm run dev -- score.compute --repo . --model config/self-measurement/domain-model.yaml --policy fixtures/policies/default.yaml --domain domain_design
+npm run analytics:summarize -- --input "$CONTEXT_PROBE_EVENT_LOG"
+```
+
+This logging is local only. It records command, duration, confidence, unknown count, proxy rate, and whether a report or review followed in the same session. It does not enable remote collection.
+
+### 6. Advanced: run the application persistence pilot
 
 When the curated shadow-rollout gate says the `application` category is ready for replacement, you can run the category-gated pilot directly from the main report and gate surfaces.
 

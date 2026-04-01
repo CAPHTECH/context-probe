@@ -8,6 +8,7 @@ This runbook fixes the operational order for architecture self-measurement in th
 - Run `npm run self:architecture:complexity` after you intentionally changed the curated complexity snapshot.
 - Run `npm run self:architecture:baseline` only when you want to establish a new `IPS` comparison point.
 - Run `npm run self:architecture:check` before relying on self-measurement results locally or in CI.
+- Run `npm run self:quality:summary` when you want an advisory readout of current unknown and proxy pressure in both self-measurement domains.
 
 ## Standard update sequence
 
@@ -23,8 +24,9 @@ npm run self:architecture:check
 - `npm run check`
 - `npm run test:coverage`
 - `npm run self:architecture:check`
+- `npm run self:quality:summary`
 
-`test:coverage` is the local equivalent of the CI quality gate. `self:architecture:check` is the operational check for reviewed architecture snapshots.
+`test:coverage` is the local equivalent of the CI quality gate. `self:architecture:check` is the operational check for reviewed architecture snapshots. `self:quality:summary` is advisory and makes unknown-count and proxy-growth regressions visible without turning them into a separate hard gate.
 
 ## Long-Running Authoritative Runs
 
@@ -38,10 +40,17 @@ npm run self:architecture:check
 
 - `scenario-observations`: measured from local benchmarks
 - `boundary-map`: derived from constraints
+- `self-measurement-domain-evidence.md`: maintained use cases, aggregate ownership, and strong invariants for repository self-measurement in `domain_design`
 - `architecture-complexity-snapshot.yaml`: curated source of truth
 - `architecture-complexity-export.yaml`: derived from the curated complexity snapshot
 - `architecture-contract-baseline.yaml`: intentional comparison point for `IPS`
 - telemetry / pattern runtime / delivery snapshots: curated observation inputs
+
+## Monitoring signals
+
+- `Measurement Quality` in score, gate, report, and review output is the canonical summary for `unknownsCount`, `proxyMetrics`, `proxyRate`, and `decisionRisk`.
+- `Runtime` metadata is additive and stage-based. Use it to see whether time is going into input loading, extraction, history, analysis, or render work.
+- `self:quality:summary` prints the current self-measurement unknown and proxy totals for both domains so CI logs show drift explicitly.
 
 ## Expected limitations
 

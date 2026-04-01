@@ -1,0 +1,11 @@
+version: "1.0"
+observations:
+  - scenarioId: "S-001"
+    observed: 720
+    source: benchmark
+  - scenarioId: "S-002"
+    observed: 0.35
+    source: design-review
+  - scenarioId: "S-003"
+    observed: 80
+    source: benchmark

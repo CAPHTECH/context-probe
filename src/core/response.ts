@@ -2,11 +2,13 @@ import { createHash } from "node:crypto";
 
 import {
   type CommandResponse,
+  type CommandResponseMeta,
   type CommandStatus,
   type Evidence,
   OUTPUT_VERSION,
   type ProvenanceRef,
 } from "./contracts.js";
+import { maybeBuildMeasurementQualitySummary } from "./measurement-metadata.js";
 
 export function clampConfidence(value: number): number {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
@@ -20,15 +22,28 @@ export function createResponse<T>(
   result: T,
   options?: Partial<Omit<CommandResponse<T>, "result" | "version">>,
 ): CommandResponse<T> {
+  const confidence = clampConfidence(options?.confidence ?? 1);
+  const unknowns = options?.unknowns ?? [];
+  const inferredMeasurementQuality = maybeBuildMeasurementQualitySummary(result, unknowns, confidence);
+  const meta: CommandResponseMeta | undefined =
+    options?.meta || inferredMeasurementQuality
+      ? {
+          ...(options?.meta ?? {}),
+          ...(!options?.meta?.measurementQuality && inferredMeasurementQuality
+            ? { measurementQuality: inferredMeasurementQuality }
+            : {}),
+        }
+      : undefined;
   return {
     status: options?.status ?? "ok",
     result,
     evidence: options?.evidence ?? [],
-    confidence: clampConfidence(options?.confidence ?? 1),
-    unknowns: options?.unknowns ?? [],
+    confidence,
+    unknowns,
     diagnostics: options?.diagnostics ?? [],
     progress: options?.progress ?? [],
     provenance: options?.provenance ?? [],
+    ...(meta ? { meta } : {}),
     version: OUTPUT_VERSION,
   };
 }

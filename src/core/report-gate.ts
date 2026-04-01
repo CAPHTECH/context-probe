@@ -48,6 +48,16 @@ export function evaluateGate(
     }
   }
 
+  const measurementQuality = response.meta?.measurementQuality;
+  if (measurementQuality) {
+    if (measurementQuality.unknownsCount > 0) {
+      warnings.push(`measurement quality includes ${measurementQuality.unknownsCount} unknown signal(s)`);
+    }
+    if (measurementQuality.proxyMetrics.length > 0) {
+      warnings.push(`measurement quality depends on proxy material in ${measurementQuality.proxyMetrics.join(", ")}`);
+    }
+  }
+
   return {
     status: failures.length > 0 ? "error" : warnings.length > 0 ? "warning" : "ok",
     failures,

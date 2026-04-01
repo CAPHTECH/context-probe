@@ -1,4 +1,9 @@
 import type { DomainDesignPilotAnalysis } from "./contracts.js";
+import {
+  renderActionQueueSection,
+  renderMeasurementQualitySection,
+  renderSuggestedNextEvidenceSection,
+} from "./report-actionability.js";
 import { formatMetric, type ReportResponse, renderMetricGuidanceSection } from "./report-shared.js";
 
 function renderPilotRolloutSection(pilot: DomainDesignPilotAnalysis | undefined): string[] {
@@ -31,10 +36,13 @@ export function renderDomainMarkdownReport(response: ReportResponse): string {
   lines.push(`- Status: ${response.status}`);
   lines.push(`- Confidence: ${response.confidence.toFixed(3)}`);
   lines.push("");
+  lines.push(...renderMeasurementQualitySection(response));
   lines.push("## Metrics");
   lines.push(...response.result.metrics.map(formatMetric));
   lines.push(...renderPilotRolloutSection(response.result.pilot));
   lines.push(...renderMetricGuidanceSection(response.result.metrics));
+  lines.push(...renderSuggestedNextEvidenceSection(response));
+  lines.push(...renderActionQueueSection(response));
 
   if (response.unknowns.length > 0) {
     lines.push("", "## Unknowns", ...response.unknowns.map((item) => `- ${item}`));

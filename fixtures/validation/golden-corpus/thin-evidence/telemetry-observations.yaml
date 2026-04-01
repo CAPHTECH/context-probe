@@ -1,0 +1,16 @@
+version: "1.0"
+bands:
+  - bandId: "low"
+    trafficWeight: 0.2
+    LatencyScore: 0.92
+    ErrorScore: 0.95
+    SaturationScore: 0.9
+  - bandId: "median"
+    trafficWeight: 0.5
+    LatencyScore: 0.88
+    ErrorScore: 0.9
+    SaturationScore: 0.82
+  - bandId: "peak"
+    trafficWeight: 0.3
+    LatencyScore: 0.8
+    ErrorScore: 0.84

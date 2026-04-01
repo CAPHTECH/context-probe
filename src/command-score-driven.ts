@@ -1,14 +1,17 @@
 import type { CommandArgs } from "./command-helpers.js";
 import { getProfile } from "./command-helpers.js";
 import type {
+  ArchitectureScenarioQualitySummary,
   CommandContext,
   CommandResponse,
   DomainDesignScoreResult,
+  LocalityWatchlistItem,
   MarkdownReportResult,
   MeasurementGateResult,
   MetricScore,
 } from "./core/contracts.js";
 import { readDataFile } from "./core/io.js";
+import { mergeRuntimeSummary } from "./core/measurement-metadata.js";
 import { loadPolicyConfig } from "./core/policy.js";
 import { evaluateGate, renderMarkdownReport } from "./core/report.js";
 import { createResponse } from "./core/response.js";
@@ -20,6 +23,8 @@ interface ArchitectureScoreResult {
   metrics: MetricScore[];
   leakFindings?: unknown[];
   violations?: unknown[];
+  scenarioQuality?: ArchitectureScenarioQualitySummary;
+  localityWatchlist?: LocalityWatchlistItem[];
 }
 
 type ScorePayload = DomainDesignScoreResult | ArchitectureScoreResult;
@@ -31,6 +36,7 @@ export async function handleReviewListUnknowns(
   scoreCompute: ScoreCommand,
   commandRegistry: Record<string, ScoreCommand>,
 ): Promise<CommandResponse<{ reviewItems: ReturnType<typeof listReviewItems> }>> {
+  const startedAt = Date.now();
   const inputPath = typeof args.input === "string" ? new URL(args.input, `file://${context.cwd}/`).pathname : undefined;
   const sourceCommand =
     typeof args["source-command"] === "string" ? commandRegistry[args["source-command"]] : undefined;
@@ -50,6 +56,13 @@ export async function handleReviewListUnknowns(
       diagnostics: response.diagnostics,
       progress: response.progress,
       provenance: response.provenance,
+      meta: {
+        ...(response.meta ?? {}),
+        runtime: mergeRuntimeSummary(response.meta?.runtime, {
+          totalMs: (response.meta?.runtime?.totalMs ?? 0) + (Date.now() - startedAt),
+          stages: { reviewMs: Date.now() - startedAt },
+        }),
+      },
     },
   );
 }
@@ -59,13 +72,17 @@ export async function handleReportGenerate(
   context: CommandContext,
   scoreCompute: ScoreCommand,
 ): Promise<CommandResponse<ScorePayload | MarkdownReportResult>> {
+  const startedAt = Date.now();
   const response = (await scoreCompute(args, context)) as CommandResponse<ScorePayload>;
   const format = typeof args.format === "string" ? args.format : "json";
   if (format === "md") {
+    const renderStartedAt = Date.now();
+    const renderedReport = renderMarkdownReport(response, getProfile(args));
+    const renderMs = Date.now() - renderStartedAt;
     return createResponse<MarkdownReportResult>(
       {
         format,
-        report: renderMarkdownReport(response, getProfile(args)),
+        report: renderedReport,
       },
       {
         status: response.status,
@@ -75,6 +92,13 @@ export async function handleReportGenerate(
         diagnostics: response.diagnostics,
         progress: response.progress,
         provenance: response.provenance,
+        meta: {
+          ...(response.meta ?? {}),
+          runtime: mergeRuntimeSummary(response.meta?.runtime, {
+            totalMs: (response.meta?.runtime?.totalMs ?? 0) + (Date.now() - startedAt),
+            stages: { renderMs },
+          }),
+        },
       },
     );
   }
@@ -86,6 +110,7 @@ export async function handleGateEvaluate(
   context: CommandContext,
   scoreCompute: ScoreCommand,
 ): Promise<CommandResponse<MeasurementGateResult>> {
+  const startedAt = Date.now();
   const response = (await scoreCompute(args, context)) as CommandResponse<ScorePayload>;
   const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
   const gate = evaluateGate(response, policyConfig, getProfile(args));
@@ -109,6 +134,13 @@ export async function handleGateEvaluate(
         `Available packs: ${DOMAIN_PACKS.map((pack) => pack.id).join(", ")}`,
       ],
       progress: response.progress,
+      meta: {
+        ...(response.meta ?? {}),
+        runtime: mergeRuntimeSummary(response.meta?.runtime, {
+          totalMs: (response.meta?.runtime?.totalMs ?? 0) + (Date.now() - startedAt),
+          stages: { gateMs: Date.now() - startedAt },
+        }),
+      },
     },
   );
 }

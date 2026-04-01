@@ -43,6 +43,7 @@ export async function computeDomainDesignScores(options: {
     applyReviewLog?: boolean;
   };
 }): Promise<CommandResponse<DomainDesignScoreResult>> {
+  const startedAt = Date.now();
   const { repoPath, model, policyConfig, profileName } = options;
   const progress = createProgressTracker(options.progressReporter);
   const policy = getDomainPolicy(policyConfig, profileName, "domain_design");
@@ -65,20 +66,26 @@ export async function computeDomainDesignScores(options: {
   const diagnostics: string[] = [];
   const unknowns: string[] = [];
   const additionalEvidence: Evidence[] = [];
+  let historyMs = 0;
+  let extractionMs = 0;
 
   const requiresLocalityComparison = options.shadowPersistence || Boolean(options.pilotPersistenceCategory);
   const locality = await progress.withProgress(
     "history",
     `Analyzing Git history for modeled paths in ${repoPath}.`,
-    () =>
-      evaluateDomainLocality({
+    async () => {
+      const historyStartedAt = Date.now();
+      const result = evaluateDomainLocality({
         repoPath,
         model,
         policyConfig,
         profileName,
         requiresLocalityComparison,
         progressReporter: progress.reportProgress,
-      }),
+      });
+      historyMs = Date.now() - historyStartedAt;
+      return result;
+    },
   );
   const { history, historySignals, historyConfidence, shadow, shadowLocalityConfidence } = locality;
   unknowns.push(...locality.unknowns);
@@ -89,28 +96,33 @@ export async function computeDomainDesignScores(options: {
   const docsMetrics =
     docsLoaders && options.docsRoot
       ? await progress.withProgress("docs", `Computing document-derived metrics from ${options.docsRoot}.`, () =>
-          computeDomainDocsMetricScores({
-            docsRoot: options.docsRoot,
-            model,
-            codeFiles: codebase.scorableSourceFiles,
-            contractUsage,
-            leakFindings,
-            getGlossaryResult: async () =>
-              progress.withProgress("docs", `Extracting glossary evidence from ${options.docsRoot}.`, () =>
-                docsLoaders.getGlossaryResult(),
-              ),
-            getRulesResult: async () =>
-              progress.withProgress("docs", `Extracting rule evidence from ${options.docsRoot}.`, () =>
-                docsLoaders.getRulesResult(),
-              ),
-            getInvariantsResult: async () =>
-              progress.withProgress("docs", `Extracting invariant evidence from ${options.docsRoot}.`, () =>
-                docsLoaders.getInvariantsResult(),
-              ),
-            getTermTraceLinks: async () => docsLoaders.getTermTraceLinks(),
-            reportProgress: progress.reportProgress,
-            formulas: buildDomainDocsMetricFormulas(policy),
-          }),
+          (async () => {
+            const extractionStartedAt = Date.now();
+            const result = await computeDomainDocsMetricScores({
+              docsRoot: options.docsRoot,
+              model,
+              codeFiles: codebase.scorableSourceFiles,
+              contractUsage,
+              leakFindings,
+              getGlossaryResult: async () =>
+                progress.withProgress("docs", `Extracting glossary evidence from ${options.docsRoot}.`, () =>
+                  docsLoaders.getGlossaryResult(),
+                ),
+              getRulesResult: async () =>
+                progress.withProgress("docs", `Extracting rule evidence from ${options.docsRoot}.`, () =>
+                  docsLoaders.getRulesResult(),
+                ),
+              getInvariantsResult: async () =>
+                progress.withProgress("docs", `Extracting invariant evidence from ${options.docsRoot}.`, () =>
+                  docsLoaders.getInvariantsResult(),
+                ),
+              getTermTraceLinks: async () => docsLoaders.getTermTraceLinks(),
+              reportProgress: progress.reportProgress,
+              formulas: buildDomainDocsMetricFormulas(policy),
+            });
+            extractionMs = Date.now() - extractionStartedAt;
+            return result;
+          })(),
         )
       : { scores: [], evidence: [], diagnostics: [], unknowns: [] };
   scores.push(...docsMetrics.scores);
@@ -169,8 +181,9 @@ export async function computeDomainDesignScores(options: {
     pilot = pilotResolution.pilot;
   }
 
-  return progress.withProgress("domain_design", "Assembling final domain score response.", () =>
-    buildDomainDesignScoreResponse({
+  return progress.withProgress("domain_design", "Assembling final domain score response.", () => {
+    const totalMs = Date.now() - startedAt;
+    return buildDomainDesignScoreResponse({
       repoPath,
       scores,
       leakFindings,
@@ -182,7 +195,17 @@ export async function computeDomainDesignScores(options: {
       progress: progress.progress,
       unknowns,
       evidence: additionalEvidence,
+      meta: {
+        runtime: {
+          totalMs,
+          stages: {
+            historyMs,
+            ...(extractionMs > 0 ? { extractionMs } : {}),
+            analysisMs: totalMs - historyMs - extractionMs,
+          },
+        },
+      },
       ...(options.docsRoot ? { docsRoot: options.docsRoot } : {}),
-    }),
-  );
+    });
+  });
 }

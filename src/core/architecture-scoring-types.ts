@@ -31,12 +31,14 @@ import type {
   ArchitecturePatternRuntimeObservationSet,
   ArchitecturePatternRuntimeRawObservationSet,
   ArchitectureScenarioCatalog,
+  ArchitectureScenarioQualitySummary,
   ArchitectureTelemetryExportBundle,
   ArchitectureTelemetryNormalizationProfile,
   ArchitectureTelemetryObservationSet,
   ArchitectureTelemetryRawObservationSet,
   ArchitectureTopologyModel,
   CochangeCommit,
+  LocalityWatchlistItem,
   PolicyConfig,
   ProvenanceRef,
   ScenarioObservationSet,
@@ -119,6 +121,8 @@ export interface ArchitectureScoringContext {
   evolutionLocalityScore: EvolutionLocalityScore;
   evolutionEfficiencyScore: EvolutionEfficiencyScore;
   localityValue: number;
+  localityWatchlist: LocalityWatchlistItem[];
+  scenarioQuality?: ArchitectureScenarioQualitySummary;
   violations: ArchitectureViolations;
   usablePatternRuntimeRaw: boolean;
 }

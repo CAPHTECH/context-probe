@@ -1,0 +1,11 @@
+version: "1.0"
+repo: repo
+constraints: constraints.yaml
+args:
+  scenario-catalog: scenario-catalog.yaml
+  scenario-observations: scenario-observations.yaml
+  topology-model: topology-model.yaml
+  runtime-observations: runtime-observations.yaml
+  telemetry-observations: telemetry-observations.yaml
+  delivery-observations: delivery-observations.yaml
+  complexity-export: complexity-export.yaml

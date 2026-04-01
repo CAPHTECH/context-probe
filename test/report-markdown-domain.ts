@@ -103,4 +103,36 @@ export function registerReportMarkdownDomainTests(): void {
 
     expect(report).not.toContain("## Pilot Rollout");
   });
+
+  test("domain markdown report includes measurement quality and action queue when metadata is present", () => {
+    const report = renderMarkdownReport({
+      status: "warning",
+      result: {
+        domainId: "domain_design",
+        metrics: [metric({ metricId: "AFS", value: 0.52, unknowns: ["AFS is a conservative approximation."] })],
+        leakFindings: [],
+      },
+      evidence: [],
+      confidence: 0.72,
+      unknowns: ["No aggregate definitions were found, so context is being used as an aggregate proxy."],
+      diagnostics: [],
+      progress: [],
+      provenance: [],
+      meta: {
+        measurementQuality: {
+          unknownsCount: 2,
+          metricUnknownCounts: { AFS: 1 },
+          proxyMetrics: ["AFS"],
+          proxyRate: 1,
+          approximationNotes: ["AFS is a conservative approximation."],
+          decisionRisk: "high",
+        },
+      },
+      version: "1.0",
+    });
+
+    expect(report).toContain("## Measurement Quality");
+    expect(report).toContain("## Suggested Next Evidence");
+    expect(report).toContain("## Action Queue");
+  });
 }

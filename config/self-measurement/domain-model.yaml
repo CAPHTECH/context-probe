@@ -38,3 +38,52 @@ contexts:
       - "src/packs/**"
     contractGlobs:
       - "src/packs/**"
+aggregates:
+  - name: CommandOrchestration
+    context: Delivery
+    aliases:
+      - cli
+      - commands
+      - index
+  - name: MeasurementPipeline
+    context: Core
+    aliases:
+      - score.compute
+      - domain_design
+  - name: ReportGeneration
+    context: Core
+    aliases:
+      - report.generate
+  - name: ReviewQueue
+    context: Core
+    aliases:
+      - review.list_unknowns
+  - name: TraceLinkGraph
+    context: Core
+    aliases:
+      - trace.link_model_to_code
+      - trace.link_terms
+  - name: HistoryLocality
+    context: Core
+    aliases:
+      - history.compare_locality_models
+      - history.analyze_persistence
+  - name: ExtractionCatalog
+    context: Core
+    aliases:
+      - doc.extract_glossary
+      - doc.extract_rules
+      - doc.extract_invariants
+  - name: PolicyDecision
+    context: Core
+    aliases:
+      - gate.evaluate
+  - name: AnalyzerSuite
+    context: Analysis
+    aliases:
+      - analyzers
+      - analysis
+  - name: PackRegistry
+    context: Packs
+    aliases:
+      - packs

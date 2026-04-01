@@ -28,3 +28,6 @@ jobs:
 
       - name: Run architecture self-measurement check
         run: npm run self:architecture:check
+
+      - name: Summarize self-measurement quality
+        run: npm run self:quality:summary
