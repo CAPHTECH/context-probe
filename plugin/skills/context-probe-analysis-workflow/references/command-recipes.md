@@ -5,7 +5,7 @@ Use these recipes after the preparation checklist is satisfied.
 ## Domain Design: First Run
 
 ```bash
-npm run dev -- score.compute \
+npx context-probe score.compute \
   --domain domain_design \
   --repo fixtures/domain-design/sample-repo \
   --model fixtures/domain-design/model.yaml \
@@ -15,7 +15,7 @@ npm run dev -- score.compute \
 ## Domain Design: With Docs
 
 ```bash
-npm run dev -- score.compute \
+npx context-probe score.compute \
   --domain domain_design \
   --repo fixtures/domain-design/sample-repo \
   --model fixtures/domain-design/model.yaml \
@@ -26,7 +26,7 @@ npm run dev -- score.compute \
 ## Architecture Design: First Run
 
 ```bash
-npm run dev -- score.compute \
+npx context-probe score.compute \
   --domain architecture_design \
   --repo fixtures/architecture/sample-repo \
   --constraints fixtures/architecture/constraints.yaml \
@@ -36,7 +36,7 @@ npm run dev -- score.compute \
 ## Human-Readable Report
 
 ```bash
-npm run dev -- report.generate \
+npx context-probe report.generate \
   --domain domain_design \
   --repo fixtures/domain-design/sample-repo \
   --model fixtures/domain-design/model.yaml \
@@ -49,7 +49,7 @@ Switch `--domain` and input files to the architecture path when needed.
 ## Gate Evaluation
 
 ```bash
-npm run dev -- gate.evaluate \
+npx context-probe gate.evaluate \
   --domain architecture_design \
   --repo fixtures/architecture/sample-repo \
   --constraints fixtures/architecture/constraints.yaml \
@@ -59,7 +59,7 @@ npm run dev -- gate.evaluate \
 ## Review Queue
 
 ```bash
-npm run dev -- review.list_unknowns \
+npx context-probe review.list_unknowns \
   --domain domain_design \
   --repo fixtures/domain-design/sample-repo \
   --model fixtures/domain-design/model.yaml \
@@ -70,7 +70,7 @@ npm run dev -- review.list_unknowns \
 ## Extraction: Glossary
 
 ```bash
-npm run dev -- doc.extract_glossary \
+npx context-probe doc.extract_glossary \
   --docs-root docs \
   --extractor cli \
   --provider codex
@@ -86,7 +86,7 @@ The same shape applies to:
 Use this when review items were exported to JSON and the user wants to apply explicit human decisions:
 
 ```bash
-npm run dev -- review.resolve \
+npx context-probe review.resolve \
   --review-items path/to/review-items.json \
   --resolutions path/to/resolutions.json
 ```
@@ -94,7 +94,7 @@ npm run dev -- review.resolve \
 Then rerun extraction with the generated review log:
 
 ```bash
-npm run dev -- doc.extract_glossary \
+npx context-probe doc.extract_glossary \
   --docs-root docs \
   --extractor cli \
   --provider codex \
@@ -107,7 +107,7 @@ npm run dev -- doc.extract_glossary \
 ### Domain design
 
 ```bash
-npm run dev -- score.compute \
+npx context-probe score.compute \
   --domain domain_design \
   --repo . \
   --model config/self-measurement/domain-model.yaml \
@@ -117,7 +117,7 @@ npm run dev -- score.compute \
 ### Architecture design
 
 ```bash
-npm run dev -- score.compute \
+npx context-probe score.compute \
   --domain architecture_design \
   --repo . \
   --constraints config/self-measurement/architecture-constraints.yaml \

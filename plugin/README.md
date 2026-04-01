@@ -82,4 +82,6 @@ Ask Claude Code in English for flows such as:
 
 Use the inputs workflow first when the repo still needs maintained YAML. Use the analysis workflow after those inputs exist and you want an actual measurement or investigation loop.
 
+The analysis workflow recipes assume the published CLI entry point via `npx context-probe ...`, not `npm run dev -- ...` from this repository checkout.
+
 For Codex, install or reference the skills directly from `plugin/skills/` rather than packaging a separate Codex plugin.
