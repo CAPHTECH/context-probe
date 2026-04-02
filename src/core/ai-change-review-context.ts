@@ -8,6 +8,8 @@ import type { ProgressTracker } from "./progress.js";
 
 const TEST_FILE_PATTERN = /(?:^|\/)(?:__tests__\/|tests?\/|specs?\/)|\.(?:test|spec)\.[^.]+$/i;
 const HISTORY_HOTSPOT_MIN_COMMITS = 3;
+const TEST_COMPANION_EXTENSIONS = ["ts", "tsx", "js", "jsx", "mts", "cts", "mjs", "cjs"] as const;
+const TEST_COMPANION_SUFFIXES = ["test", "spec"] as const;
 
 export interface AiChangeReviewHistoryState {
   counts: Map<string, number>;
@@ -33,7 +35,7 @@ function isTestFile(filePath: string): boolean {
 }
 
 function stripKnownExtensions(filePath: string): string {
-  return filePath.replace(/\.(?:d\.)?(?:ts|tsx|js|jsx|mts|cts|mjs|cjs|dart)$/i, "");
+  return filePath.replace(new RegExp(`\\.(?:d\\.)?(?:${TEST_COMPANION_EXTENSIONS.join("|")}|dart)$`, "i"), "");
 }
 
 function candidateTestPaths(filePath: string): string[] {
@@ -41,24 +43,14 @@ function candidateTestPaths(filePath: string): string[] {
   const fileName = stem.split("/").pop() ?? stem;
   const directory = stem.includes("/") ? stem.slice(0, stem.lastIndexOf("/")) : "";
   const base = directory ? `${directory}/${fileName}` : fileName;
-  const inPlace = [
-    `${base}.test.ts`,
-    `${base}.test.tsx`,
-    `${base}.test.js`,
-    `${base}.spec.ts`,
-    `${base}.spec.tsx`,
-    `${base}.spec.js`,
-    `${base}_test.dart`,
-  ];
+  const inPlace = TEST_COMPANION_SUFFIXES.flatMap((suffix) =>
+    TEST_COMPANION_EXTENSIONS.map((extension) => `${base}.${suffix}.${extension}`),
+  );
+  inPlace.push(`${base}_test.dart`);
   const siblingTests = directory
-    ? [
-        `${directory}/__tests__/${fileName}.test.ts`,
-        `${directory}/__tests__/${fileName}.test.tsx`,
-        `${directory}/__tests__/${fileName}.test.js`,
-        `${directory}/__tests__/${fileName}.spec.ts`,
-        `${directory}/__tests__/${fileName}.spec.tsx`,
-        `${directory}/__tests__/${fileName}.spec.js`,
-      ]
+    ? TEST_COMPANION_SUFFIXES.flatMap((suffix) =>
+        TEST_COMPANION_EXTENSIONS.map((extension) => `${directory}/__tests__/${fileName}.${suffix}.${extension}`),
+      )
     : [];
   return [...inPlace, ...siblingTests];
 }
@@ -183,7 +175,7 @@ export async function collectAiChangeReviewContext(options: {
     ),
   );
   const historyPathGlobs = signalPaths;
-  const historyStartedAt = Date.now();
+  let historyMs = 0;
   const [codebase, history] = await Promise.all([
     options.progress.withProgress("ai_change_review", `Parsing codebase for ${options.repoPath}.`, () =>
       parseCodebase(options.repoPath),
@@ -193,10 +185,14 @@ export async function collectAiChangeReviewContext(options: {
       : options.progress.withProgress(
           "history",
           `Analyzing history hotspots for ${diff.files.length} changed file(s).`,
-          () =>
-            normalizeHistory(options.repoPath, options.policyConfig, options.profileName, {
+          async () => {
+            const historyStartedAt = Date.now();
+            const result = await normalizeHistory(options.repoPath, options.policyConfig, options.profileName, {
               includePathGlobs: historyPathGlobs,
-            }),
+            });
+            historyMs = Date.now() - historyStartedAt;
+            return result;
+          },
         ),
   ]);
   const reverseDependencySources = collectReverseDependencySources(codebase.dependencies, signalPaths);
@@ -216,6 +212,6 @@ export async function collectAiChangeReviewContext(options: {
     repoFiles,
     changedFiles,
     historyState: buildHistoryHotspotState(history),
-    historyMs: Date.now() - historyStartedAt,
+    historyMs,
   };
 }

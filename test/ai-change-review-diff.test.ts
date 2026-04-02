@@ -15,19 +15,26 @@ import { cleanupTemporaryRepo } from "./helpers.js";
 const SLOW_AI_CHANGE_REVIEW_DIFF_TEST_TIMEOUT_MS = 15_000;
 
 describe("ai change review diff helpers", () => {
-  test("parses status lines for added, deleted, and renamed files", () => {
-    expect(parseAiChangeReviewNameStatusLine("A\ta/src/new.ts")).toMatchObject({
+  test("parses repo-relative status lines for added, deleted, and renamed files", () => {
+    expect(parseAiChangeReviewNameStatusLine("A\tsrc/new.ts")).toMatchObject({
       path: "src/new.ts",
       changeType: "added",
     });
-    expect(parseAiChangeReviewNameStatusLine("D\tb/src/old.ts")).toMatchObject({
-      path: "src/old.ts",
+    expect(parseAiChangeReviewNameStatusLine("D\ta/old.ts")).toMatchObject({
+      path: "a/old.ts",
       changeType: "deleted",
     });
-    expect(parseAiChangeReviewNameStatusLine("R100\ta/src/old.ts\tb/src/new.ts")).toMatchObject({
-      path: "src/new.ts",
-      previousPath: "src/old.ts",
+    expect(parseAiChangeReviewNameStatusLine("R100\ta/old.ts\tb/new.ts")).toMatchObject({
+      path: "b/new.ts",
+      previousPath: "a/old.ts",
       changeType: "renamed",
+    });
+  });
+
+  test("keeps repo-relative paths that start with a or b in name-status output", () => {
+    expect(parseAiChangeReviewNameStatusLine("M\ta/example.ts")).toMatchObject({
+      path: "a/example.ts",
+      changeType: "modified",
     });
   });
 
@@ -178,6 +185,52 @@ describe("ai change review diff helpers", () => {
       changedLines: 3,
       representativeLine: 2,
       hunks: [{ oldStart: 2, oldCount: 1, newStart: 2, newCount: 2, representativeLine: 2 }],
+    });
+  });
+
+  test("patch parsing keeps repository paths that include a or b directory names", () => {
+    const filesByPath = new Map<string, AiChangeReviewChangedFile>([
+      [
+        "a/example.ts",
+        {
+          path: "a/example.ts",
+          changeType: "modified",
+          hunks: [],
+          changedLines: 0,
+          representativeLine: 1,
+        },
+      ],
+      [
+        "b/example.ts",
+        {
+          path: "b/example.ts",
+          previousPath: "a/example.ts",
+          changeType: "renamed",
+          hunks: [],
+          changedLines: 0,
+          representativeLine: 1,
+        },
+      ],
+    ]);
+
+    parseAiChangeReviewDiffHunks(
+      [
+        "diff --git a/a/example.ts b/b/example.ts",
+        "rename from a/example.ts",
+        "rename to b/example.ts",
+        "--- a/a/example.ts",
+        "+++ b/b/example.ts",
+        "@@ -1,1 +1,2 @@",
+        "-old",
+        "+new",
+      ].join("\n"),
+      filesByPath,
+    );
+
+    expect(filesByPath.get("b/example.ts")).toMatchObject({
+      changedLines: 3,
+      representativeLine: 1,
+      hunks: [{ oldStart: 1, oldCount: 1, newStart: 1, newCount: 2, representativeLine: 1 }],
     });
   });
 });

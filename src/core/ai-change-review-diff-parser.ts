@@ -6,8 +6,12 @@ import type {
 import type { AiChangeReviewChangeType } from "./contracts.js";
 import { toPosixPath } from "./io.js";
 
-function normalizeAiChangeReviewDiffPath(input: string): string {
-  return toPosixPath(input.replace(/^a\//, "").replace(/^b\//, ""));
+function normalizeAiChangeReviewRepoPath(input: string): string {
+  return toPosixPath(input);
+}
+
+function normalizeAiChangeReviewPatchPath(input: string): string {
+  return toPosixPath(input.replace(/^[ab]\//, ""));
 }
 
 export function createAiChangeReviewDiffCursor(): AiChangeReviewDiffCursor {
@@ -19,10 +23,7 @@ export function createAiChangeReviewDiffCursor(): AiChangeReviewDiffCursor {
 }
 
 export function parseAiChangeReviewNameStatusLine(line: string): AiChangeReviewChangedFile | null {
-  const parts = line
-    .split("\t")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
+  const parts = line.split("\t");
   if (parts.length < 2) {
     return null;
   }
@@ -35,8 +36,8 @@ export function parseAiChangeReviewNameStatusLine(line: string): AiChangeReviewC
       return null;
     }
     return {
-      path: normalizeAiChangeReviewDiffPath(path),
-      previousPath: normalizeAiChangeReviewDiffPath(previousPath),
+      path: normalizeAiChangeReviewRepoPath(path),
+      previousPath: normalizeAiChangeReviewRepoPath(previousPath),
       changeType: "renamed",
       hunks: [],
       changedLines: 0,
@@ -50,7 +51,7 @@ export function parseAiChangeReviewNameStatusLine(line: string): AiChangeReviewC
   }
   const changeType: AiChangeReviewChangeType = status === "A" ? "added" : status === "D" ? "deleted" : "modified";
   return {
-    path: normalizeAiChangeReviewDiffPath(path),
+    path: normalizeAiChangeReviewRepoPath(path),
     changeType,
     hunks: [],
     changedLines: 0,
@@ -78,13 +79,13 @@ export function parseAiChangeReviewHunkHeader(line: string): AiChangeReviewHunk 
 
 function beginDiffFile(line: string, cursor: AiChangeReviewDiffCursor): void {
   const match = /^diff --git a\/(.+) b\/(.+)$/.exec(line);
-  cursor.pendingOldPath = match?.[1] ? normalizeAiChangeReviewDiffPath(match[1]) : undefined;
-  cursor.pendingNewPath = match?.[2] ? normalizeAiChangeReviewDiffPath(match[2]) : undefined;
+  cursor.pendingOldPath = match?.[1] ? normalizeAiChangeReviewPatchPath(match[1]) : undefined;
+  cursor.pendingNewPath = match?.[2] ? normalizeAiChangeReviewPatchPath(match[2]) : undefined;
   cursor.currentPath = cursor.pendingNewPath ?? cursor.pendingOldPath;
 }
 
 function recordRenamePath(line: string, prefix: "rename from " | "rename to ", cursor: AiChangeReviewDiffCursor): void {
-  const path = normalizeAiChangeReviewDiffPath(line.slice(prefix.length));
+  const path = normalizeAiChangeReviewRepoPath(line.slice(prefix.length));
   if (prefix === "rename from ") {
     cursor.pendingOldPath = path;
     return;
@@ -94,11 +95,11 @@ function recordRenamePath(line: string, prefix: "rename from " | "rename to ", c
 }
 
 function recordFilePath(line: string, prefix: "--- " | "+++ ", cursor: AiChangeReviewDiffCursor): void {
-  const raw = line.slice(prefix.length).trim();
+  const raw = line.slice(prefix.length);
   if (raw === "/dev/null") {
     return;
   }
-  const path = normalizeAiChangeReviewDiffPath(raw);
+  const path = normalizeAiChangeReviewPatchPath(raw);
   if (prefix === "--- ") {
     cursor.pendingOldPath = path;
     return;

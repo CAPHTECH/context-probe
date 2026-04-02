@@ -123,11 +123,12 @@ function buildTargetConfidence(input: {
   representativeLine: number;
   hunkCount: number;
   changeType: AiChangeReviewChangedFile["changeType"];
+  hasRenameOrDeleteBlastRadius: boolean;
 }): number {
   const signals = [
     input.representativeLine > 0 ? 0.92 : 0.55,
     input.hunkCount > 0 ? 0.9 : input.changeType === "renamed" ? 0.72 : 0.65,
-    input.reasons.length > 0 ? 0.88 : 0.6,
+    input.reasons.length > 0 || input.hasRenameOrDeleteBlastRadius ? 0.88 : 0.6,
   ];
   return confidenceFromSignals(signals);
 }
@@ -188,6 +189,7 @@ function scoreAiChangeReviewFile(
     representativeLine: file.representativeLine,
     hunkCount: file.hunks.length,
     changeType: file.changeType,
+    hasRenameOrDeleteBlastRadius,
   });
   const targetEvidence = reasons.map((reason) =>
     toEvidence(
@@ -211,6 +213,22 @@ function scoreAiChangeReviewFile(
     targetEvidence.push(
       toEvidence(
         `${file.path} requires manual review because the diff could not be classified confidently.`,
+        {
+          source: "ai_change_review",
+          path: file.path,
+          line: file.representativeLine,
+          changeType: file.changeType,
+          reverseDependencyCount,
+        },
+        [targetId],
+        confidence,
+      ),
+    );
+  }
+  if (hasRenameOrDeleteBlastRadius && !reasons.includes("wide_blast_radius")) {
+    targetEvidence.push(
+      toEvidence(
+        `${file.path} renames or removes a file that still has downstream dependencies.`,
         {
           source: "ai_change_review",
           path: file.path,

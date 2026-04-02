@@ -61,6 +61,15 @@ describe("ai change review scoring", () => {
     SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS,
   );
 
+  test("rejects incompatible shared util fixture options early", async () => {
+    await expect(
+      createAiChangeReviewFixture({
+        withRenamedSharedUtil: true,
+        withDeletedSharedUtil: true,
+      }),
+    ).rejects.toThrow("mutually exclusive");
+  });
+
   test(
     "returns an empty review target list for an empty branch diff",
     async () => {

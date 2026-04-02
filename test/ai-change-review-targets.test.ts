@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import type { AiChangeReviewContext } from "../src/core/ai-change-review-context.js";
+import { hasCompanionTest } from "../src/core/ai-change-review-context.js";
 import type { AiChangeReviewChangedFile } from "../src/core/ai-change-review-diff-types.js";
 import { scoreAiChangeReviewTargets } from "../src/core/ai-change-review-targets.js";
 
@@ -49,6 +50,16 @@ function buildContext(
 }
 
 describe("ai change review target noise reduction", () => {
+  test("companion test detection accepts jsx-style nearby tests", () => {
+    expect(
+      hasCompanionTest({
+        path: "src/components/Button.tsx",
+        repoFiles: new Set(["src/components/Button.test.jsx"]),
+        changedFiles: new Set(),
+      }),
+    ).toBe(true);
+  });
+
   test("documentation changes do not get hotspot or blast-radius reasons by default", () => {
     const file = buildChangedFile({
       path: "docs/guides/user-guide.md",
@@ -111,5 +122,31 @@ describe("ai change review target noise reduction", () => {
     expect(result.reviewTargets[0]?.reasons).toEqual(
       expect.arrayContaining(["wide_blast_radius", "history_hotspot", "large_change", "test_gap"]),
     );
+  });
+
+  test("rename or delete blast radius keeps dedicated evidence even without classified reasons", () => {
+    const file = buildChangedFile({
+      path: "src/shared/util.ts",
+      changeType: "deleted",
+      hunks: [],
+      changedLines: 0,
+      representativeLine: 1,
+    });
+
+    const result = scoreAiChangeReviewTargets(
+      buildContext(file, {
+        reverseDependencySources: new Map([[file.path, new Set(["src/consumer-a.ts", "src/consumer-b.ts"])]]),
+        reverseDependencyCounts: new Map([[file.path, 2]]),
+        historyState: {
+          counts: new Map(),
+          watchlist: new Set(),
+        },
+      }),
+    );
+
+    expect(result.reviewTargets).toHaveLength(1);
+    expect(result.reviewTargets[0]?.priority).toBe("high");
+    expect(result.reviewTargets[0]?.reasons).toEqual([]);
+    expect(result.evidence.some((entry) => entry.statement.includes("downstream dependencies"))).toBe(true);
   });
 });

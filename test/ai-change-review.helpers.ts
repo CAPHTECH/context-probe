@@ -55,6 +55,10 @@ export async function createAiChangeReviewFixture(options?: {
   baseBranch: string;
   headBranch: string;
 }> {
+  if (options?.withRenamedSharedUtil && options?.withDeletedSharedUtil) {
+    throw new Error("withRenamedSharedUtil and withDeletedSharedUtil are mutually exclusive");
+  }
+
   const repoPath = await mkdtemp(path.join(os.tmpdir(), "context-probe-ai-change-review-"));
   await writeRepoFiles(repoPath, {
     "src/shared/util.ts": [
