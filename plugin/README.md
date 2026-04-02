@@ -34,7 +34,15 @@ When collaborators trust the repository in Claude Code, they should be prompted 
 
 ## Manual Installation
 
-From Claude Code in this repository:
+For normal installation from GitHub:
+
+```text
+/plugin marketplace add CAPHTECH/context-probe
+/plugin install context-probe-plugin@context-probe-marketplace
+/plugin enable context-probe-plugin@context-probe-marketplace
+```
+
+For local marketplace testing from this repository checkout:
 
 ```text
 /plugin marketplace add .

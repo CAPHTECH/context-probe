@@ -6,6 +6,34 @@ This is a docs-first repository for measuring design quality with evidence, usin
 
 Japanese documents are the primary source of truth. English documents mirror the same structure and document roles.
 
+## Start With Skills
+
+This repository treats skill-based `context-probe` usage as the main path. Direct CLI execution is still supported, but it is the secondary entry point below.
+
+- Claude Code plugin details: [plugin/README.md](plugin/README.md)
+- Available workflows:
+  - `context-probe-inputs-workflow`: prepare and curate YAML inputs for a repository
+  - `context-probe-analysis-workflow`: run measurement, reporting, gate checks, and unknown review after inputs exist
+
+In Claude Code, this repository already ships plugin settings. After trusting the repository, collaborators should be prompted to install and enable the marketplace and plugin automatically. If needed, the manual setup is:
+
+```text
+/plugin marketplace add CAPHTECH/context-probe
+/plugin install context-probe-plugin@context-probe-marketplace
+/plugin enable context-probe-plugin@context-probe-marketplace
+```
+
+Then ask for flows such as:
+
+- `Apply context-probe to this repository`
+- `Run context-probe on this repo`
+- `Analyze this context-probe result`
+- `Inspect the unknowns in this score`
+
+Use the inputs workflow first when the repository still needs maintained YAML. Use the analysis workflow after curated inputs already exist and you want an actual measurement or investigation loop.
+
+For Codex, use the skills directly from [plugin/skills/context-probe-inputs-workflow/SKILL.md](plugin/skills/context-probe-inputs-workflow/SKILL.md) and [plugin/skills/context-probe-analysis-workflow/SKILL.md](plugin/skills/context-probe-analysis-workflow/SKILL.md). Those workflows assume the published CLI entry point, so command recipes use `npx context-probe ...` rather than `npm run dev -- ...` from this repository checkout.
+
 ## Start Reading
 
 1. [docs/README.md](docs/README.md)

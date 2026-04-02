@@ -6,6 +6,34 @@ AIと決定的な解析器を組み合わせて、設計品質を証拠ベース
 
 日本語文書を正本とし、英語文書は同じ構成と文書責務を保つ追従版として管理します。
 
+## まずはスキル経由で使う
+
+このリポジトリでは、`context-probe` をスキル経由で使う流れを主な利用方法として案内します。CLI の直接実行は、その下にある補助的な入口です。
+
+- Claude Code プラグインの説明: [plugin/README.md](plugin/README.md)
+- 使うワークフロー:
+  - `context-probe-inputs-workflow`: 対象リポジトリ向けの YAML 入力を準備して整える
+  - `context-probe-analysis-workflow`: 入力が揃った後に計測、レポート生成、ゲート判定、unknowns 確認を進める
+
+Claude Code では、このリポジトリにプラグイン設定が含まれています。リポジトリを信頼したあと、自動で marketplace と plugin の導入確認が出る想定です。手動で入れる場合は次を使います。
+
+```text
+/plugin marketplace add CAPHTECH/context-probe
+/plugin install context-probe-plugin@context-probe-marketplace
+/plugin enable context-probe-plugin@context-probe-marketplace
+```
+
+そのあと、たとえば次のように依頼できます。
+
+- `Apply context-probe to this repository`
+- `Run context-probe on this repo`
+- `Analyze this context-probe result`
+- `Inspect the unknowns in this score`
+
+まだ保守する YAML 入力がない段階では、先に `context-probe-inputs-workflow` を使います。すでに curated input があり、実際の計測や調査を進めたい段階では `context-probe-analysis-workflow` を使います。
+
+Codex では、[plugin/skills/context-probe-inputs-workflow/SKILL.md](plugin/skills/context-probe-inputs-workflow/SKILL.md) と [plugin/skills/context-probe-analysis-workflow/SKILL.md](plugin/skills/context-probe-analysis-workflow/SKILL.md) を直接参照して使います。これらのワークフローは公開済み CLI を前提にしているため、コマンド例は `npm run dev -- ...` ではなく `npx context-probe ...` を使います。
+
 ## 読み始め
 
 1. [docs/README.ja.md](docs/README.ja.md)
