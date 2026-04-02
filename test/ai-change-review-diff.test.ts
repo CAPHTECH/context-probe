@@ -233,4 +233,37 @@ describe("ai change review diff helpers", () => {
       hunks: [{ oldStart: 1, oldCount: 1, newStart: 1, newCount: 2, representativeLine: 1 }],
     });
   });
+
+  test("diff headers preserve repository paths that begin with a or b without rename metadata", () => {
+    const filesByPath = new Map<string, AiChangeReviewChangedFile>([
+      [
+        "b/example.ts",
+        {
+          path: "b/example.ts",
+          changeType: "modified",
+          hunks: [],
+          changedLines: 0,
+          representativeLine: 1,
+        },
+      ],
+    ]);
+
+    parseAiChangeReviewDiffHunks(
+      [
+        "diff --git a/b/example.ts b/b/example.ts",
+        "--- a/b/example.ts",
+        "+++ b/b/example.ts",
+        "@@ -4,1 +4,2 @@",
+        "-old",
+        "+new",
+      ].join("\n"),
+      filesByPath,
+    );
+
+    expect(filesByPath.get("b/example.ts")).toMatchObject({
+      changedLines: 3,
+      representativeLine: 4,
+      hunks: [{ oldStart: 4, oldCount: 1, newStart: 4, newCount: 2, representativeLine: 4 }],
+    });
+  });
 });

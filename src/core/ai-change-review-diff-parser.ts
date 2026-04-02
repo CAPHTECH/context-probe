@@ -79,8 +79,8 @@ export function parseAiChangeReviewHunkHeader(line: string): AiChangeReviewHunk 
 
 function beginDiffFile(line: string, cursor: AiChangeReviewDiffCursor): void {
   const match = /^diff --git a\/(.+) b\/(.+)$/.exec(line);
-  cursor.pendingOldPath = match?.[1] ? normalizeAiChangeReviewPatchPath(match[1]) : undefined;
-  cursor.pendingNewPath = match?.[2] ? normalizeAiChangeReviewPatchPath(match[2]) : undefined;
+  cursor.pendingOldPath = match?.[1] ? normalizeAiChangeReviewRepoPath(match[1]) : undefined;
+  cursor.pendingNewPath = match?.[2] ? normalizeAiChangeReviewRepoPath(match[2]) : undefined;
   cursor.currentPath = cursor.pendingNewPath ?? cursor.pendingOldPath;
 }
 
