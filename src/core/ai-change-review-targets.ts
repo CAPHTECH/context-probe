@@ -3,10 +3,49 @@ import { hasCompanionTest } from "./ai-change-review-context.js";
 import type { AiChangeReviewChangedFile } from "./ai-change-review-diff-types.js";
 import type { AiChangeReviewReason, AiChangeReviewTarget } from "./contracts/ai-change-review.js";
 import type { Evidence } from "./contracts.js";
-import { isSourceFile } from "./io.js";
+import { isDocumentFile, isSourceFile } from "./io.js";
 import { confidenceFromSignals, toEvidence } from "./response.js";
 
 const HISTORY_HOTSPOT_MIN_COMMITS = 3;
+const IMPLEMENTATION_LARGE_CHANGE_MIN_LINES = 30;
+const IMPLEMENTATION_LARGE_CHANGE_MIN_HUNKS = 3;
+const SUPPORTING_LARGE_CHANGE_MIN_LINES = 80;
+const SUPPORTING_LARGE_CHANGE_MIN_HUNKS = 5;
+const TEST_FILE_PATTERN = /(?:^|\/)(?:__tests__\/|tests?\/|specs?\/)|\.(?:test|spec)\.[^.]+$/i;
+
+type ReviewScope = "implementation" | "test" | "document" | "other";
+
+function isTestLikeFile(filePath: string): boolean {
+  return TEST_FILE_PATTERN.test(filePath);
+}
+
+function classifyReviewScope(filePath: string): ReviewScope {
+  if (isDocumentFile(filePath)) {
+    return "document";
+  }
+  if (isTestLikeFile(filePath)) {
+    return "test";
+  }
+  if (isSourceFile(filePath)) {
+    return "implementation";
+  }
+  return "other";
+}
+
+function shouldFlagLargeChange(file: AiChangeReviewChangedFile, reviewScope: ReviewScope): boolean {
+  if (reviewScope === "implementation") {
+    return (
+      file.changedLines >= IMPLEMENTATION_LARGE_CHANGE_MIN_LINES ||
+      file.hunks.length >= IMPLEMENTATION_LARGE_CHANGE_MIN_HUNKS
+    );
+  }
+  if (reviewScope === "test" || reviewScope === "document") {
+    return (
+      file.changedLines >= SUPPORTING_LARGE_CHANGE_MIN_LINES || file.hunks.length >= SUPPORTING_LARGE_CHANGE_MIN_HUNKS
+    );
+  }
+  return false;
+}
 
 function getSignalPaths(file: AiChangeReviewChangedFile): string[] {
   return Array.from(new Set([file.path, file.previousPath].filter((value): value is string => Boolean(value))));
@@ -65,7 +104,11 @@ function determinePriority(input: {
   reasons: AiChangeReviewReason[];
   changeType: AiChangeReviewChangedFile["changeType"];
   reverseDependencyCount: number;
-}): "high" | "medium" {
+  reviewScope: ReviewScope;
+}): "high" | "medium" | "low" {
+  if (input.reviewScope !== "implementation") {
+    return "low";
+  }
   if (
     (input.reasons.includes("wide_blast_radius") && input.reasons.includes("history_hotspot")) ||
     ((input.changeType === "renamed" || input.changeType === "deleted") && input.reverseDependencyCount > 0)
@@ -96,24 +139,30 @@ function scoreAiChangeReviewFile(
 ): { target: AiChangeReviewTarget; evidence: Evidence[] } | null {
   const reasons: AiChangeReviewReason[] = [];
   const signalPaths = getSignalPaths(file);
+  const reviewScope = classifyReviewScope(file.path);
   const reverseDependencyCount = countSignalSources(signalPaths, context.reverseDependencySources);
   const historyHotspotCount = countHistoryHotspots(signalPaths, context.historyState.counts);
   const hasHistoryWatchlistHit = isHistoryWatchlistHit(signalPaths, context.historyState.watchlist);
-  const hasUnsupportedFileType = !isSourceFile(file.path);
+  const hasUnsupportedFileType = reviewScope === "other";
   const hasRenameOrDeleteBlastRadius =
-    (file.changeType === "renamed" || file.changeType === "deleted") && reverseDependencyCount > 0;
+    reviewScope === "implementation" &&
+    (file.changeType === "renamed" || file.changeType === "deleted") &&
+    reverseDependencyCount > 0;
 
-  if (reverseDependencyCount >= 3) {
+  if (reviewScope === "implementation" && reverseDependencyCount >= 3) {
     reasons.push("wide_blast_radius");
   }
-  if (historyHotspotCount >= HISTORY_HOTSPOT_MIN_COMMITS || hasHistoryWatchlistHit) {
+  if (
+    reviewScope === "implementation" &&
+    (historyHotspotCount >= HISTORY_HOTSPOT_MIN_COMMITS || hasHistoryWatchlistHit)
+  ) {
     reasons.push("history_hotspot");
   }
-  if ((file.changedLines >= 30 || file.hunks.length >= 3) && !reasons.includes("large_change")) {
+  if (shouldFlagLargeChange(file, reviewScope) && !reasons.includes("large_change")) {
     reasons.push("large_change");
   }
   if (
-    !hasUnsupportedFileType &&
+    reviewScope === "implementation" &&
     file.changeType !== "deleted" &&
     !hasCompanionTest({
       path: file.path,
@@ -186,6 +235,7 @@ function scoreAiChangeReviewFile(
               reasons,
               changeType: file.changeType,
               reverseDependencyCount,
+              reviewScope,
             })
           : "low",
       reasons,
