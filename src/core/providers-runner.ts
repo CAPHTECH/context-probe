@@ -29,6 +29,7 @@ async function runCommandWithStdin(options: {
     const cleanup = () => {
       child.stdout.removeListener("data", onStdoutData);
       child.stderr.removeListener("data", onStderrData);
+      child.stdin.removeListener("error", onStdinError);
       child.removeListener("error", onError);
       child.removeListener("close", onClose);
     };
@@ -81,6 +82,10 @@ async function runCommandWithStdin(options: {
       rejectOnce(error);
     };
 
+    const onStdinError = (error: Error) => {
+      rejectOnce(error);
+    };
+
     const onClose = (code: number | null) => {
       if (settled) {
         return;
@@ -94,6 +99,7 @@ async function runCommandWithStdin(options: {
 
     child.stdout.on("data", onStdoutData);
     child.stderr.on("data", onStderrData);
+    child.stdin.on("error", onStdinError);
     child.on("error", onError);
     child.on("close", onClose);
 

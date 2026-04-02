@@ -6,6 +6,8 @@ import { runClaudeCli } from "../src/core/providers-runner.js";
 import type { CliExtractionOptions } from "../src/core/providers-types.js";
 
 const OVERFLOW_STUB = path.resolve("test/fixtures/stubs/overflow-stub.mjs");
+const PREVIOUS_OVERFLOW_BYTES = process.env.CONTEXT_PROBE_OVERFLOW_BYTES;
+const PREVIOUS_OVERFLOW_CHANNEL = process.env.CONTEXT_PROBE_OVERFLOW_CHANNEL;
 
 describe("provider runner", () => {
   beforeAll(async () => {
@@ -13,8 +15,16 @@ describe("provider runner", () => {
   });
 
   afterAll(async () => {
-    delete process.env.CONTEXT_PROBE_OVERFLOW_BYTES;
-    delete process.env.CONTEXT_PROBE_OVERFLOW_CHANNEL;
+    if (PREVIOUS_OVERFLOW_BYTES === undefined) {
+      delete process.env.CONTEXT_PROBE_OVERFLOW_BYTES;
+    } else {
+      process.env.CONTEXT_PROBE_OVERFLOW_BYTES = PREVIOUS_OVERFLOW_BYTES;
+    }
+    if (PREVIOUS_OVERFLOW_CHANNEL === undefined) {
+      delete process.env.CONTEXT_PROBE_OVERFLOW_CHANNEL;
+    } else {
+      process.env.CONTEXT_PROBE_OVERFLOW_CHANNEL = PREVIOUS_OVERFLOW_CHANNEL;
+    }
   });
 
   test("rejects providerCommand output that exceeds the max buffer", async () => {
