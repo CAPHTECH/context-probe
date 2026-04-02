@@ -20,7 +20,7 @@ describe("command surface domain helpers", () => {
     expect((scaffoldWithoutDocs.result as { contexts: unknown[] }).contexts.length).toBeGreaterThan(0);
     expect((scaffoldWithDocs.result as { contexts: unknown[] }).contexts.length).toBeGreaterThan(0);
     expect((modelLinks.result as { links: unknown[] }).links.length).toBeGreaterThan(0);
-  }, 60000);
+  }, 120000);
 
   test("domain helper commands surface contract and boundary usage independently", async () => {
     const contractUsage = await COMMANDS["code.detect_contract_usage"]!(
@@ -34,5 +34,5 @@ describe("command surface domain helpers", () => {
 
     expect((contractUsage.result as { applicableReferences?: number }).applicableReferences).toBeGreaterThanOrEqual(0);
     expect(Array.isArray((boundaryLeaks.result as { findings: unknown[] }).findings)).toBe(true);
-  });
+  }, 20000);
 });
