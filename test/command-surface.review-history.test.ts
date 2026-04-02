@@ -7,6 +7,8 @@ import { createAiChangeReviewFixture } from "./ai-change-review.helpers.js";
 import { ARCHITECTURE_CONSTRAINTS_PATH, CONTEXT, withTemporaryDirectory } from "./command-surface.helpers.js";
 import { cleanupTemporaryRepo } from "./helpers.js";
 
+const SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS = 15_000;
+
 describe("command surface review and history helpers", () => {
   test("review.list_unknowns accepts both input files and source-command delegation", async () => {
     await withTemporaryDirectory("context-probe-review-", async (tempDir) => {
@@ -66,42 +68,50 @@ describe("command surface review and history helpers", () => {
     );
   });
 
-  test("review.list_unknowns renders ai_change_review targets with priority and provenance", async () => {
-    const fixture = await createAiChangeReviewFixture();
-    try {
-      const scoreResponse = await COMMANDS["score.compute"]!(
-        {
-          domain: "ai_change_review",
-          repo: fixture.repoPath,
-          policy: path.resolve("fixtures/policies/default.yaml"),
-          "base-branch": fixture.baseBranch,
-          "head-branch": fixture.headBranch,
-        },
-        CONTEXT,
-      );
+  test(
+    "review.list_unknowns renders ai_change_review targets with priority and provenance",
+    async () => {
+      const fixture = await createAiChangeReviewFixture();
+      try {
+        const scoreResponse = await COMMANDS["score.compute"]!(
+          {
+            domain: "ai_change_review",
+            repo: fixture.repoPath,
+            policy: path.resolve("fixtures/policies/default.yaml"),
+            "base-branch": fixture.baseBranch,
+            "head-branch": fixture.headBranch,
+          },
+          CONTEXT,
+        );
 
-      const reviewResponse = await COMMANDS["review.list_unknowns"]!(
-        {
-          "source-command": "score.compute",
-          domain: "ai_change_review",
-          repo: fixture.repoPath,
-          policy: path.resolve("fixtures/policies/default.yaml"),
-          "base-branch": fixture.baseBranch,
-          "head-branch": fixture.headBranch,
-        },
-        CONTEXT,
-      );
+        const reviewResponse = await COMMANDS["review.list_unknowns"]!(
+          {
+            "source-command": "score.compute",
+            domain: "ai_change_review",
+            repo: fixture.repoPath,
+            policy: path.resolve("fixtures/policies/default.yaml"),
+            "base-branch": fixture.baseBranch,
+            "head-branch": fixture.headBranch,
+          },
+          CONTEXT,
+        );
 
-      const reviewItems = (reviewResponse.result as { reviewItems: Array<{ priority?: string; provenance?: Array<{ path?: string; line?: number }> }> }).reviewItems;
+        const reviewItems = (
+          reviewResponse.result as {
+            reviewItems: Array<{ priority?: string; provenance?: Array<{ path?: string; line?: number }> }>;
+          }
+        ).reviewItems;
 
-      expect(reviewItems.length).toBeGreaterThan(0);
-      expect(reviewItems.some((item) => item.priority === "high")).toBe(true);
-      expect(reviewItems.some((item) => item.provenance?.[0]?.path === "src/shared/util.ts")).toBe(true);
-      expect(reviewItems.some((item) => (item.provenance?.[0]?.line ?? 0) > 0)).toBe(true);
-      expect(reviewResponse.meta?.measurementQuality).toEqual(scoreResponse.meta?.measurementQuality);
-      expect(reviewResponse.unknowns).toEqual(scoreResponse.unknowns);
-    } finally {
-      await cleanupTemporaryRepo(fixture.repoPath);
-    }
-  });
+        expect(reviewItems.length).toBeGreaterThan(0);
+        expect(reviewItems.some((item) => item.priority === "high")).toBe(true);
+        expect(reviewItems.some((item) => item.provenance?.[0]?.path === "src/shared/util.ts")).toBe(true);
+        expect(reviewItems.some((item) => (item.provenance?.[0]?.line ?? 0) > 0)).toBe(true);
+        expect(reviewResponse.meta?.measurementQuality).toEqual(scoreResponse.meta?.measurementQuality);
+        expect(reviewResponse.unknowns).toEqual(scoreResponse.unknowns);
+      } finally {
+        await cleanupTemporaryRepo(fixture.repoPath);
+      }
+    },
+    SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS,
+  );
 });

@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -34,7 +34,17 @@ function buildLargeModule(version: string): string {
   return `${lines.join("\n")}\n`;
 }
 
-export async function createAiChangeReviewFixture(options?: { withFeatureChanges?: boolean }): Promise<{
+function buildFeatureSharedValueLine(): string {
+  return "  return `feature:" + "$" + "{input.trim().toLowerCase()}`;";
+}
+
+export async function createAiChangeReviewFixture(options?: {
+  withFeatureChanges?: boolean;
+  withRenameChange?: boolean;
+  withDeletedFile?: boolean;
+  withRenamedSharedUtil?: boolean;
+  withDeletedSharedUtil?: boolean;
+}): Promise<{
   repoPath: string;
   baseBranch: string;
   headBranch: string;
@@ -48,43 +58,40 @@ export async function createAiChangeReviewFixture(options?: { withFeatureChanges
       "",
     ].join("\n"),
     "src/shared/util.test.ts": [
-      "describe(\"sharedValue\", () => {",
-      "  it(\"keeps a placeholder test nearby\", () => {",
+      'describe("sharedValue", () => {',
+      '  it("keeps a placeholder test nearby", () => {',
       "    expect(true).toBe(true);",
       "  });",
       "});",
       "",
     ].join("\n"),
     "src/app/consumer-a.ts": [
-      "import { sharedValue } from \"../shared/util\";",
+      'import { sharedValue } from "../shared/util";',
       "",
       "export function consumeA(): string {",
-      "  return sharedValue(\"a\");",
+      '  return sharedValue("a");',
       "}",
       "",
     ].join("\n"),
     "src/app/consumer-b.ts": [
-      "import { sharedValue } from \"../shared/util\";",
+      'import { sharedValue } from "../shared/util";',
       "",
       "export function consumeB(): string {",
-      "  return sharedValue(\"b\");",
+      '  return sharedValue("b");',
       "}",
       "",
     ].join("\n"),
     "src/app/consumer-c.ts": [
-      "import { sharedValue } from \"../shared/util\";",
+      'import { sharedValue } from "../shared/util";',
       "",
       "export function consumeC(): string {",
-      "  return sharedValue(\"c\");",
+      '  return sharedValue("c");',
       "}",
       "",
     ].join("\n"),
-    "src/service/payment.ts": [
-      "export function charge(amount: number): number {",
-      "  return amount;",
-      "}",
-      "",
-    ].join("\n"),
+    "src/service/payment.ts": ["export function charge(amount: number): number {", "  return amount;", "}", ""].join(
+      "\n",
+    ),
     "src/large.ts": buildLargeModule("base"),
   });
 
@@ -94,12 +101,12 @@ export async function createAiChangeReviewFixture(options?: { withFeatureChanges
   await commitAll(repoPath, "feat: initial");
   await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
 
-  await appendToFile(repoPath, "src/shared/util.ts", "\nexport const historyMarkerOne = \"main-1\";\n");
-  await appendToFile(repoPath, "src/app/consumer-a.ts", "\nexport const consumerAMarker = \"main-1\";\n");
+  await appendToFile(repoPath, "src/shared/util.ts", '\nexport const historyMarkerOne = "main-1";\n');
+  await appendToFile(repoPath, "src/app/consumer-a.ts", '\nexport const consumerAMarker = "main-1";\n');
   await commitAll(repoPath, "feat: hotspot seed one");
 
-  await appendToFile(repoPath, "src/shared/util.ts", "\nexport const historyMarkerTwo = \"main-2\";\n");
-  await appendToFile(repoPath, "src/app/consumer-b.ts", "\nexport const consumerBMarker = \"main-2\";\n");
+  await appendToFile(repoPath, "src/shared/util.ts", '\nexport const historyMarkerTwo = "main-2";\n');
+  await appendToFile(repoPath, "src/app/consumer-b.ts", '\nexport const consumerBMarker = "main-2";\n');
   await commitAll(repoPath, "feat: hotspot seed two");
 
   const headBranch = "feature/ai-review";
@@ -109,12 +116,12 @@ export async function createAiChangeReviewFixture(options?: { withFeatureChanges
     await writeRepoFiles(repoPath, {
       "src/shared/util.ts": [
         "export function sharedValue(input: string): string {",
-        "  return `feature:${input.trim().toLowerCase()}`;",
+        buildFeatureSharedValueLine(),
         "}",
         "",
-        "export const historyMarkerOne = \"main-1\";",
-        "export const historyMarkerTwo = \"main-2\";",
-        "export const featureMarker = \"feature\";",
+        'export const historyMarkerOne = "main-1";',
+        'export const historyMarkerTwo = "main-2";',
+        'export const featureMarker = "feature";',
         "",
       ].join("\n"),
       "src/service/payment.ts": [
@@ -126,6 +133,31 @@ export async function createAiChangeReviewFixture(options?: { withFeatureChanges
       "src/large.ts": buildLargeModule("feature"),
     });
     await commitAll(repoPath, "feat: AI branch changes");
+  }
+
+  if (options?.withRenameChange) {
+    await execFile("git", ["mv", "src/app/consumer-c.ts", "src/app/consumer-d.ts"], { cwd: repoPath });
+  }
+
+  if (options?.withDeletedFile) {
+    await execFile("git", ["rm", "-f", "src/service/payment.ts"], { cwd: repoPath });
+  }
+
+  if (options?.withRenamedSharedUtil) {
+    await execFile("git", ["mv", "src/shared/util.ts", "src/shared/util-renamed.ts"], { cwd: repoPath });
+  }
+
+  if (options?.withDeletedSharedUtil) {
+    await execFile("git", ["rm", "-f", "src/shared/util.ts"], { cwd: repoPath });
+  }
+
+  if (
+    options?.withRenameChange ||
+    options?.withDeletedFile ||
+    options?.withRenamedSharedUtil ||
+    options?.withDeletedSharedUtil
+  ) {
+    await commitAll(repoPath, "feat: branch rename and deletion");
   }
 
   return {

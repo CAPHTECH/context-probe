@@ -148,23 +148,45 @@ function reviewItemPriorityRank(priority: ReviewItem["priority"]): number {
   }
 }
 
-function reviewItemPriority(kind: ReviewItemKind): number {
+function reviewItemPriority(kind: ReviewItemKind, hasExplicitPriority: boolean): number {
+  if (hasExplicitPriority) {
+    switch (kind) {
+      case "wide_blast_radius":
+        return 0;
+      case "history_hotspot":
+        return 1;
+      case "test_gap":
+        return 2;
+      case "large_change":
+        return 3;
+      case "missing_input":
+        return 4;
+      case "proxy":
+        return 5;
+      case "low_confidence":
+        return 6;
+      case "collision":
+        return 7;
+      default:
+        return 8;
+    }
+  }
   switch (kind) {
-    case "wide_blast_radius":
-      return 0;
-    case "history_hotspot":
-      return 1;
-    case "test_gap":
-      return 2;
-    case "large_change":
-      return 3;
-    case "missing_input":
-      return 4;
     case "proxy":
-      return 5;
+      return 0;
     case "low_confidence":
-      return 6;
+      return 1;
+    case "missing_input":
+      return 2;
     case "collision":
+      return 3;
+    case "history_hotspot":
+      return 4;
+    case "wide_blast_radius":
+      return 5;
+    case "test_gap":
+      return 6;
+    case "large_change":
       return 7;
     default:
       return 8;
@@ -179,7 +201,9 @@ export function sortReviewItems(items: ReviewItem[]): ReviewItem[] {
     }
     const leftKind = left.kind ?? classifyReviewItemKind(left.summary, left.reason);
     const rightKind = right.kind ?? classifyReviewItemKind(right.summary, right.reason);
-    const byKind = reviewItemPriority(leftKind) - reviewItemPriority(rightKind);
+    const hasExplicitPriority = left.priority !== undefined || right.priority !== undefined;
+    const byKind =
+      reviewItemPriority(leftKind, hasExplicitPriority) - reviewItemPriority(rightKind, hasExplicitPriority);
     if (byKind !== 0) {
       return byKind;
     }

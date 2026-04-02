@@ -1,5 +1,5 @@
-import type { MetricScore } from "./governance-scoring.js";
 import type { ReviewPriority } from "./governance-review.js";
+import type { MetricScore } from "./governance-scoring.js";
 
 export type AiChangeReviewReason = "wide_blast_radius" | "history_hotspot" | "test_gap" | "large_change";
 

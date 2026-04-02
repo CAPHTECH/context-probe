@@ -1,5 +1,10 @@
 import type { CommandArgs } from "./command-helpers.js";
 import { getProfile } from "./command-helpers.js";
+import {
+  AI_CHANGE_REVIEW_DOMAIN_ID,
+  getAiChangeReviewUnsupportedCommandMessage,
+  isAiChangeReviewDomain,
+} from "./core/ai-change-review-registry.js";
 import type {
   AiChangeReviewScoreResult,
   ArchitectureScenarioQualitySummary,
@@ -74,9 +79,12 @@ export async function handleReportGenerate(
   scoreCompute: ScoreCommand,
 ): Promise<CommandResponse<ScorePayload | MarkdownReportResult>> {
   const startedAt = Date.now();
+  if (isAiChangeReviewDomain(typeof args.domain === "string" ? args.domain : undefined)) {
+    throw new Error(getAiChangeReviewUnsupportedCommandMessage("report.generate"));
+  }
   const response = (await scoreCompute(args, context)) as CommandResponse<ScorePayload>;
-  if (response.result.domainId === "ai_change_review") {
-    throw new Error("`report.generate` does not support `ai_change_review` yet. Use `score.compute` or `review.list_unknowns`.");
+  if (response.result.domainId === AI_CHANGE_REVIEW_DOMAIN_ID) {
+    throw new Error(getAiChangeReviewUnsupportedCommandMessage("report.generate"));
   }
   const format = typeof args.format === "string" ? args.format : "json";
   if (format === "md") {
@@ -115,9 +123,12 @@ export async function handleGateEvaluate(
   scoreCompute: ScoreCommand,
 ): Promise<CommandResponse<MeasurementGateResult>> {
   const startedAt = Date.now();
+  if (isAiChangeReviewDomain(typeof args.domain === "string" ? args.domain : undefined)) {
+    throw new Error(getAiChangeReviewUnsupportedCommandMessage("gate.evaluate"));
+  }
   const response = (await scoreCompute(args, context)) as CommandResponse<ScorePayload>;
-  if (response.result.domainId === "ai_change_review") {
-    throw new Error("`gate.evaluate` does not support `ai_change_review` yet because this domain is advisory-only.");
+  if (response.result.domainId === AI_CHANGE_REVIEW_DOMAIN_ID) {
+    throw new Error(getAiChangeReviewUnsupportedCommandMessage("gate.evaluate"));
   }
   const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
   const gate = evaluateGate(response, policyConfig, getProfile(args));
