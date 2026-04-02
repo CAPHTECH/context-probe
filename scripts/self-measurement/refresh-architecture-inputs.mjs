@@ -27,6 +27,19 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const TOOL_ROOT = path.resolve(scriptDir, "../..");
 const SCENARIO_COLLECTOR = path.join(TOOL_ROOT, "scripts/collectors/architecture/scenario-actualization-to-qsf.mjs");
 
+function buildShellCommand(command) {
+  if (process.platform === "win32") {
+    return {
+      file: process.env.ComSpec || "cmd.exe",
+      args: ["/d", "/s", "/c", command],
+    };
+  }
+  return {
+    file: process.env.SHELL || "sh",
+    args: ["-lc", command],
+  };
+}
+
 async function runExecStep(step, cwd) {
   const startedAt = process.hrtime.bigint();
   await execFile(step.file, step.args, {
@@ -40,7 +53,8 @@ async function runExecStep(step, cwd) {
 
 async function runShellStep(command, cwd) {
   const startedAt = process.hrtime.bigint();
-  await execFile("zsh", ["-lc", command], {
+  const shellCommand = buildShellCommand(command);
+  await execFile(shellCommand.file, shellCommand.args, {
     cwd,
     env: process.env,
     maxBuffer: MAX_BUFFER,

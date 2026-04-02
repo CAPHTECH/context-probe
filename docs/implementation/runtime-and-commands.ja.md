@@ -139,6 +139,32 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 - `complexity` は stable な直接観測がない限り自動では埋めません
 - どちらの scaffold も JSON の共通レスポンス契約を維持し、ファイルは自動生成しません
 
+## 6.1 AI 実装差分レビュー領域
+
+`score.compute --domain ai_change_review` は、`--base-branch` と `--head-branch` の差分を取り、branch 全体の変更のうち人間が重点的にレビューすべき source file を advisory として返します。
+
+必須入力は次です。
+
+- `--repo`
+- `--base-branch`
+- `--head-branch`
+
+current implementation では次を行います。
+
+- `git merge-base(base, head)..head` の diff を取る
+- current working tree を parse して reverse dependency を数える
+- current working tree の履歴を見て changed file の hotspot を数える
+- 近傍テストの有無と diff size を見て review 理由を組み立てる
+- `result.diffSummary` と `result.reviewTargets` を返す
+
+`review.list_unknowns` は `result.reviewTargets` を review queue へ変換し、`path` と代表 `line` を各 item の provenance に入れます。
+
+v1 の制約は次です。
+
+- advisory 専用であり、`report.generate` と `gate.evaluate` は未対応
+- branch diff 全体を対象にし、AI 由来 commit だけの抽出はしない
+- hunk 単位ではなく file 単位で review 候補を返す
+
 ## 7. 実行モード
 
 | モード | 説明 |
@@ -160,6 +186,8 @@ ingest -> normalize -> extract -> trace -> analyze -> score -> review -> report
 | 境界漏れ検出 | しない | する |
 | 契約検証 | しない | する |
 | スコア計算 | しない | する |
+
+`ai_change_review` は、この表では決定的解析寄りです。AI に free-form な裁定をさせず、branch diff、依存、history、テスト近傍という決定的な信号から review queue を作ります。
 
 ## 9. 標準レスポンス
 

@@ -26,6 +26,14 @@ Recommended usage:
 6. publish `report.generate` output when helpful
 7. route `review.list_unknowns` output to human review
 
+`ai_change_review` is advisory-only in v1. For pre-merge branch review, use this shorter flow instead:
+
+1. run `score.compute --domain ai_change_review --base-branch <base> --head-branch <head>`
+2. run `review.list_unknowns --domain ai_change_review --base-branch <base> --head-branch <head>`
+3. route that queue to human review
+
+Do not use `gate.evaluate` or `report.generate` for this domain yet.
+
 For the operational order around self-measurement snapshots, coverage, and release-preflight checks, see [self-measurement-runbook.md](self-measurement-runbook.md).
 For the release-time checklist that covers validation and packaging, see [release-preflight.md](release-preflight.md).
 

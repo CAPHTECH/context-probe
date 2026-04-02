@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-const prompt = process.argv[process.argv.length - 1] ?? "";
+import { readFileSync } from "node:fs";
+
+const prompt = process.argv[process.argv.length - 1] === "-" ? readFileSync(0, "utf8") : process.argv[process.argv.length - 1] ?? "";
 
 let payload;
 if (prompt.includes("canonical domain terms")) {

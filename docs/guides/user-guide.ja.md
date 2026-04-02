@@ -21,6 +21,8 @@
 - `gate.evaluate`
 - `review.list_unknowns`
 
+AI が実装したブランチ差分のうち、人間が重点的にレビューすべき箇所を見たい場合は、`score.compute --domain ai_change_review` と `review.list_unknowns --domain ai_change_review` を使います。この領域は advisory 専用で、初版では `report.generate` と `gate.evaluate` をサポートしません。
+
 ## 目的別の入口
 
 今の目的ごとに、最短の導線を使い分けます。
@@ -108,6 +110,7 @@ npm run dev -- score.compute \
 | 最初の入力を scaffold する | `model.scaffold`, `constraints.scaffold` |
 | 最初の assessment を回す | `score.compute`, `report.generate`, `gate.evaluate` |
 | まだ review が必要な箇所を見る | `review.list_unknowns` |
+| AI 実装ブランチの重点レビュー箇所を見る | `score.compute --domain ai_change_review`, `review.list_unknowns --domain ai_change_review` |
 | 文書からの抽出証拠を確認する | `doc.extract_*` |
 | model/code や term/code の linking を確認する | `trace.link_model_to_code`, `trace.link_terms` |
 | locality や history の証拠を確認する | `history.*` |
@@ -230,6 +233,34 @@ npm run dev -- report.generate \
 
 `result.report` に Markdown 文字列が入り、メトリクス、`confidence`、`unknowns`、`diagnostics` を人間向けに確認できます。
 最近の report には `Measurement Quality` `Suggested Next Evidence` `Action Queue` も入ります。`architecture_design` では入力が揃っていれば `Scenario Quality` と `Locality Watchlist` も出ます。
+
+### 2.5 AI 実装差分の重点レビュー箇所を見る
+
+branch 差分のうち、人間が重点的に見るべき source file を advisory として出したい場合は次を使います。
+
+```bash
+npm run dev -- score.compute \
+  --domain ai_change_review \
+  --repo . \
+  --base-branch main \
+  --head-branch feature/ai-review
+```
+
+```bash
+npm run dev -- review.list_unknowns \
+  --domain ai_change_review \
+  --repo . \
+  --base-branch main \
+  --head-branch feature/ai-review
+```
+
+この領域では、branch diff、依存の広がり、history hotspot、近傍テストの有無、差分サイズを見て review queue を組み立てます。
+
+`score.compute` は `result.diffSummary` と `result.reviewTargets` を返します。`result.reviewTargets` には `path` と代表 `line` を持つ review 候補が入ります。
+
+`review.list_unknowns` は、その target から優先度つきの review queue を作って返します。
+
+`ai_change_review` は advisory 専用です。初版では `report.generate` と `gate.evaluate` は使わず、`score.compute` と `review.list_unknowns` だけを使ってください。
 
 ### 3. ゲート判定を確認する
 

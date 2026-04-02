@@ -3,12 +3,15 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
+import { createAiChangeReviewFixture } from "./ai-change-review.helpers.js";
+import { cleanupTemporaryRepo } from "./helpers.js";
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
 const IPS_CONSTRAINTS_PATH = path.resolve("fixtures/validation/scoring/ips/constraints.yaml");
 const IPS_GOOD_REPO = path.resolve("fixtures/validation/scoring/ips/good-repo");
 const IPS_BASELINE_PATH = path.resolve("fixtures/examples/architecture-sources/contract-baseline.yaml");
 const CTI_GOOD_EXPORT_PATH = path.resolve("fixtures/validation/scoring/cti/export-good-complexity.yaml");
+const SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS = 15_000;
 
 function architectureArgs() {
   return {
@@ -42,4 +45,30 @@ describe("score-driven metadata", () => {
     expect(gateResponse.meta?.runtime?.stages.gateMs).toBeGreaterThanOrEqual(0);
     expect(reviewResponse.meta?.runtime?.stages.reviewMs).toBeGreaterThanOrEqual(0);
   });
+
+  test(
+    "rejects report and gate for ai_change_review because the domain is advisory-only",
+    async () => {
+      const fixture = await createAiChangeReviewFixture();
+      try {
+        const args = {
+          domain: "ai_change_review",
+          repo: fixture.repoPath,
+          policy: POLICY_PATH,
+          "base-branch": fixture.baseBranch,
+          "head-branch": fixture.headBranch,
+        } as const;
+
+        await expect(COMMANDS["report.generate"]!(args, { cwd: process.cwd() })).rejects.toThrow(
+          "`report.generate` does not support `ai_change_review`",
+        );
+        await expect(COMMANDS["gate.evaluate"]!(args, { cwd: process.cwd() })).rejects.toThrow(
+          "`gate.evaluate` does not support `ai_change_review`",
+        );
+      } finally {
+        await cleanupTemporaryRepo(fixture.repoPath);
+      }
+    },
+    SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS,
+  );
 });

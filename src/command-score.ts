@@ -8,6 +8,7 @@ import {
   requireDomainModel,
   requireShadowRolloutRegistry,
 } from "./command-helpers.js";
+import { computeAiChangeReviewCommandResponse, isAiChangeReviewDomain } from "./core/ai-change-review-registry.js";
 import type { CommandContext, CommandResponse } from "./core/contracts.js";
 import { mergeRuntimeSummary } from "./core/measurement-metadata.js";
 import { loadPolicyConfig } from "./core/policy.js";
@@ -35,6 +36,22 @@ export async function handleScoreCompute(
     const scoreResponse = await computeArchitectureScores(
       await buildArchitectureScoreOptions(args, context, policyConfig),
     );
+    return {
+      ...scoreResponse,
+      meta: {
+        ...(scoreResponse.meta ?? {}),
+        runtime: mergeRuntimeSummary(scoreResponse.meta?.runtime, {
+          totalMs: Date.now() - startedAt,
+          stages: {
+            inputLoadMs: Date.now() - startedAt - (scoreResponse.meta?.runtime?.totalMs ?? 0),
+          },
+        }),
+      },
+    };
+  }
+
+  if (isAiChangeReviewDomain(domain)) {
+    const scoreResponse = await computeAiChangeReviewCommandResponse(args, context, policyConfig);
     return {
       ...scoreResponse,
       meta: {

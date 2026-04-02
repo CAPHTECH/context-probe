@@ -1,3 +1,4 @@
+import { AI_CHANGE_REVIEW_PACK } from "../core/ai-change-review-registry.js";
 import type { DomainPack } from "../core/contracts.js";
 
 const DOMAIN_DESIGN_PACK: DomainPack = {
@@ -37,4 +38,4 @@ const ARCHITECTURE_DESIGN_PACK: DomainPack = {
   reviewRules: ["confidence < 0.80"],
 };
 
-export const DOMAIN_PACKS: DomainPack[] = [DOMAIN_DESIGN_PACK, ARCHITECTURE_DESIGN_PACK];
+export const DOMAIN_PACKS: DomainPack[] = [DOMAIN_DESIGN_PACK, ARCHITECTURE_DESIGN_PACK, AI_CHANGE_REVIEW_PACK];

@@ -21,6 +21,8 @@ The first commands to learn are:
 - `gate.evaluate`
 - `review.list_unknowns`
 
+If your goal is to review an AI-authored branch diff and see which files a human should inspect first, use `score.compute --domain ai_change_review` together with `review.list_unknowns --domain ai_change_review`. This domain is advisory-only in v1, so `report.generate` and `gate.evaluate` do not support it yet.
+
 ## Choose Your Path
 
 Use the shortest path for your current goal:
@@ -75,6 +77,38 @@ Use the same boundary throughout the docs:
 - authoritative run: curated input plus observation snapshots
 
 If you need the full repo-application flow, use [repo-apply-playbook.md](repo-apply-playbook.md).
+
+## Quick Map
+
+| Goal | Commands |
+| --- | --- |
+| Run a first assessment | `score.compute`, `report.generate`, `gate.evaluate` |
+| See what still needs review | `review.list_unknowns` |
+| Review an AI-authored branch diff | `score.compute --domain ai_change_review`, `review.list_unknowns --domain ai_change_review` |
+
+## AI Branch Review
+
+Use this flow when you want an advisory queue for the files a human should inspect first on an AI-authored branch.
+
+```bash
+npm run dev -- score.compute \
+  --domain ai_change_review \
+  --repo . \
+  --base-branch main \
+  --head-branch feature/ai-review
+```
+
+```bash
+npm run dev -- review.list_unknowns \
+  --domain ai_change_review \
+  --repo . \
+  --base-branch main \
+  --head-branch feature/ai-review
+```
+
+`score.compute` returns `result.diffSummary` for the compared branches and `result.reviewTargets` for prioritized review candidates with `path` and representative `line`.
+
+`review.list_unknowns` then returns review items derived from those targets, including priority and provenance.
 
 ## First 10 Minutes
 

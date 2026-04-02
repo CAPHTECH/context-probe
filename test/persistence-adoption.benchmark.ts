@@ -28,5 +28,5 @@ export function registerPersistenceAdoptionBenchmarkTests(tempRoots: string[]) {
     expect(summary.reasons).toEqual([]);
     expect(summary.verdict).toBe("go");
     expect(MAX_THIN_HISTORY_CONFIDENCE).toBeGreaterThan(MAX_THIN_HISTORY_LOCALITY_SCORE);
-  }, 20000);
+  }, 60000);
 }

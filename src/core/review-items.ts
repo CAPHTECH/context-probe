@@ -1,4 +1,11 @@
-import type { CommandResponse, GlossaryTerm, InvariantCandidate, ReviewItem, RuleCandidate } from "./contracts.js";
+import type {
+  AiChangeReviewScoreResult,
+  CommandResponse,
+  GlossaryTerm,
+  InvariantCandidate,
+  ReviewItem,
+  RuleCandidate,
+} from "./contracts.js";
 import { classifyReviewItemKind, sortReviewItems } from "./measurement-metadata.js";
 
 type ReviewableEntity = GlossaryTerm | RuleCandidate | InvariantCandidate;
@@ -86,6 +93,22 @@ export function listReviewItems(response: CommandResponse<unknown>): ReviewItem[
     return reviewItems;
   }
   const result = response.result as Record<string, unknown>;
+  if ((result as { domainId?: string }).domainId === "ai_change_review" && Array.isArray(result.reviewTargets)) {
+    const aiChangeResult = response.result as AiChangeReviewScoreResult;
+    return sortReviewItems([
+      ...aiChangeResult.reviewTargets.map((target) => ({
+        reviewItemId: target.targetId,
+        reason: target.reasons[0] ?? "unknown",
+        kind: classifyReviewItemKind(target.summary, target.reasons[0] ?? "unknown"),
+        priority: target.priority,
+        summary: target.summary,
+        confidence: target.confidence,
+        evidenceRefs: target.evidenceRefs,
+        provenance: [{ path: target.path, line: target.line, note: target.changeType }],
+      })),
+      ...reviewItems,
+    ]);
+  }
   if (Array.isArray(result.terms)) {
     reviewItems.push(...getReviewItemsFromEntities(result.terms as GlossaryTerm[], evidenceRefs));
   }

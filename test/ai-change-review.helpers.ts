@@ -1,0 +1,254 @@
+import { execFile as execFileCallback } from "node:child_process";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
+
+const execFile = promisify(execFileCallback);
+
+async function writeRepoFiles(repoPath: string, files: Record<string, string>): Promise<void> {
+  for (const [relativePath, content] of Object.entries(files)) {
+    const targetPath = path.join(repoPath, relativePath);
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, content, "utf8");
+  }
+}
+
+async function appendToFile(repoPath: string, relativePath: string, content: string): Promise<void> {
+  const targetPath = path.join(repoPath, relativePath);
+  const current = await readFile(targetPath, "utf8");
+  await writeFile(targetPath, `${current}${content}`, "utf8");
+}
+
+async function commitAll(repoPath: string, message: string): Promise<void> {
+  await execFile("git", ["add", "."], { cwd: repoPath });
+  await execFile(
+    "git",
+    ["-c", "user.email=tester@example.com", "-c", "user.name=Context Probe Tester", "commit", "-m", message],
+    { cwd: repoPath },
+  );
+}
+
+async function initializeGitRepo(repoPath: string): Promise<void> {
+  await execFile("git", ["init"], { cwd: repoPath });
+  await execFile("git", ["config", "user.email", "tester@example.com"], { cwd: repoPath });
+  await execFile("git", ["config", "user.name", "Context Probe Tester"], { cwd: repoPath });
+}
+
+function buildLargeModule(version: string): string {
+  const lines = Array.from({ length: 40 }, (_, index) => `export const line${index + 1} = "${version}-${index + 1}";`);
+  return `${lines.join("\n")}\n`;
+}
+
+function buildFeatureSharedValueLine(): string {
+  return "  return `feature:" + "$" + "{input.trim().toLowerCase()}`;";
+}
+
+export async function createAiChangeReviewFixture(options?: {
+  withFeatureChanges?: boolean;
+  withRenameChange?: boolean;
+  withDeletedFile?: boolean;
+  withRenamedSharedUtil?: boolean;
+  withDeletedSharedUtil?: boolean;
+}): Promise<{
+  repoPath: string;
+  baseBranch: string;
+  headBranch: string;
+}> {
+  if (options?.withRenamedSharedUtil && options?.withDeletedSharedUtil) {
+    throw new Error("withRenamedSharedUtil and withDeletedSharedUtil are mutually exclusive");
+  }
+
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), "context-probe-ai-change-review-"));
+  await writeRepoFiles(repoPath, {
+    "src/shared/util.ts": [
+      "export function sharedValue(input: string): string {",
+      "  return input.trim().toUpperCase();",
+      "}",
+      "",
+    ].join("\n"),
+    "src/shared/util.test.ts": [
+      'describe("sharedValue", () => {',
+      '  it("keeps a placeholder test nearby", () => {',
+      "    expect(true).toBe(true);",
+      "  });",
+      "});",
+      "",
+    ].join("\n"),
+    "src/app/consumer-a.ts": [
+      'import { sharedValue } from "../shared/util";',
+      "",
+      "export function consumeA(): string {",
+      '  return sharedValue("a");',
+      "}",
+      "",
+    ].join("\n"),
+    "src/app/consumer-b.ts": [
+      'import { sharedValue } from "../shared/util";',
+      "",
+      "export function consumeB(): string {",
+      '  return sharedValue("b");',
+      "}",
+      "",
+    ].join("\n"),
+    "src/app/consumer-c.ts": [
+      'import { sharedValue } from "../shared/util";',
+      "",
+      "export function consumeC(): string {",
+      '  return sharedValue("c");',
+      "}",
+      "",
+    ].join("\n"),
+    "src/service/payment.ts": ["export function charge(amount: number): number {", "  return amount;", "}", ""].join(
+      "\n",
+    ),
+    "src/large.ts": buildLargeModule("base"),
+  });
+
+  await initializeGitRepo(repoPath);
+  await commitAll(repoPath, "feat: initial");
+  await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
+
+  await appendToFile(repoPath, "src/shared/util.ts", '\nexport const historyMarkerOne = "main-1";\n');
+  await appendToFile(repoPath, "src/app/consumer-a.ts", '\nexport const consumerAMarker = "main-1";\n');
+  await commitAll(repoPath, "feat: hotspot seed one");
+
+  await appendToFile(repoPath, "src/shared/util.ts", '\nexport const historyMarkerTwo = "main-2";\n');
+  await appendToFile(repoPath, "src/app/consumer-b.ts", '\nexport const consumerBMarker = "main-2";\n');
+  await commitAll(repoPath, "feat: hotspot seed two");
+
+  const headBranch = "feature/ai-review";
+  await execFile("git", ["checkout", "-b", headBranch], { cwd: repoPath });
+
+  if (options?.withFeatureChanges !== false) {
+    await writeRepoFiles(repoPath, {
+      "src/shared/util.ts": [
+        "export function sharedValue(input: string): string {",
+        buildFeatureSharedValueLine(),
+        "}",
+        "",
+        'export const historyMarkerOne = "main-1";',
+        'export const historyMarkerTwo = "main-2";',
+        'export const featureMarker = "feature";',
+        "",
+      ].join("\n"),
+      "src/service/payment.ts": [
+        "export function charge(amount: number): number {",
+        "  return Math.round(amount * 1.1);",
+        "}",
+        "",
+      ].join("\n"),
+      "src/large.ts": buildLargeModule("feature"),
+    });
+    await commitAll(repoPath, "feat: AI branch changes");
+  }
+
+  if (options?.withRenameChange) {
+    await execFile("git", ["mv", "src/app/consumer-c.ts", "src/app/consumer-d.ts"], { cwd: repoPath });
+  }
+
+  if (options?.withDeletedFile) {
+    await execFile("git", ["rm", "-f", "src/service/payment.ts"], { cwd: repoPath });
+  }
+
+  if (options?.withRenamedSharedUtil) {
+    await execFile("git", ["mv", "src/shared/util.ts", "src/shared/util-renamed.ts"], { cwd: repoPath });
+  }
+
+  if (options?.withDeletedSharedUtil) {
+    await execFile("git", ["rm", "-f", "src/shared/util.ts"], { cwd: repoPath });
+  }
+
+  if (
+    options?.withRenameChange ||
+    options?.withDeletedFile ||
+    options?.withRenamedSharedUtil ||
+    options?.withDeletedSharedUtil
+  ) {
+    await commitAll(repoPath, "feat: branch rename and deletion");
+  }
+
+  return {
+    repoPath,
+    baseBranch: "main",
+    headBranch,
+  };
+}
+
+export async function createSparseAiChangeReviewFixture(): Promise<{
+  repoPath: string;
+  baseBranch: string;
+  headBranch: string;
+}> {
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), "context-probe-ai-change-review-sparse-"));
+  await writeRepoFiles(repoPath, {
+    "src/lonely.ts": ["export function lonely(): number {", "  return 1;", "}", ""].join("\n"),
+  });
+
+  await initializeGitRepo(repoPath);
+  await commitAll(repoPath, "feat: initial");
+  await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
+
+  const headBranch = "feature/sparse-history";
+  await execFile("git", ["checkout", "-b", headBranch], { cwd: repoPath });
+  await writeRepoFiles(repoPath, {
+    "src/lonely.ts": ["export function lonely(): number {", "  return 2;", "}", ""].join("\n"),
+  });
+  await commitAll(repoPath, "feat: update lonely");
+
+  return {
+    repoPath,
+    baseBranch: "main",
+    headBranch,
+  };
+}
+
+export async function createJsSpecifierDeleteAiChangeReviewFixture(): Promise<{
+  repoPath: string;
+  baseBranch: string;
+  headBranch: string;
+}> {
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), "context-probe-ai-change-review-js-delete-"));
+  await writeRepoFiles(repoPath, {
+    "src/shared/util.ts": ["export function util(): number {", "  return 1;", "}", ""].join("\n"),
+    "src/app/consumer-a.ts": [
+      'import { util } from "../shared/util.js";',
+      "",
+      "export function consumeA(): number {",
+      "  return util();",
+      "}",
+      "",
+    ].join("\n"),
+    "src/app/consumer-b.ts": [
+      'import { util } from "../shared/util.js";',
+      "",
+      "export function consumeB(): number {",
+      "  return util();",
+      "}",
+      "",
+    ].join("\n"),
+    "src/app/consumer-c.ts": [
+      'import { util } from "../shared/util.js";',
+      "",
+      "export function consumeC(): number {",
+      "  return util();",
+      "}",
+      "",
+    ].join("\n"),
+  });
+
+  await initializeGitRepo(repoPath);
+  await commitAll(repoPath, "feat: initial");
+  await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
+
+  const headBranch = "feature/delete-js-specifier";
+  await execFile("git", ["checkout", "-b", headBranch], { cwd: repoPath });
+  await execFile("git", ["rm", "-f", "src/shared/util.ts"], { cwd: repoPath });
+  await commitAll(repoPath, "feat: delete util");
+
+  return {
+    repoPath,
+    baseBranch: "main",
+    headBranch,
+  };
+}

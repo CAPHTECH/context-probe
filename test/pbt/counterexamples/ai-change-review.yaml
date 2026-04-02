@@ -1,0 +1,25 @@
+version: "1.0"
+counterexamples:
+  - id: "ai-change-review-rename-previous-path-signals"
+    module: "src/core/ai-change-review-targets.ts"
+    discovered: "2026-04-02"
+    description: "A renamed hotspot file dropped wide_blast_radius and history_hotspot when only the previous path carried dependency and history evidence."
+    input:
+      path: "src/shared/util-renamed.ts"
+      previousPath: "src/shared/util.ts"
+      reverseDependencyCountAtPreviousPath: 3
+      historyHotspotCountAtPreviousPath: 2
+    expected: 'priority === "high" and reasons include "wide_blast_radius" and "history_hotspot"'
+    regression_test: "test/ai-change-review.test.ts::renamed hotspot files inherit dependency and history signals from the previous path"
+  - id: "ai-change-review-delete-stale-imports"
+    module: "src/core/ai-change-review-context.ts"
+    discovered: "2026-04-02"
+    description: "A deleted dependency hub ignored stale downstream imports because missing targets were not counted in reverse dependency analysis."
+    input:
+      path: "src/shared/util.ts"
+      staleImports:
+        - "src/app/consumer-a.ts"
+        - "src/app/consumer-b.ts"
+        - "src/app/consumer-c.ts"
+    expected: 'priority === "high" and reasons include "wide_blast_radius"'
+    regression_test: "test/ai-change-review.test.ts::deleted dependency hubs still surface stale downstream imports as blast radius"
