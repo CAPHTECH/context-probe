@@ -1,6 +1,7 @@
 import type { CommandArgs } from "./command-helpers.js";
 import { getProfile } from "./command-helpers.js";
 import type {
+  AiChangeReviewScoreResult,
   ArchitectureScenarioQualitySummary,
   CommandContext,
   CommandResponse,
@@ -27,7 +28,7 @@ interface ArchitectureScoreResult {
   localityWatchlist?: LocalityWatchlistItem[];
 }
 
-type ScorePayload = DomainDesignScoreResult | ArchitectureScoreResult;
+type ScorePayload = DomainDesignScoreResult | ArchitectureScoreResult | AiChangeReviewScoreResult;
 type ScoreCommand = (args: CommandArgs, context: CommandContext) => Promise<CommandResponse<unknown>>;
 
 export async function handleReviewListUnknowns(
@@ -74,6 +75,9 @@ export async function handleReportGenerate(
 ): Promise<CommandResponse<ScorePayload | MarkdownReportResult>> {
   const startedAt = Date.now();
   const response = (await scoreCompute(args, context)) as CommandResponse<ScorePayload>;
+  if (response.result.domainId === "ai_change_review") {
+    throw new Error("`report.generate` does not support `ai_change_review` yet. Use `score.compute` or `review.list_unknowns`.");
+  }
   const format = typeof args.format === "string" ? args.format : "json";
   if (format === "md") {
     const renderStartedAt = Date.now();
@@ -112,6 +116,9 @@ export async function handleGateEvaluate(
 ): Promise<CommandResponse<MeasurementGateResult>> {
   const startedAt = Date.now();
   const response = (await scoreCompute(args, context)) as CommandResponse<ScorePayload>;
+  if (response.result.domainId === "ai_change_review") {
+    throw new Error("`gate.evaluate` does not support `ai_change_review` yet because this domain is advisory-only.");
+  }
   const policyConfig = await loadPolicyConfig(typeof args.policy === "string" ? args.policy : undefined);
   const gate = evaluateGate(response, policyConfig, getProfile(args));
   const pilot =

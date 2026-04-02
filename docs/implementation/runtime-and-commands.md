@@ -53,6 +53,28 @@ Wraps `score.compute` and applies policy thresholds.
 
 Turns unknowns, low-confidence signals, and collisions into review items.
 
+### `score.compute --domain ai_change_review`
+
+Advisory branch-diff review flow for AI-authored changes.
+
+Required inputs:
+
+- `--repo`
+- `--base-branch`
+- `--head-branch`
+
+Current implementation:
+
+- diffs `git merge-base(base, head)..head`
+- parses the current working tree to count reverse dependencies
+- inspects repository history to flag changed files that overlap with hotspots
+- checks nearby tests and diff size
+- returns `result.diffSummary` and `result.reviewTargets`
+
+`review.list_unknowns` converts `result.reviewTargets` into review items with `path` and representative `line` in item provenance.
+
+This domain is advisory-only in v1. `report.generate` and `gate.evaluate` do not support it.
+
 ### `history.analyze_persistence`
 
 Experimental history-topology inspection for co-change structure.

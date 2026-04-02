@@ -11,7 +11,7 @@ import {
 import type { CommandContext, CommandResponse } from "./core/contracts.js";
 import { mergeRuntimeSummary } from "./core/measurement-metadata.js";
 import { loadPolicyConfig } from "./core/policy.js";
-import { computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
+import { computeAiChangeReviewScores, computeArchitectureScores, computeDomainDesignScores } from "./core/scoring.js";
 import {
   evaluateShadowRolloutGate,
   loadShadowRolloutRegistry,
@@ -35,6 +35,35 @@ export async function handleScoreCompute(
     const scoreResponse = await computeArchitectureScores(
       await buildArchitectureScoreOptions(args, context, policyConfig),
     );
+    return {
+      ...scoreResponse,
+      meta: {
+        ...(scoreResponse.meta ?? {}),
+        runtime: mergeRuntimeSummary(scoreResponse.meta?.runtime, {
+          totalMs: Date.now() - startedAt,
+          stages: {
+            inputLoadMs: Date.now() - startedAt - (scoreResponse.meta?.runtime?.totalMs ?? 0),
+          },
+        }),
+      },
+    };
+  }
+
+  if (domain === "ai_change_review") {
+    const repoPath = getRootPath(args, context);
+    const baseBranch = typeof args["base-branch"] === "string" ? args["base-branch"] : undefined;
+    const headBranch = typeof args["head-branch"] === "string" ? args["head-branch"] : undefined;
+    if (!baseBranch || !headBranch) {
+      throw new Error("`--base-branch` and `--head-branch` are required for `--domain ai_change_review`");
+    }
+    const scoreResponse = await computeAiChangeReviewScores({
+      repoPath,
+      baseBranch,
+      headBranch,
+      policyConfig,
+      profileName: getProfile(args),
+      ...(context.reportProgress ? { progressReporter: context.reportProgress } : {}),
+    });
     return {
       ...scoreResponse,
       meta: {

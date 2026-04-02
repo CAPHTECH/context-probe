@@ -108,6 +108,15 @@ export function mergeRuntimeSummary(
 }
 
 export function classifyReviewItemKind(summary: string, reason: string): ReviewItemKind {
+  if (reason === "wide_blast_radius") {
+    return "wide_blast_radius";
+  }
+  if (reason === "test_gap") {
+    return "test_gap";
+  }
+  if (reason === "large_change") {
+    return "large_change";
+  }
   if (reason === "low_confidence") {
     return "low_confidence";
   }
@@ -126,25 +135,48 @@ export function classifyReviewItemKind(summary: string, reason: string): ReviewI
   return "unknown";
 }
 
+function reviewItemPriorityRank(priority: ReviewItem["priority"]): number {
+  switch (priority) {
+    case "high":
+      return 0;
+    case "medium":
+      return 1;
+    case "low":
+      return 2;
+    default:
+      return 3;
+  }
+}
+
 function reviewItemPriority(kind: ReviewItemKind): number {
   switch (kind) {
-    case "missing_input":
+    case "wide_blast_radius":
       return 0;
-    case "proxy":
-      return 1;
-    case "low_confidence":
-      return 2;
-    case "collision":
-      return 3;
     case "history_hotspot":
+      return 1;
+    case "test_gap":
+      return 2;
+    case "large_change":
+      return 3;
+    case "missing_input":
       return 4;
-    default:
+    case "proxy":
       return 5;
+    case "low_confidence":
+      return 6;
+    case "collision":
+      return 7;
+    default:
+      return 8;
   }
 }
 
 export function sortReviewItems(items: ReviewItem[]): ReviewItem[] {
   return [...items].sort((left, right) => {
+    const byPriority = reviewItemPriorityRank(left.priority) - reviewItemPriorityRank(right.priority);
+    if (byPriority !== 0) {
+      return byPriority;
+    }
     const leftKind = left.kind ?? classifyReviewItemKind(left.summary, left.reason);
     const rightKind = right.kind ?? classifyReviewItemKind(right.summary, right.reason);
     const byKind = reviewItemPriority(leftKind) - reviewItemPriority(rightKind);

@@ -37,4 +37,12 @@ const ARCHITECTURE_DESIGN_PACK: DomainPack = {
   reviewRules: ["confidence < 0.80"],
 };
 
-export const DOMAIN_PACKS: DomainPack[] = [DOMAIN_DESIGN_PACK, ARCHITECTURE_DESIGN_PACK];
+const AI_CHANGE_REVIEW_PACK: DomainPack = {
+  id: "ai_change_review",
+  version: "0.1",
+  commands: ["score.compute", "review.list_unknowns"],
+  metrics: [],
+  reviewRules: ["confidence < 0.75", "unknowns_count > 0"],
+};
+
+export const DOMAIN_PACKS: DomainPack[] = [DOMAIN_DESIGN_PACK, ARCHITECTURE_DESIGN_PACK, AI_CHANGE_REVIEW_PACK];

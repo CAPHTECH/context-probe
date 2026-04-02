@@ -75,6 +75,14 @@ validation と packaging を含む release 前チェックは [release-preflight
 6. 必要に応じて `report.generate`
 7. `review.list_unknowns` を人手レビューへ回す
 
+`ai_change_review` は初版では advisory 専用です。pre-merge diff で使う場合は次の順を推奨します。
+
+1. `score.compute --domain ai_change_review --base-branch <base> --head-branch <head>`
+2. `review.list_unknowns --domain ai_change_review --base-branch <base> --head-branch <head>`
+3. queue を人手レビューへ回す
+
+この領域では `gate.evaluate` と `report.generate` は使いません。
+
 ### 4.1 ドメイン設計向け
 
 - 新規 `boundary leak` が増えたら fail
@@ -93,7 +101,7 @@ validation と packaging を含む release 前チェックは [release-preflight
 
 | モード | 用途 |
 |---|---|
-| `pre_merge_diff` | PR単位の差分チェック |
+| `pre_merge_diff` | PR単位の差分チェック。`ai_change_review` の advisory review queue もここに含む |
 | `nightly_full` | 夜間フルスキャン |
 | `release_gate` | リリース前の基準確認 |
 | `candidate_compare` | 設計案比較 |
@@ -121,6 +129,7 @@ validation と packaging を含む release 前チェックは [release-preflight
 - ownership / security 情報が不足している
 - 破壊的契約変更が疑われる
 - history hotspot や scenario input gap が review に出ている
+- branch diff で `wide_blast_radius` `history_hotspot` `test_gap` `large_change` が出ている
 
 ### 7.2 レビューの記録
 
