@@ -29,6 +29,12 @@ async function commitAll(repoPath: string, message: string): Promise<void> {
   );
 }
 
+async function initializeGitRepo(repoPath: string): Promise<void> {
+  await execFile("git", ["init"], { cwd: repoPath });
+  await execFile("git", ["config", "user.email", "tester@example.com"], { cwd: repoPath });
+  await execFile("git", ["config", "user.name", "Context Probe Tester"], { cwd: repoPath });
+}
+
 function buildLargeModule(version: string): string {
   const lines = Array.from({ length: 40 }, (_, index) => `export const line${index + 1} = "${version}-${index + 1}";`);
   return `${lines.join("\n")}\n`;
@@ -95,9 +101,7 @@ export async function createAiChangeReviewFixture(options?: {
     "src/large.ts": buildLargeModule("base"),
   });
 
-  await execFile("git", ["init"], { cwd: repoPath });
-  await execFile("git", ["config", "user.email", "tester@example.com"], { cwd: repoPath });
-  await execFile("git", ["config", "user.name", "Context Probe Tester"], { cwd: repoPath });
+  await initializeGitRepo(repoPath);
   await commitAll(repoPath, "feat: initial");
   await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
 
@@ -159,6 +163,84 @@ export async function createAiChangeReviewFixture(options?: {
   ) {
     await commitAll(repoPath, "feat: branch rename and deletion");
   }
+
+  return {
+    repoPath,
+    baseBranch: "main",
+    headBranch,
+  };
+}
+
+export async function createSparseAiChangeReviewFixture(): Promise<{
+  repoPath: string;
+  baseBranch: string;
+  headBranch: string;
+}> {
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), "context-probe-ai-change-review-sparse-"));
+  await writeRepoFiles(repoPath, {
+    "src/lonely.ts": ["export function lonely(): number {", "  return 1;", "}", ""].join("\n"),
+  });
+
+  await initializeGitRepo(repoPath);
+  await commitAll(repoPath, "feat: initial");
+  await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
+
+  const headBranch = "feature/sparse-history";
+  await execFile("git", ["checkout", "-b", headBranch], { cwd: repoPath });
+  await writeRepoFiles(repoPath, {
+    "src/lonely.ts": ["export function lonely(): number {", "  return 2;", "}", ""].join("\n"),
+  });
+  await commitAll(repoPath, "feat: update lonely");
+
+  return {
+    repoPath,
+    baseBranch: "main",
+    headBranch,
+  };
+}
+
+export async function createJsSpecifierDeleteAiChangeReviewFixture(): Promise<{
+  repoPath: string;
+  baseBranch: string;
+  headBranch: string;
+}> {
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), "context-probe-ai-change-review-js-delete-"));
+  await writeRepoFiles(repoPath, {
+    "src/shared/util.ts": ["export function util(): number {", "  return 1;", "}", ""].join("\n"),
+    "src/app/consumer-a.ts": [
+      'import { util } from "../shared/util.js";',
+      "",
+      "export function consumeA(): number {",
+      "  return util();",
+      "}",
+      "",
+    ].join("\n"),
+    "src/app/consumer-b.ts": [
+      'import { util } from "../shared/util.js";',
+      "",
+      "export function consumeB(): number {",
+      "  return util();",
+      "}",
+      "",
+    ].join("\n"),
+    "src/app/consumer-c.ts": [
+      'import { util } from "../shared/util.js";',
+      "",
+      "export function consumeC(): number {",
+      "  return util();",
+      "}",
+      "",
+    ].join("\n"),
+  });
+
+  await initializeGitRepo(repoPath);
+  await commitAll(repoPath, "feat: initial");
+  await execFile("git", ["branch", "-M", "main"], { cwd: repoPath });
+
+  const headBranch = "feature/delete-js-specifier";
+  await execFile("git", ["checkout", "-b", headBranch], { cwd: repoPath });
+  await execFile("git", ["rm", "-f", "src/shared/util.ts"], { cwd: repoPath });
+  await commitAll(repoPath, "feat: delete util");
 
   return {
     repoPath,

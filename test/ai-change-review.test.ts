@@ -4,7 +4,11 @@ import { describe, expect, test } from "vitest";
 
 import { COMMANDS } from "../src/commands.js";
 import type { AiChangeReviewScoreResult } from "../src/core/contracts.js";
-import { createAiChangeReviewFixture } from "./ai-change-review.helpers.js";
+import {
+  createAiChangeReviewFixture,
+  createJsSpecifierDeleteAiChangeReviewFixture,
+  createSparseAiChangeReviewFixture,
+} from "./ai-change-review.helpers.js";
 import { cleanupTemporaryRepo } from "./helpers.js";
 
 const POLICY_PATH = path.resolve("fixtures/policies/default.yaml");
@@ -182,6 +186,61 @@ describe("ai change review scoring", () => {
         expect(deletedTarget?.priority).toBe("high");
         expect(deletedTarget?.reasons).toEqual(expect.arrayContaining(["wide_blast_radius", "history_hotspot"]));
         expect(deletedTarget?.summary).toContain("downstream dependencies");
+      } finally {
+        await cleanupTemporaryRepo(fixture.repoPath);
+      }
+    },
+    SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS,
+  );
+
+  test(
+    "sparse history does not promote a file into history_hotspot after a single follow-up commit",
+    async () => {
+      const fixture = await createSparseAiChangeReviewFixture();
+      try {
+        const response = await COMMANDS["score.compute"]!(
+          {
+            domain: "ai_change_review",
+            repo: fixture.repoPath,
+            policy: POLICY_PATH,
+            "base-branch": fixture.baseBranch,
+            "head-branch": fixture.headBranch,
+          },
+          { cwd: process.cwd() },
+        );
+        const result = response.result as AiChangeReviewScoreResult;
+        const lonelyTarget = result.reviewTargets.find((target) => target.path === "src/lonely.ts");
+
+        expect(lonelyTarget?.reasons).not.toContain("history_hotspot");
+        expect(lonelyTarget?.reasons).toContain("test_gap");
+      } finally {
+        await cleanupTemporaryRepo(fixture.repoPath);
+      }
+    },
+    SLOW_AI_CHANGE_REVIEW_TEST_TIMEOUT_MS,
+  );
+
+  test(
+    "deleted files imported through .js specifiers still surface wide blast radius",
+    async () => {
+      const fixture = await createJsSpecifierDeleteAiChangeReviewFixture();
+      try {
+        const response = await COMMANDS["score.compute"]!(
+          {
+            domain: "ai_change_review",
+            repo: fixture.repoPath,
+            policy: POLICY_PATH,
+            "base-branch": fixture.baseBranch,
+            "head-branch": fixture.headBranch,
+          },
+          { cwd: process.cwd() },
+        );
+        const result = response.result as AiChangeReviewScoreResult;
+        const deletedTarget = result.reviewTargets.find((target) => target.path === "src/shared/util.ts");
+
+        expect(deletedTarget?.priority).toBe("high");
+        expect(deletedTarget?.reasons).toContain("wide_blast_radius");
+        expect(deletedTarget?.reasons).not.toContain("history_hotspot");
       } finally {
         await cleanupTemporaryRepo(fixture.repoPath);
       }

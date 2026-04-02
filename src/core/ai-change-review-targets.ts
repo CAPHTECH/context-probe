@@ -6,6 +6,8 @@ import type { Evidence } from "./contracts.js";
 import { isSourceFile } from "./io.js";
 import { confidenceFromSignals, toEvidence } from "./response.js";
 
+const HISTORY_HOTSPOT_MIN_COMMITS = 3;
+
 function getSignalPaths(file: AiChangeReviewChangedFile): string[] {
   return Array.from(new Set([file.path, file.previousPath].filter((value): value is string => Boolean(value))));
 }
@@ -104,7 +106,7 @@ function scoreAiChangeReviewFile(
   if (reverseDependencyCount >= 3) {
     reasons.push("wide_blast_radius");
   }
-  if (historyHotspotCount >= 2 || hasHistoryWatchlistHit) {
+  if (historyHotspotCount >= HISTORY_HOTSPOT_MIN_COMMITS || hasHistoryWatchlistHit) {
     reasons.push("history_hotspot");
   }
   if ((file.changedLines >= 30 || file.hunks.length >= 3) && !reasons.includes("large_change")) {

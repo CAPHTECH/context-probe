@@ -7,6 +7,7 @@ import { normalizeHistory } from "./history-normalization.js";
 import type { ProgressTracker } from "./progress.js";
 
 const TEST_FILE_PATTERN = /(?:^|\/)(?:__tests__\/|tests?\/|specs?\/)|\.(?:test|spec)\.[^.]+$/i;
+const HISTORY_HOTSPOT_MIN_COMMITS = 3;
 
 export interface AiChangeReviewHistoryState {
   counts: Map<string, number>;
@@ -89,7 +90,18 @@ function resolveMissingDependencySignalPaths(
   }
   const sourceDirectory = dependency.source.includes("/") ? path.posix.dirname(dependency.source) : ".";
   const normalizedSpecifier = path.posix.normalize(path.posix.join(sourceDirectory, dependency.specifier));
-  return Array.from(signalPathAliases.get(normalizedSpecifier) ?? []);
+  const strippedSpecifier = stripKnownExtensions(normalizedSpecifier);
+  const candidateSpecifiers = new Set([normalizedSpecifier, strippedSpecifier]);
+  if (strippedSpecifier.endsWith("/index")) {
+    candidateSpecifiers.add(strippedSpecifier.slice(0, -"/index".length));
+  }
+  const signalPaths = new Set<string>();
+  for (const candidateSpecifier of candidateSpecifiers) {
+    for (const signalPath of signalPathAliases.get(candidateSpecifier) ?? []) {
+      signalPaths.add(signalPath);
+    }
+  }
+  return Array.from(signalPaths);
 }
 
 function collectReverseDependencySources(
@@ -128,7 +140,12 @@ function buildHistoryHotspotState(commits: Array<{ files: string[] }>): AiChange
   const ranked = [...counts.entries()].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
   return {
     counts,
-    watchlist: new Set(ranked.slice(0, Math.min(3, ranked.length)).map(([filePath]) => filePath)),
+    watchlist: new Set(
+      ranked
+        .filter(([, count]) => count >= HISTORY_HOTSPOT_MIN_COMMITS)
+        .slice(0, Math.min(3, ranked.length))
+        .map(([filePath]) => filePath),
+    ),
   };
 }
 
